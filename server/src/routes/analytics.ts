@@ -40,9 +40,9 @@ analyticsRouter.get('/summary', (req: Request, res: Response) => {
   const successRate = totalRequests > 0 ? (stats.success_count / totalRequests) * 100 : 0;
   const totalTokens = (stats.total_input_tokens ?? 0) + (stats.total_output_tokens ?? 0);
 
-  // Estimate cost savings: average ~$3/M input + $15/M output tokens (GPT-4o pricing)
-  const inputCost = ((stats.total_input_tokens ?? 0) / 1_000_000) * 3;
-  const outputCost = ((stats.total_output_tokens ?? 0) / 1_000_000) * 15;
+  // Estimate cost savings: average ~$3/M input + $15/M output tokens (GPT-4o pricing) in INR (1 USD = 83 INR)
+  const inputCost = ((stats.total_input_tokens ?? 0) / 1_000_000) * 3 * 83;
+  const outputCost = ((stats.total_output_tokens ?? 0) / 1_000_000) * 15 * 83;
 
   res.json({
     totalRequests,
@@ -131,13 +131,13 @@ analyticsRouter.get('/timeline', (req: Request, res: Response) => {
 
   const rows = db.prepare(`
     SELECT
-      strftime('${dateFormat}', created_at) as timestamp,
+      strftime('${dateFormat}', datetime(created_at, '+5 hours', '30 minutes')) as timestamp,
       COUNT(*) as requests,
       SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success_count,
       SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) as failure_count
     FROM requests
     WHERE created_at >= ?
-    GROUP BY strftime('${dateFormat}', created_at)
+    GROUP BY strftime('${dateFormat}', datetime(created_at, '+5 hours', '30 minutes'))
     ORDER BY timestamp ASC
   `).all(since) as any[];
 
