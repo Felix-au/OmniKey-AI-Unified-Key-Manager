@@ -24,26 +24,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [localDbEnabled, setLocalDbEnabled] = useState(true);
 
   useEffect(() => {
-    let unsubscribe: (() => void) | null = null;
+    let isMounted = true;
+    let hasAuthResolved = false;
+    let configLoaded = false;
+    let isLocal = true;
 
-    // 1. Detect dynamic database configuration mode from backend
+    // 1. Subscribe to Firebase Auth state immediately in parallel
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (!isMounted) return;
+      setUser(currentUser);
+      hasAuthResolved = true;
+      
+      // If backend config is already loaded and is cloud mode, resolve loading
+      if (configLoaded && !isLocal) {
+        setLoading(false);
+      }
+    });
+
+    // 2. Set up a defensive 3-second timeout to prevent getting stuck if Firebase endpoints are slow/unreachable
+    const timeoutId = setTimeout(() => {
+      if (isMounted && !hasAuthResolved && configLoaded && !isLocal) {
+        console.warn('Firebase Auth SDK initial state check timed out (3s). Proceeding to login interface.');
+        setLoading(false);
+      }
+    }, 3000);
+
+    // 3. Query dynamic config from backend
     async function initAuth() {
       try {
         const config = await apiFetch<{ localDbEnabled: boolean }>('/api/config');
+        if (!isMounted) return;
+        
+        configLoaded = true;
+        isLocal = config.localDbEnabled;
         setLocalDbEnabled(config.localDbEnabled);
         
         if (config.localDbEnabled) {
-          // Local mode active: immediately complete loading with zero Firebase dependencies (offline-friendly)
+          // Local mode: immediately complete loading with zero external auth checks
           setLoading(false);
         } else {
-          // Cloud mode active: subscribe to Firebase Auth events
-          unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            setUser(currentUser);
+          // Cloud mode: resolve loading immediately if auth has already resolved
+          if (hasAuthResolved) {
             setLoading(false);
-          });
+          }
         }
       } catch (e) {
         console.warn('Failed to load backend config, defaulting to offline local mode:', e);
+        if (!isMounted) return;
         setLocalDbEnabled(true);
         setLoading(false);
       }
@@ -52,7 +79,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initAuth();
 
     return () => {
-      if (unsubscribe) unsubscribe();
+      isMounted = false;
+      unsubscribe();
+      clearTimeout(timeoutId);
     };
   }, []);
 
