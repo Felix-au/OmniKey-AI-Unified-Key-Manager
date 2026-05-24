@@ -1,3 +1,13 @@
+import dns from 'node:dns';
+
+// Programmatically resolve DNS SRV records using Google & Cloudflare DNS.
+// Bypasses local ISP restrictions that throw querySrv ECONNREFUSED.
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {
+  console.warn('[DNS] Failed to set public DNS servers:', e);
+}
+
 import './env.js';
 import { createApp } from './app.js';
 import { initDb } from './db/index.js';

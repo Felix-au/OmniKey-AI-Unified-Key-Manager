@@ -1,4 +1,13 @@
+import dns from 'node:dns';
 import mongoose from 'mongoose';
+
+// Programmatically resolve DNS SRV records using Google & Cloudflare DNS.
+// Bypasses local ISP restrictions that throw querySrv ECONNREFUSED.
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {
+  console.warn('[DNS] Failed to set public DNS servers:', e);
+}
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
