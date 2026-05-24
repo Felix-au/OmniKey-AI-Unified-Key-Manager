@@ -86,3 +86,8 @@ export function maskKey(key: string): string {
   if (key.length <= 8) return '****' + key.slice(-4);
   return key.slice(0, 4) + '...' + key.slice(-4);
 }
+
+export function hashPassword(password: string): string {
+  const salt = 'omnikey-admin-salt-12345';
+  return crypto.createHmac('sha256', salt).update(password).digest('hex');
+}

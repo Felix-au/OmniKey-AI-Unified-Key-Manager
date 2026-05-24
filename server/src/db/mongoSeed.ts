@@ -3,6 +3,8 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { Model } from '../models/Model.js';
+import { AdminUser } from '../models/AdminUser.js';
+import { hashPassword } from '../lib/crypto.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SQLITE_PATH = path.resolve(__dirname, '../../data/OmniKeyAI.db');
@@ -80,3 +82,22 @@ function getDefaultModels() {
     { platform: 'cloudflare', modelId: '@cf/meta/llama-3.1-70b-instruct', displayName: 'Llama 3.1 70B (CF)', intelligenceRank: 13, speedRank: 11, sizeLabel: 'Medium', rpmLimit: null, rpdLimit: null, tpmLimit: null, tpdLimit: null, monthlyTokenBudget: '~18-45M', contextWindow: 131072, enabled: true }
   ];
 }
+
+export async function seedMongoAdmin(): Promise<void> {
+  try {
+    const existing = await AdminUser.findOne({ username: 'admin' });
+    if (existing) {
+      return;
+    }
+
+    const passwordHash = hashPassword('admin');
+    await AdminUser.create({
+      username: 'admin',
+      passwordHash
+    });
+    console.log('[MongoDB] Seeded default admin account successfully.');
+  } catch (err: any) {
+    console.error('[MongoDB] Failed to seed admin account:', err.message || err);
+  }
+}
+

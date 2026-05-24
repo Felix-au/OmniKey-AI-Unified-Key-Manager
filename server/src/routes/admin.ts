@@ -1,133 +1,584 @@
 import { Router } from 'express';
-import { requireDashboardAuth, AuthenticatedRequest } from '../middleware/auth.js';
+import type { Response, NextFunction, Request } from 'express';
+import crypto from 'crypto';
+import { getDb } from '../db/index.js';
+import { hashPassword } from '../lib/crypto.js';
+import { isLocalDbEnabled } from '../db/context.js';
+import { AdminUser } from '../models/AdminUser.js';
 import { UserSettings } from '../models/UserSettings.js';
 import { ApiKey } from '../models/ApiKey.js';
 import { RequestLog } from '../models/RequestLog.js';
+import { Model } from '../models/Model.js';
 
 export const adminRouter = Router();
 
-// Apply auth middleware to all admin endpoints
-adminRouter.use(requireDashboardAuth);
+// In-memory admin session storage
+const ADMIN_SESSIONS = new Set<string>();
+
+/**
+ * Middleware to secure admin endpoints.
+ * Verifies the admin token from headers.
+ */
+export function requireAdminAuth(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    res.status(401).json({ error: { message: 'Unauthorized admin access' } });
+    return;
+  }
+  const token = authHeader.substring(7);
+  if (!ADMIN_SESSIONS.has(token)) {
+    res.status(401).json({ error: { message: 'Session expired or invalid' } });
+    return;
+  }
+  next();
+}
+
+/**
+ * POST /api/admin/login
+ * Public login endpoint for admin.
+ */
+adminRouter.post('/login', async (req, res, next) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      res.status(400).json({ error: { message: 'Username and password required' } });
+      return;
+    }
+
+    const hashed = hashPassword(password);
+    let match = false;
+
+    if (isLocalDbEnabled()) {
+      const db = getDb();
+      const row = db.prepare('SELECT * FROM admin_users WHERE username = ?').get(username) as any;
+      if (row && row.password_hash === hashed) {
+        match = true;
+      }
+    } else {
+      const user = await AdminUser.findOne({ username });
+      if (user && user.passwordHash === hashed) {
+        match = true;
+      }
+    }
+
+    if (!match) {
+      res.status(401).json({ error: { message: 'Invalid admin credentials' } });
+      return;
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    ADMIN_SESSIONS.add(token);
+    res.json({ success: true, token });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/admin/change-credentials
+ * Secure endpoint to update admin credentials.
+ */
+adminRouter.post('/change-credentials', requireAdminAuth, async (req, res, next) => {
+  try {
+    const { newUsername, newPassword } = req.body;
+    if (!newUsername || !newPassword) {
+      res.status(400).json({ error: { message: 'New username and password required' } });
+      return;
+    }
+
+    const hashed = hashPassword(newPassword);
+
+    if (isLocalDbEnabled()) {
+      const db = getDb();
+      db.prepare('DELETE FROM admin_users').run();
+      db.prepare('INSERT INTO admin_users (username, password_hash) VALUES (?, ?)').run(newUsername, hashed);
+    } else {
+      await AdminUser.deleteMany({});
+      await AdminUser.create({ username: newUsername, passwordHash: hashed });
+    }
+
+    res.json({ success: true, message: 'Admin credentials updated successfully' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/admin/flush-logs
+ * Secure endpoint to clear all request/analytics logs.
+ */
+adminRouter.post('/flush-logs', requireAdminAuth, async (req, res, next) => {
+  try {
+    if (isLocalDbEnabled()) {
+      const db = getDb();
+      db.prepare('DELETE FROM requests').run();
+    } else {
+      await RequestLog.deleteMany({});
+    }
+    res.json({ success: true, message: 'All request logs flushed successfully' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/admin/toggle-model
+ * Secure endpoint to update global routing status of a model.
+ */
+adminRouter.post('/toggle-model', requireAdminAuth, async (req, res, next) => {
+  try {
+    const { modelId, platform, enabled } = req.body;
+    if (!modelId || !platform || enabled === undefined) {
+      res.status(400).json({ error: { message: 'Missing modelId, platform or enabled flag' } });
+      return;
+    }
+
+    const enabledVal = enabled ? 1 : 0;
+
+    if (isLocalDbEnabled()) {
+      const db = getDb();
+      db.prepare('UPDATE models SET enabled = ? WHERE model_id = ? AND platform = ?')
+        .run(enabledVal, modelId, platform);
+    } else {
+      await Model.updateOne({ modelId, platform }, { $set: { enabled: !!enabled } });
+    }
+
+    res.json({ success: true, message: `Model ${modelId} status updated successfully` });
+  } catch (err) {
+    next(err);
+  }
+});
 
 /**
  * GET /api/admin/stats
- * Aggregates and returns high-level system metrics and detailed per-user usage summaries.
+ * Secure endpoint returning high-level system analytics, breakdowns, charts, logs, and toggles.
  */
-adminRouter.get('/stats', async (req: AuthenticatedRequest, res, next) => {
+adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
   try {
-    // 1. High-level counts
-    const totalUsers = await UserSettings.countDocuments();
-    const totalKeys = await ApiKey.countDocuments();
-    const activeKeys = await ApiKey.countDocuments({ enabled: true, status: 'healthy' });
-
-    // 2. Aggregate request logs
-    const requestStats = await RequestLog.aggregate([
-      {
-        $group: {
-          _id: null,
-          totalRequests: { $sum: 1 },
-          successfulRequests: {
-            $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] }
-          },
-          failedRequests: {
-            $sum: { $cond: [{ $eq: ['$status', 'error'] }, 1, 0] }
-          },
-          totalInputTokens: { $sum: '$inputTokens' },
-          totalOutputTokens: { $sum: '$outputTokens' },
-          avgLatencyMs: { $avg: '$latencyMs' }
-        }
-      }
-    ]);
-
-    const globalUsage = requestStats[0] || {
+    let system = {
+      totalUsers: 0,
+      totalKeys: 0,
+      activeKeys: 0,
       totalRequests: 0,
-      successfulRequests: 0,
-      failedRequests: 0,
-      totalInputTokens: 0,
-      totalOutputTokens: 0,
-      avgLatencyMs: 0
+      successRate: 100,
+      overallCostSaved: 0,
+      averageCostSavedPerRequest: 0,
+      averageLatencyMs: 0
     };
 
-    // 3. Aggregate detailed statistics per user
-    const usersSummary = await UserSettings.aggregate([
-      {
-        $lookup: {
-          from: 'apikeys',
-          localField: 'userId',
-          foreignField: 'userId',
-          as: 'keys'
-        }
-      },
-      {
-        $lookup: {
-          from: 'requestlogs',
-          localField: 'userId',
-          foreignField: 'userId',
-          as: 'logs'
-        }
-      },
-      {
-        $project: {
-          userId: 1,
-          email: 1,
-          createdAt: 1,
-          unifiedApiKey: 1,
-          keysCount: { $size: '$keys' },
-          activeKeysCount: {
-            $size: {
-              $filter: {
-                input: '$keys',
-                as: 'key',
-                cond: {
-                  $and: [
-                    { $eq: ['$$key.enabled', true] },
-                    { $eq: ['$$key.status', 'healthy'] }
-                  ]
-                }
-              }
-            }
-          },
-          requestsCount: { $size: '$logs' },
-          successfulRequestsCount: {
-            $size: {
-              $filter: {
-                input: '$logs',
-                as: 'log',
-                cond: { $eq: ['$$log.status', 'success'] }
-              }
-            }
-          },
-          tokensConsumed: {
-            $sum: {
-              $map: {
-                input: '$logs',
-                as: 'log',
-                in: { $add: ['$$log.inputTokens', '$$log.outputTokens'] }
-              }
-            }
+    let platformBreakdown: any[] = [];
+    let modelBreakdown: any[] = [];
+    let timeSeries: any[] = [];
+    let usersList: any[] = [];
+    let latencyDistribution = { fast: 0, normal: 0, slow: 0, verySlow: 0 };
+    let errorBreakdown: Array<{ error: string; count: number }> = [];
+    let recentLogs: any[] = [];
+    let modelsCatalog: any[] = [];
+
+    if (isLocalDbEnabled()) {
+      const db = getDb();
+
+      // SQLite calculations
+      const usersCount = 1; // Single-user local-first DB
+      const keysCountRow = db.prepare('SELECT COUNT(*) as cnt FROM api_keys').get() as { cnt: number };
+      const activeKeysRow = db.prepare('SELECT COUNT(*) as cnt FROM api_keys WHERE enabled = 1 AND status = "healthy"').get() as { cnt: number };
+      
+      const usageRow = db.prepare(`
+        SELECT 
+          COUNT(*) as totalRequests, 
+          SUM(CASE WHEN status='success' THEN 1 ELSE 0 END) as successfulRequests,
+          SUM(input_tokens) as totalInputTokens, 
+          SUM(output_tokens) as totalOutputTokens, 
+          AVG(latency_ms) as avgLatencyMs 
+        FROM requests
+      `).get() as any;
+
+      const totalRequests = usageRow?.totalRequests || 0;
+      const successfulRequests = usageRow?.successfulRequests || 0;
+      const totalInput = usageRow?.totalInputTokens || 0;
+      const totalOutput = usageRow?.totalOutputTokens || 0;
+      const avgLatency = usageRow?.avgLatencyMs || 0;
+
+      const costSaved = (totalInput * 0.0000025) + (totalOutput * 0.00001);
+
+      system = {
+        totalUsers: usersCount,
+        totalKeys: keysCountRow.cnt,
+        activeKeys: activeKeysRow.cnt,
+        totalRequests,
+        successRate: totalRequests > 0 ? (successfulRequests / totalRequests) * 100 : 100,
+        overallCostSaved: Number(costSaved.toFixed(4)),
+        averageCostSavedPerRequest: totalRequests > 0 ? Number((costSaved / totalRequests).toFixed(6)) : 0,
+        averageLatencyMs: Math.round(avgLatency)
+      };
+
+      // Platform breakdown
+      const platforms = db.prepare(`
+        SELECT 
+          platform as _id, 
+          COUNT(*) as totalRequests, 
+          SUM(CASE WHEN status='success' THEN 1 ELSE 0 END) as successCount,
+          SUM(input_tokens) as inputTokens, 
+          SUM(output_tokens) as outputTokens, 
+          AVG(latency_ms) as avgLatency 
+        FROM requests 
+        GROUP BY platform
+      `).all() as any[];
+
+      platformBreakdown = platforms.map(p => {
+        const pCost = (p.inputTokens * 0.0000025) + (p.outputTokens * 0.00001);
+        return {
+          platform: p._id,
+          totalRequests: p.totalRequests,
+          successRate: p.totalRequests > 0 ? (p.successCount / p.totalRequests) * 100 : 100,
+          tokensProcessed: p.inputTokens + p.outputTokens,
+          avgLatencyMs: Math.round(p.avgLatency),
+          costSaved: Number(pCost.toFixed(4))
+        };
+      });
+
+      // Model breakdown
+      const models = db.prepare(`
+        SELECT 
+          model_id as _id, 
+          platform, 
+          COUNT(*) as totalRequests 
+        FROM requests 
+        GROUP BY model_id 
+        ORDER BY totalRequests DESC 
+        LIMIT 10
+      `).all() as any[];
+
+      modelBreakdown = models.map(m => ({
+        modelId: m._id,
+        platform: m.platform,
+        totalRequests: m.totalRequests
+      }));
+
+      // Time Series (last 30 days)
+      const times = db.prepare(`
+        SELECT 
+          strftime('%Y-%m-%d', created_at) as _id, 
+          COUNT(*) as requests, 
+          SUM(CASE WHEN status='success' THEN 1 ELSE 0 END) as success 
+        FROM requests 
+        GROUP BY _id 
+        ORDER BY _id ASC 
+        LIMIT 30
+      `).all() as any[];
+
+      timeSeries = times.map(t => ({
+        date: t._id,
+        requests: t.requests,
+        successRate: t.requests > 0 ? (t.success / t.requests) * 100 : 100
+      }));
+
+      // Latency Distribution
+      const latencies = db.prepare(`
+        SELECT 
+          SUM(CASE WHEN latency_ms < 200 THEN 1 ELSE 0 END) as fast,
+          SUM(CASE WHEN latency_ms >= 200 AND latency_ms < 1000 THEN 1 ELSE 0 END) as normal,
+          SUM(CASE WHEN latency_ms >= 1000 AND latency_ms < 3000 THEN 1 ELSE 0 END) as slow,
+          SUM(CASE WHEN latency_ms >= 3000 THEN 1 ELSE 0 END) as verySlow
+        FROM requests
+      `).get() as any;
+
+      latencyDistribution = {
+        fast: latencies?.fast || 0,
+        normal: latencies?.normal || 0,
+        slow: latencies?.slow || 0,
+        verySlow: latencies?.verySlow || 0
+      };
+
+      // Error breakdown
+      const errors = db.prepare(`
+        SELECT error as errorVal, COUNT(*) as cnt 
+        FROM requests 
+        WHERE status='error' AND error IS NOT NULL AND error != ''
+        GROUP BY errorVal 
+        ORDER BY cnt DESC 
+        LIMIT 5
+      `).all() as any[];
+
+      errorBreakdown = errors.map(e => ({
+        error: e.errorVal,
+        count: e.cnt
+      }));
+
+      // Recent Logs
+      const logs = db.prepare(`
+        SELECT 
+          created_at as createdAt, 
+          platform, 
+          model_id as modelId, 
+          status, 
+          latency_ms as latencyMs, 
+          input_tokens as inputTokens, 
+          output_tokens as outputTokens, 
+          error 
+        FROM requests 
+        ORDER BY id DESC 
+        LIMIT 15
+      `).all() as any[];
+
+      recentLogs = logs.map(l => ({
+        ...l,
+        userId: 'local-dev-user-uid'
+      }));
+
+      // Models Catalog
+      const catalog = db.prepare(`
+        SELECT 
+          platform, 
+          model_id as modelId, 
+          display_name as displayName, 
+          enabled 
+        FROM models
+      `).all() as any[];
+
+      modelsCatalog = catalog.map(c => ({
+        ...c,
+        enabled: c.enabled === 1 || c.enabled === true
+      }));
+
+      // User list mock
+      const localKeys = db.prepare('SELECT COUNT(*) as cnt FROM api_keys').get() as { cnt: number };
+      usersList = [{
+        userId: 'local-dev-user-uid',
+        email: 'local-dev-user@example.com',
+        keysCount: localKeys.cnt,
+        requestsCount: totalRequests,
+        tokensConsumed: totalInput + totalOutput,
+        costSaved: Number(costSaved.toFixed(4))
+      }];
+
+    } else {
+      // MongoDB calculations
+      const totalUsers = await UserSettings.countDocuments();
+      const totalKeys = await ApiKey.countDocuments();
+      const activeKeys = await ApiKey.countDocuments({ enabled: true, status: 'healthy' });
+
+      const requestStats = await RequestLog.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalRequests: { $sum: 1 },
+            successfulRequests: { $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] } },
+            totalInputTokens: { $sum: '$inputTokens' },
+            totalOutputTokens: { $sum: '$outputTokens' },
+            avgLatencyMs: { $avg: '$latencyMs' }
           }
         }
-      },
-      { $sort: { createdAt: -1 } }
-    ]);
+      ]);
 
-    // Mask the secret unified keys for security before returning
-    const safeUsersSummary = usersSummary.map(user => ({
-      ...user,
-      unifiedApiKey: user.unifiedApiKey 
-        ? `${user.unifiedApiKey.substring(0, 12)}...${user.unifiedApiKey.substring(user.unifiedApiKey.length - 4)}` 
-        : 'none'
-    }));
+      const globalUsage = requestStats[0] || {
+        totalRequests: 0,
+        successfulRequests: 0,
+        totalInputTokens: 0,
+        totalOutputTokens: 0,
+        avgLatencyMs: 0
+      };
 
-    res.json({
-      success: true,
-      system: {
+      const totalRequests = globalUsage.totalRequests;
+      const costSaved = (globalUsage.totalInputTokens * 0.0000025) + (globalUsage.totalOutputTokens * 0.00001);
+
+      system = {
         totalUsers,
         totalKeys,
         activeKeys,
-        globalUsage
-      },
-      users: safeUsersSummary
+        totalRequests,
+        successRate: totalRequests > 0 ? (globalUsage.successfulRequests / totalRequests) * 100 : 100,
+        overallCostSaved: Number(costSaved.toFixed(4)),
+        averageCostSavedPerRequest: totalRequests > 0 ? Number((costSaved / totalRequests).toFixed(6)) : 0,
+        averageLatencyMs: Math.round(globalUsage.avgLatencyMs)
+      };
+
+      // Platform Breakdown
+      const platforms = await RequestLog.aggregate([
+        {
+          $group: {
+            _id: '$platform',
+            totalRequests: { $sum: 1 },
+            successCount: { $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] } },
+            inputTokens: { $sum: '$inputTokens' },
+            outputTokens: { $sum: '$outputTokens' },
+            avgLatency: { $avg: '$latencyMs' }
+          }
+        }
+      ]);
+
+      platformBreakdown = platforms.map(p => {
+        const pCost = (p.inputTokens * 0.0000025) + (p.outputTokens * 0.00001);
+        return {
+          platform: p._id,
+          totalRequests: p.totalRequests,
+          successRate: p.totalRequests > 0 ? (p.successCount / p.totalRequests) * 100 : 100,
+          tokensProcessed: p.inputTokens + p.outputTokens,
+          avgLatencyMs: Math.round(p.avgLatency),
+          costSaved: Number(pCost.toFixed(4))
+        };
+      });
+
+      // Model Breakdown
+      const models = await RequestLog.aggregate([
+        {
+          $group: {
+            _id: '$modelId',
+            platform: { $first: '$platform' },
+            totalRequests: { $sum: 1 }
+          }
+        },
+        { $sort: { totalRequests: -1 } },
+        { $limit: 10 }
+      ]);
+
+      modelBreakdown = models.map(m => ({
+        modelId: m._id,
+        platform: m.platform,
+        totalRequests: m.totalRequests
+      }));
+
+      // Time Series
+      const times = await RequestLog.aggregate([
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
+            },
+            requests: { $sum: 1 },
+            success: { $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] } }
+          }
+        },
+        { $sort: { _id: 1 } },
+        { $limit: 30 }
+      ]);
+
+      timeSeries = times.map(t => ({
+        date: t._id,
+        requests: t.requests,
+        successRate: t.requests > 0 ? (t.success / t.requests) * 100 : 100
+      }));
+
+      // Latency Distribution
+      const latencyStats = await RequestLog.aggregate([
+        {
+          $group: {
+            _id: null,
+            fast: { $sum: { $cond: [{ $lt: ['$latencyMs', 200] }, 1, 0] } },
+            normal: { $sum: { $cond: [{ $and: [{ $gte: ['$latencyMs', 200] }, { $lt: ['$latencyMs', 1000] }] }, 1, 0] } },
+            slow: { $sum: { $cond: [{ $and: [{ $gte: ['$latencyMs', 1000] }, { $lt: ['$latencyMs', 3000] }] }, 1, 0] } },
+            verySlow: { $sum: { $cond: [{ $gte: ['$latencyMs', 3000] }, 1, 0] } }
+          }
+        }
+      ]);
+      latencyDistribution = latencyStats[0] || { fast: 0, normal: 0, slow: 0, verySlow: 0 };
+
+      const errList = await RequestLog.aggregate([
+        { $match: { status: 'error', error: { $nin: [null, ''] } } },
+        { $group: { _id: '$error', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 5 }
+      ]);
+      errorBreakdown = errList.map(e => ({
+        error: e._id,
+        count: e.count
+      }));
+
+      // Recent Logs
+      const logs = await RequestLog.find()
+        .sort({ createdAt: -1 })
+        .limit(15)
+        .lean();
+      recentLogs = logs.map((l: any) => ({
+        createdAt: l.createdAt,
+        platform: l.platform,
+        modelId: l.modelId,
+        status: l.status,
+        latencyMs: l.latencyMs,
+        inputTokens: l.inputTokens,
+        outputTokens: l.outputTokens,
+        error: l.error,
+        userId: l.userId
+      }));
+
+      // Models Catalog
+      const catalog = await Model.find({}, { platform: 1, modelId: 1, displayName: 1, enabled: 1 }).lean();
+      modelsCatalog = catalog.map((c: any) => ({
+        platform: c.platform,
+        modelId: c.modelId,
+        displayName: c.displayName,
+        enabled: !!c.enabled
+      }));
+
+      // User List (MongoDB lookup)
+      const users = await UserSettings.aggregate([
+        {
+          $lookup: {
+            from: 'apikeys',
+            localField: 'userId',
+            foreignField: 'userId',
+            as: 'keys'
+          }
+        },
+        {
+          $lookup: {
+            from: 'requestlogs',
+            localField: 'userId',
+            foreignField: 'userId',
+            as: 'logs'
+          }
+        },
+        {
+          $project: {
+            userId: 1,
+            email: 1,
+            keysCount: { $size: '$keys' },
+            requestsCount: { $size: '$logs' },
+            tokensConsumed: {
+              $sum: {
+                $map: {
+                  input: '$logs',
+                  as: 'log',
+                  in: { $add: ['$$log.inputTokens', '$$log.outputTokens'] }
+                }
+              }
+            },
+            costSaved: {
+              $sum: {
+                $map: {
+                  input: '$logs',
+                  as: 'log',
+                  in: {
+                    $add: [
+                      { $multiply: ['$$log.inputTokens', 0.0000025] },
+                      { $multiply: ['$$log.outputTokens', 0.000010] }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        { $sort: { requestsCount: -1 } }
+      ]);
+
+      usersList = users.map(u => ({
+        ...u,
+        costSaved: Number(u.costSaved.toFixed(4))
+      }));
+    }
+
+    res.json({
+      success: true,
+      system,
+      platformBreakdown,
+      modelBreakdown,
+      timeSeries,
+      latencyDistribution,
+      errorBreakdown,
+      recentLogs,
+      modelsCatalog,
+      users: usersList
     });
   } catch (error) {
     next(error);

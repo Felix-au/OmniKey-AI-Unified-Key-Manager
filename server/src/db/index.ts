@@ -3,7 +3,7 @@ import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { initEncryptionKey } from '../lib/crypto.js';
+import { initEncryptionKey, hashPassword } from '../lib/crypto.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DB_PATH = process.env.DATABASE_URL
@@ -52,6 +52,7 @@ export function initDb(dbPath?: string): Database.Database {
   migrateModelsV13(db);
   migrateModelsV14(db);
   ensureUnifiedKey(db);
+  seedAdmin(db);
 
   console.log(`Database initialized at ${resolvedPath}`);
   return db;
@@ -115,10 +116,32 @@ function createTables(db: Database.Database) {
       value TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS admin_users (
+      username TEXT PRIMARY KEY,
+      password_hash TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE INDEX IF NOT EXISTS idx_requests_created_at ON requests(created_at);
     CREATE INDEX IF NOT EXISTS idx_requests_platform ON requests(platform);
     CREATE INDEX IF NOT EXISTS idx_api_keys_platform ON api_keys(platform);
   `);
+}
+
+function seedAdmin(db: Database.Database) {
+  try {
+    const count = db.prepare("SELECT COUNT(*) as cnt FROM sqlite_master WHERE type='table' AND name='admin_users'").get() as { cnt: number };
+    if (count.cnt === 0) return;
+    const userCount = db.prepare('SELECT COUNT(*) as cnt FROM admin_users').get() as { cnt: number };
+    if (userCount.cnt > 0) return;
+
+    const passHash = hashPassword('admin');
+    db.prepare('INSERT INTO admin_users (username, password_hash) VALUES (?, ?)')
+      .run('admin', passHash);
+    console.log('[SQLite] Seeded default admin account successfully.');
+  } catch (err: any) {
+    console.warn('[SQLite] Failed to seed admin account:', err.message || err);
+  }
 }
 
 function seedModels(db: Database.Database) {

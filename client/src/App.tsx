@@ -9,6 +9,7 @@ import PlaygroundPage from '@/pages/PlaygroundPage'
 import FallbackPage from '@/pages/FallbackPage'
 import AnalyticsPage from '@/pages/AnalyticsPage'
 import DevCornerPage from '@/pages/DevCornerPage'
+import AdminPage from '@/pages/AdminPage'
 import logoUrl from './assets/logo.png'
 
 const queryClient = new QueryClient()
@@ -158,7 +159,10 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter basename={import.meta.env.BASE_URL}>
-          <DashboardLayout />
+          <Routes>
+            <Route path="/admin" element={<AdminPage />} />
+            <Route path="/*" element={<DashboardLayout />} />
+          </Routes>
         </BrowserRouter>
       </AuthProvider>
     </QueryClientProvider>
