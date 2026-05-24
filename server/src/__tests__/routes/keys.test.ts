@@ -97,4 +97,36 @@ describe('Keys API', () => {
     const { status } = await request(app, 'DELETE', '/api/keys/99999');
     expect(status).toBe(404);
   });
+
+  it('GET /api/keys/export returns keys as CSV', async () => {
+    // Add two keys
+    await request(app, 'POST', '/api/keys', { platform: 'groq', key: 'gsk_test123', label: 'Label A' });
+    await request(app, 'POST', '/api/keys', { platform: 'google', key: 'google_test456', label: 'Label B' });
+
+    const server = app.listen(0);
+    const addr = server.address() as any;
+    const url = `http://127.0.0.1:${addr.port}/api/keys/export`;
+    const res = await fetch(url);
+    const text = await res.text();
+    server.close();
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Type')).toContain('text/csv');
+    expect(text).toContain('platform,key,label');
+    expect(text).toContain('groq,gsk_test123,Label A');
+    expect(text).toContain('google,google_test456,Label B');
+  });
+
+  it('POST /api/keys/import imports keys from CSV', async () => {
+    const csvText = 'platform,key,label\nmistral,mistral_key_abc,Label C\ncerebras,cerebras_key_xyz,Label D\ninvalid_platform,some_key,Label E\n';
+    const { status, body } = await request(app, 'POST', '/api/keys/import', { csvText });
+    expect(status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(body.count).toBe(2); // Skip invalid_platform
+
+    const { body: keysList } = await request(app, 'GET', '/api/keys');
+    expect(keysList).toHaveLength(2);
+    expect(keysList.map((k: any) => k.platform).sort()).toEqual(['cerebras', 'mistral']);
+    expect(keysList.map((k: any) => k.label).sort()).toEqual(['Label C', 'Label D']);
+  });
 });

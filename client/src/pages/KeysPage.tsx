@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -132,6 +132,7 @@ export default function KeysPage() {
   const [apiKey, setApiKey] = useState('')
   const [accountId, setAccountId] = useState('')
   const [label, setLabel] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { data: keys = [], isLoading } = useQuery<ApiKey[]>({
     queryKey: ['keys'],
@@ -194,6 +195,59 @@ export default function KeysPage() {
 
   const healthKeyMap = new Map<number, { status: string; lastCheckedAt: string | null }>()
   for (const k of healthData?.keys ?? []) healthKeyMap.set(k.id, k)
+
+  const handleExportCsv = async () => {
+    try {
+      const base = import.meta.env.BASE_URL.replace(/\/$/, '')
+      const response = await fetch(`${base}/api/keys/export`)
+      if (!response.ok) throw new Error('Failed to export keys')
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'omnikey_keys_export.csv'
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err: any) {
+      alert(`Export failed: ${err.message}`)
+    }
+  }
+
+  const handleImportCsv = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = async (event) => {
+      const csvText = event.target?.result
+      if (typeof csvText !== 'string') return
+
+      try {
+        const base = import.meta.env.BASE_URL.replace(/\/$/, '')
+        const response = await fetch(`${base}/api/keys/import`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ csvText }),
+        })
+        const data = await response.json()
+        if (!response.ok) {
+          throw new Error(data.error?.message ?? 'Import failed')
+        }
+        alert(`Successfully imported ${data.count} keys!`)
+        queryClient.invalidateQueries({ queryKey: ['keys'] })
+        queryClient.invalidateQueries({ queryKey: ['health'] })
+        queryClient.invalidateQueries({ queryKey: ['fallback'] })
+      } catch (err: any) {
+        alert(`Import failed: ${err.message}`)
+      }
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
 
   const grouped = PLATFORMS.map(p => ({
     ...p,
@@ -273,7 +327,24 @@ export default function KeysPage() {
         </section>
 
         <section>
-          <h2 className="text-sm font-medium mb-3">Configured providers</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-medium">Configured providers</h2>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={keys.length === 0}>
+                Export CSV
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                Import CSV
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                className="hidden"
+                onChange={handleImportCsv}
+              />
+            </div>
+          </div>
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : keys.length === 0 ? (

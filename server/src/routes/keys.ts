@@ -119,3 +119,109 @@ keysRouter.patch('/:id', (req: Request, res: Response) => {
 
   res.json({ success: true, enabled });
 });
+
+// Export keys as CSV
+keysRouter.get('/export', (_req: Request, res: Response) => {
+  const db = getDb();
+  const rows = db.prepare('SELECT * FROM api_keys').all() as any[];
+
+  let csv = 'platform,key,label\n';
+  for (const row of rows) {
+    try {
+      const realKey = decrypt(row.encrypted_key, row.iv, row.auth_tag);
+      const escapeCsv = (str: string) => {
+        const escaped = (str || '').replace(/"/g, '""');
+        return escaped.includes(',') || escaped.includes('"') || escaped.includes('\n') ? `"${escaped}"` : escaped;
+      };
+      csv += `${escapeCsv(row.platform)},${escapeCsv(realKey)},${escapeCsv(row.label)}\n`;
+    } catch {
+      // skip if decryption fails
+    }
+  }
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename=omnikey_keys_export.csv');
+  res.send(csv);
+});
+
+function parseCsv(text: string): Array<{ platform: string; key: string; label: string }> {
+  const lines = text.split(/\r?\n/);
+  if (lines.length <= 1) return [];
+
+  const results: Array<{ platform: string; key: string; label: string }> = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    const row: string[] = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let j = 0; j < line.length; j++) {
+      const char = line[j];
+      if (char === '"') {
+        if (inQuotes && line[j + 1] === '"') {
+          current += '"';
+          j++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        row.push(current);
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    row.push(current);
+
+    if (row.length >= 2) {
+      results.push({
+        platform: row[0].trim(),
+        key: row[1].trim(),
+        label: (row[2] ?? '').trim(),
+      });
+    }
+  }
+  return results;
+}
+
+// Import keys from CSV
+keysRouter.post('/import', (req: Request, res: Response) => {
+  const { csvText } = req.body;
+  if (typeof csvText !== 'string') {
+    res.status(400).json({ error: { message: 'Invalid CSV data' } });
+    return;
+  }
+
+  const parsed = parseCsv(csvText);
+  if (parsed.length === 0) {
+    res.status(400).json({ error: { message: 'No valid keys found in CSV' } });
+    return;
+  }
+
+  const db = getDb();
+  const insert = db.prepare(`
+    INSERT INTO api_keys (platform, label, encrypted_key, iv, auth_tag, status, enabled)
+    VALUES (?, ?, ?, ?, ?, 'unknown', 1)
+  `);
+
+  let importedCount = 0;
+  const runTransaction = db.transaction(() => {
+    for (const item of parsed) {
+      if (!PLATFORMS.includes(item.platform as any)) {
+        continue;
+      }
+      if (!item.key) continue;
+
+      const { encrypted, iv, authTag } = encrypt(item.key);
+      insert.run(item.platform, item.label, encrypted, iv, authTag);
+      importedCount++;
+    }
+  });
+
+  runTransaction();
+
+  res.json({ success: true, count: importedCount });
+});
