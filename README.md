@@ -66,6 +66,7 @@ Behind the scenes, OmniKey AI handles secure key storage (encrypted at rest usin
 | **AES-256-GCM Encryption** | All upstream provider API keys are encrypted at rest using envelope encryption. |
 | **Unified Token** | Uses a custom `omnikey-` prefixed key to authenticate your local clients. |
 | **Mock Keys Support** | Allows testing and sandbox query paths using mock keys. |
+| **Database Mode Switcher** | Toggles dynamically between Local-First SQLite and Cloud MongoDB contexts from the client login screen (saved in localStorage). |
 
 ### 🚀 Dynamic Routing & Failover
 | Feature | Description |
@@ -73,6 +74,7 @@ Behind the scenes, OmniKey AI handles secure key storage (encrypted at rest usin
 | **Virtual "auto" Model** | Requests to `auto` automatically route to the highest priority active provider. |
 | **Automatic Fallback** | Cascades down a customizable pipeline when encountering 429 or 500 errors. |
 | **Intelligent Re-routing** | Dynamically skips exhausted keys without caller awareness. |
+| **Multi-Tenant Token Routing** | Automatically routes requests to Cloud MongoDB or SQLite databases dynamically by inspecting API key prefixes. |
 
 ### 📊 Real-Time Dashboard
 | Feature | Description |
@@ -80,6 +82,7 @@ Behind the scenes, OmniKey AI handles secure key storage (encrypted at rest usin
 | **Model Catalog** | Complete list of 60+ models, their states, and active status. |
 | **Usage Gauges** | Clean visuals illustrating token budgets and daily/monthly stats. |
 | **Settings Panel** | Live drag-and-drop fallback chain ordering and configuration. |
+| **Developer Corner** | Premium sandbox featuring request inputs, auto-compiling JavaScript snippet templates (SSE / JSON), and visual streaming output console. |
 
 ---
 
@@ -291,6 +294,11 @@ All configuration is loaded from the environment variables in your `.env` file:
 | `PORT` | `3001` | Express server port for incoming client API requests |
 | `ENCRYPTION_KEY` | *(Required)* | 32-byte hex key used to encrypt and decrypt provider keys |
 | `DATABASE_URL` | `./server/data/OmniKeyAI.db` | Absolute or relative path to SQLite database file |
+| `MONGODB_URI` | *(Optional)* | Cloud database cluster address for multi-tenant deployment mode |
+| `FIREBASE_PROJECT_ID` | *(Optional)* | Firebase gateway configuration ID for multi-tenant authentication |
+
+> [!NOTE]
+> `LOCAL_DB_ENABLED` is deprecated. Selecting Local or Cloud database mode is handled directly on the frontend dashboard login UI. Uptime pinger cron-jobs are supported via the public `/api/cron-health` endpoint.
 
 ---
 
