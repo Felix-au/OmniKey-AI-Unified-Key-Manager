@@ -8,6 +8,7 @@ import KeysPage from '@/pages/KeysPage'
 import PlaygroundPage from '@/pages/PlaygroundPage'
 import FallbackPage from '@/pages/FallbackPage'
 import AnalyticsPage from '@/pages/AnalyticsPage'
+import DevCornerPage from '@/pages/DevCornerPage'
 import logoUrl from './assets/logo.png'
 
 const queryClient = new QueryClient()
@@ -99,6 +100,7 @@ function DashboardLayout() {
             <NavItem to="/keys">Keys</NavItem>
             <NavItem to="/fallback">Fallback</NavItem>
             <NavItem to="/analytics">Analytics</NavItem>
+            <NavItem to="/dev-corner">Dev Corner</NavItem>
           </nav>
           <div className="ml-auto py-2 flex items-center gap-4">
             {localDbEnabled && cloudDbAvailable && (
@@ -142,6 +144,7 @@ function DashboardLayout() {
           <Route path="/keys" element={<KeysPage />} />
           <Route path="/fallback" element={<FallbackPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
+          <Route path="/dev-corner" element={<DevCornerPage />} />
           <Route path="/test" element={<Navigate to="/playground" replace />} />
           <Route path="/health" element={<Navigate to="/keys" replace />} />
         </Routes>
