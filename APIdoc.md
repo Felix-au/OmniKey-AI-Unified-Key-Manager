@@ -43,6 +43,8 @@ Authorization: Bearer omnikey-your-unified-key-here
 |---|---|---|---|
 | **POST** | `/v1/chat/completions` | Create a chat completion (OpenAI compatible) | Client |
 | **GET** | `/v1/models` | List all supported models (OpenAI compatible) | Client |
+| **GET** | `/api/cron-health` | Public uptime keep-alive check for cloud hosting | Public |
+| **GET** | `/api/config` | Backend capability discovery configurations | Public |
 | **GET** | `/api/keys` | Retrieve statuses and profiles of upstream keys | Dashboard |
 | **POST** | `/api/keys` | Add or update an upstream provider key | Dashboard |
 | **GET** | `/api/fallback-config` | Get the current fallback priority chain | Dashboard |
@@ -219,6 +221,27 @@ These local endpoints are used by the React frontend to update key databases and
 ```json
 {
   "chain": ["google", "groq", "sambanova", "cerebras", "openrouter"]
+}
+```
+
+### 3. Public Keep-Alive Cron Pinger (`GET /api/cron-health`)
+A public endpoint used to ping the server to keep it active (e.g. preventing Render sleep modes).
+**Response Shape (`200 OK`):**
+```json
+{
+  "status": "ok",
+  "timestamp": "2026-05-24T18:43:00.000Z",
+  "dbMode": "local"
+}
+```
+
+### 4. Configuration Capability Discovery (`GET /api/config`)
+Retrieves capabilities of the host server environment configuration at runtime.
+**Response Shape (`200 OK`):**
+```json
+{
+  "cloudDbAvailable": true,
+  "defaultLocalMode": false
 }
 ```
 
