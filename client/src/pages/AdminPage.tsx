@@ -50,6 +50,7 @@ interface AdminStats {
     outputTokens: number;
     error: string | null;
     userId: string;
+    userEmail?: string;
   }>;
   modelsCatalog: Array<{
     platform: string;
@@ -464,14 +465,14 @@ export default function AdminPage() {
 
               <div className="bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-sm relative overflow-hidden">
                 <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Overall Savings</span>
-                <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1.5">${stats?.system?.overallCostSaved !== undefined ? stats.system.overallCostSaved.toFixed(2) : '—'}</div>
+                <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1.5">₹{stats?.system?.overallCostSaved !== undefined ? (stats.system.overallCostSaved * 83).toFixed(2) : '—'}</div>
                 <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Free-tier value mapped</div>
               </div>
 
               <div className="bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-sm">
                 <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Avg saved / Request</span>
                 <div className="text-2xl font-bold text-slate-900 dark:text-white mt-1.5">
-                  ${stats?.system?.averageCostSavedPerRequest !== undefined ? stats.system.averageCostSavedPerRequest.toFixed(4) : '—'}
+                  ₹{stats?.system?.averageCostSavedPerRequest !== undefined ? (stats.system.averageCostSavedPerRequest * 83).toFixed(4) : '—'}
                 </div>
                 <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Average value per routing</div>
               </div>
@@ -591,7 +592,7 @@ export default function AdminPage() {
                         <div className="flex justify-between items-center">
                           <span className="text-xs font-bold text-slate-700 dark:text-slate-200 capitalize">{p.platform}</span>
                           <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
-                            saved ${p.costSaved.toFixed(2)}
+                            saved ₹{(p.costSaved * 83).toFixed(2)}
                           </span>
                         </div>
                         <div className="grid grid-cols-3 gap-2 text-center">
@@ -695,7 +696,7 @@ export default function AdminPage() {
                       <th className="pb-3 text-center">Keys Whitelisted</th>
                       <th className="pb-3 text-center">API Requests</th>
                       <th className="pb-3 text-center">Tokens Saved</th>
-                      <th className="pb-3 text-right pr-4">Total Savings</th>
+                      <th className="pb-3 text-right pr-4">Total Savings (INR)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -709,7 +710,7 @@ export default function AdminPage() {
                           <td className="py-4 text-center text-slate-800 dark:text-slate-300 font-semibold">{u.keysCount} keys</td>
                           <td className="py-4 text-center text-slate-800 dark:text-slate-300 font-semibold">{u.requestsCount} reqs</td>
                           <td className="py-4 text-center text-slate-500 dark:text-slate-400 font-mono">{(u.tokensConsumed / 1000).toFixed(1)}k</td>
-                          <td className="py-4 text-right pr-4 font-bold text-emerald-600 dark:text-emerald-400">${u.costSaved.toFixed(2)}</td>
+                          <td className="py-4 text-right pr-4 font-bold text-emerald-600 dark:text-emerald-400">₹{(u.costSaved * 83).toFixed(2)}</td>
                         </tr>
                       ))
                     ) : (
@@ -801,7 +802,7 @@ export default function AdminPage() {
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
                     <th className="pb-3 pl-4">Timestamp</th>
-                    <th className="pb-3">Developer UID</th>
+                    <th className="pb-3">Developer Email</th>
                     <th className="pb-3">Model Details</th>
                     <th className="pb-3 text-center">Status</th>
                     <th className="pb-3 text-center">Latency</th>
@@ -816,7 +817,7 @@ export default function AdminPage() {
                           {new Date(log.createdAt).toLocaleString()}
                         </td>
                         <td className="py-4 font-mono text-[10px] text-slate-500 dark:text-slate-400 select-all">
-                          {log.userId}
+                          {log.userEmail || log.userId}
                         </td>
                         <td className="py-4">
                           <div className="flex items-center gap-1.5">

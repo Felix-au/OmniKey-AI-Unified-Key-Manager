@@ -323,7 +323,8 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
 
       recentLogs = logs.map(l => ({
         ...l,
-        userId: 'local-dev-user-uid'
+        userId: 'local-dev-user-uid',
+        userEmail: 'local-dev-user@example.com'
       }));
 
       // Models Catalog
@@ -489,6 +490,10 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
         .sort({ createdAt: -1 })
         .limit(15)
         .lean();
+      const uniqueUserIds = Array.from(new Set(logs.map((l: any) => l.userId).filter(Boolean)));
+      const userSettingsList = await UserSettings.find({ userId: { $in: uniqueUserIds } }).lean();
+      const emailMap = new Map(userSettingsList.map((u: any) => [u.userId, u.email]));
+
       recentLogs = logs.map((l: any) => ({
         createdAt: l.createdAt,
         platform: l.platform,
@@ -498,7 +503,8 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
         inputTokens: l.inputTokens,
         outputTokens: l.outputTokens,
         error: l.error,
-        userId: l.userId
+        userId: l.userId,
+        userEmail: emailMap.get(l.userId) || l.userId || 'unknown-user'
       }));
 
       // Models Catalog
