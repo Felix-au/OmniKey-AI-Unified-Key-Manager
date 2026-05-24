@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { Button } from '@/components/ui/button'
 import logoUrl from '../assets/logo.png'
@@ -47,6 +47,28 @@ export default function LoginPage() {
     }
   }
 
+  const handleGoogleSignIn = async () => {
+    setError(null)
+    setLoading(true)
+    try {
+      const provider = new GoogleAuthProvider()
+      await signInWithPopup(auth, provider)
+    } catch (err: any) {
+      console.error(err)
+      let friendlyMessage = err.message
+      if (err.code === 'auth/popup-blocked') {
+        friendlyMessage = 'Sign-in popup was blocked by your browser. Please enable popups.'
+      } else if (err.code === 'auth/popup-closed-by-user') {
+        friendlyMessage = 'Sign-in popup was closed before completion.'
+      } else if (err.code === 'auth/cancelled-popup-request') {
+        friendlyMessage = 'Sign-in process was cancelled.'
+      }
+      setError(friendlyMessage)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-slate-950 p-6 relative overflow-hidden">
       {/* Decorative background gradients */}
@@ -58,7 +80,7 @@ export default function LoginPage() {
         
         {/* Brand header */}
         <div className="flex flex-col items-center text-center mb-8">
-          <div className="w-14 h-14 bg-gradient-to-tr from-violet-600 to-indigo-600 rounded-2xl flex items-center justify-center p-2.5 shadow-lg shadow-violet-500/10 mb-4 animate-pulse">
+          <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center p-2.5 shadow-lg shadow-white/5 mb-4 animate-pulse">
             <img src={logoUrl} alt="OmniKey AI Logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-white mb-1.5">OmniKey AI</h1>
@@ -165,6 +187,29 @@ export default function LoginPage() {
             )}
           </Button>
         </form>
+
+        {/* Divider */}
+        <div className="flex items-center gap-3 my-5">
+          <div className="h-px bg-slate-800/60 grow" />
+          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">or</span>
+          <div className="h-px bg-slate-800/60 grow" />
+        </div>
+
+        {/* Google Sign In */}
+        <Button
+          type="button"
+          onClick={handleGoogleSignIn}
+          disabled={loading}
+          className="w-full py-6 rounded-2xl border border-slate-800 bg-slate-950 hover:bg-slate-900 text-white font-semibold text-xs transition-all flex items-center justify-center gap-2.5 transform active:scale-[0.98]"
+        >
+          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M21.35,11.1H12v2.7h5.38c-0.24,1.28 -0.96,2.37 -2.04,3.1v2.58h3.3c1.93,-1.78 3.04,-4.4 3.04,-7.48c0,-0.68 -0.06,-1.34 -0.18,-1.9Z" fill="#4285F4" />
+            <path d="M12,20.6c2.32,0 4.27,-0.77 5.69,-2.1l-2.58,-2c-0.77,0.52 -1.75,0.83 -3.11,0.83c-2.39,0 -4.41,-1.61 -5.13,-3.78H3.45v2.66C4.87,19.03 8.19,20.6 12,20.6Z" fill="#34A853" />
+            <path d="M6.87,13.55c-0.18,-0.54 -0.28,-1.11 -0.28,-1.7s0.1,-1.16 0.28,-1.7V7.49H3.45C2.82,8.75 2.47,10.18 2.47,11.7c0,1.52 0.35,2.95 0.98,4.21l3.42,-2.66Z" fill="#FBBC05" />
+            <path d="M12,6.27c1.26,0 2.39,0.43 3.28,1.28l2.46,-2.46C16.26,3.64 14.31,2.87 12,2.87c-3.81,0 -7.13,1.57 -8.55,4.62l3.42,2.66c0.72,-2.17 2.74,-3.78 5.13,-3.78Z" fill="#EA4335" />
+          </svg>
+          Continue with Google
+        </Button>
 
         {/* Footer note */}
         <div className="mt-6 pt-5 border-t border-slate-800/40 text-center">
