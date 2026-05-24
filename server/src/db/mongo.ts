@@ -8,6 +8,9 @@ if (!MONGODB_URI) {
 }
 
 export async function connectMongo(): Promise<typeof mongoose> {
+  if (!MONGODB_URI) {
+    throw new Error('CRITICAL: MONGODB_URI environment variable is not defined.');
+  }
   try {
     mongoose.connection.on('connected', () => {
       console.log('Successfully connected to MongoDB Cluster.');
