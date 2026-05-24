@@ -44,6 +44,7 @@ export function createApp() {
     origin(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
       callback(null, !origin || allowedCorsOrigins.has(origin));
     },
+    exposedHeaders: ['X-Routed-Via', 'X-Fallback-Attempts', 'X-Key-Used'],
   }));
   app.use(express.json({ limit: '1mb' }));
 

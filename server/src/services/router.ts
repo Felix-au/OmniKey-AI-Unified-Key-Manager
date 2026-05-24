@@ -18,6 +18,7 @@ interface ModelRow {
 interface KeyRow {
   id: number;
   platform: string;
+  label?: string;
   encrypted_key: string;
   iv: string;
   auth_tag: string;
@@ -37,6 +38,7 @@ export interface RouteResult {
   modelDbId: number;
   apiKey: string;
   keyId: number;
+  keyLabel?: string;
   platform: string;
   displayName: string;
 }
@@ -209,6 +211,7 @@ export function routeRequest(estimatedTokens = 1000, skipKeys?: Set<string>, pre
         modelDbId: model.id,
         apiKey: decryptedKey,
         keyId: key.id,
+        keyLabel: key.label,
         platform: model.platform,
         displayName: model.display_name,
       };

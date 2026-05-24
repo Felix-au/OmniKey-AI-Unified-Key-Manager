@@ -24,6 +24,7 @@ interface ChatMessage {
     model?: string
     latency?: number
     fallbackAttempts?: number
+    keyUsed?: string
   }
 }
 
@@ -82,6 +83,7 @@ export default function PlaygroundPage() {
       const latency = Date.now() - start
       const routedVia = res.headers.get('X-Routed-Via')
       const fallbackAttempts = res.headers.get('X-Fallback-Attempts')
+      const keyUsed = res.headers.get('X-Key-Used')
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
@@ -97,6 +99,7 @@ export default function PlaygroundPage() {
       const via = data._routed_via ?? (routedVia ? {
         platform: routedVia.split('/')[0],
         model: routedVia.split('/').slice(1).join('/'),
+        keyUsed: keyUsed ?? undefined,
       } : undefined)
 
       setMessages([...newMessages, {
@@ -107,6 +110,7 @@ export default function PlaygroundPage() {
           model: via?.model,
           latency,
           fallbackAttempts: fallbackAttempts ? parseInt(fallbackAttempts) : undefined,
+          keyUsed: via?.keyUsed ?? keyUsed ?? undefined,
         },
       }])
     } catch (err: any) {
@@ -195,6 +199,7 @@ export default function PlaygroundPage() {
                       <div className="flex items-center gap-2 mt-2 flex-wrap text-[11px] opacity-70 tabular-nums">
                         {msg.meta.platform && <span>{msg.meta.platform}</span>}
                         {msg.meta.model && <span className="font-mono">· {msg.meta.model}</span>}
+                        {msg.meta.keyUsed && <span className="font-medium bg-secondary text-secondary-foreground px-1.5 py-0.5 rounded">Key: {msg.meta.keyUsed}</span>}
                         {msg.meta.latency != null && <span>· {msg.meta.latency} ms</span>}
                         {msg.meta.fallbackAttempts != null && msg.meta.fallbackAttempts > 0 && (
                           <span>· {msg.meta.fallbackAttempts} fallback{msg.meta.fallbackAttempts > 1 ? 's' : ''}</span>

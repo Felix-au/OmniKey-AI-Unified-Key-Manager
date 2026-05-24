@@ -4,6 +4,21 @@ import { z } from 'zod';
 import { getDb } from '../db/index.js';
 import { getAllPenalties } from '../services/router.js';
 
+function parseBudget(s: string): number {
+  const m = s.match(/~?([\d.]+)(?:-([\d.]+))?([MK])?/);
+  if (!m) return 0;
+  const high = parseFloat(m[2] ?? m[1]);
+  const unit = m[3] === 'M' ? 1_000_000 : m[3] === 'K' ? 1_000 : 1;
+  return high * unit;
+}
+
+function formatBudget(num: number): string {
+  if (num >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(1).replace(/\.0$/, '')}B`;
+  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+  if (num >= 1_000) return `${(num / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
+  return String(num);
+}
+
 export const fallbackRouter = Router();
 
 // Get fallback chain (with dynamic penalties)
@@ -33,6 +48,16 @@ fallbackRouter.get('/', (_req: Request, res: Response) => {
 
   res.json(rows.map(r => {
     const penalty = penaltyMap.get(r.model_db_id);
+    const keyCount = keyCountMap.get(r.platform) ?? 0;
+
+    let monthlyTokenBudget = r.monthly_token_budget;
+    if (keyCount > 1) {
+      const base = parseBudget(r.monthly_token_budget);
+      if (base > 0) {
+        monthlyTokenBudget = `~${formatBudget(base * keyCount)} (${keyCount} keys)`;
+      }
+    }
+
     return {
       modelDbId: r.model_db_id,
       priority: r.priority,
@@ -48,8 +73,8 @@ fallbackRouter.get('/', (_req: Request, res: Response) => {
       sizeLabel: r.size_label,
       rpmLimit: r.rpm_limit,
       rpdLimit: r.rpd_limit,
-      monthlyTokenBudget: r.monthly_token_budget,
-      keyCount: keyCountMap.get(r.platform) ?? 0,
+      monthlyTokenBudget,
+      keyCount,
     };
   }));
 });
@@ -125,6 +150,14 @@ fallbackRouter.get('/token-usage', (_req: Request, res: Response) => {
   `).all() as { platform: string }[];
   const platformSet = new Set(platforms.map(p => p.platform));
 
+  // Count enabled keys per platform to scale the budget
+  const keyCounts = db.prepare(`
+    SELECT platform, COUNT(*) as count
+    FROM api_keys WHERE enabled = 1
+    GROUP BY platform
+  `).all() as { platform: string; count: number }[];
+  const keyCountMap = new Map(keyCounts.map(k => [k.platform, k.count]));
+
   // Get monthly budget per model, ordered by fallback priority
   const models = db.prepare(`
     SELECT m.platform, m.model_id, m.display_name, m.monthly_token_budget,
@@ -135,22 +168,18 @@ fallbackRouter.get('/token-usage', (_req: Request, res: Response) => {
     ORDER BY fc.priority ASC
   `).all() as { platform: string; model_id: string; display_name: string; monthly_token_budget: string; priority: number }[];
 
-  function parseBudget(s: string): number {
-    const m = s.match(/~?([\d.]+)(?:-([\d.]+))?([MK])?/);
-    if (!m) return 0;
-    const high = parseFloat(m[2] ?? m[1]);
-    const unit = m[3] === 'M' ? 1_000_000 : m[3] === 'K' ? 1_000 : 1;
-    return high * unit;
-  }
-
   // Build per-model breakdown (only platforms with keys)
   const modelBudgets = models
     .filter(m => platformSet.has(m.platform))
-    .map(m => ({
-      displayName: m.display_name,
-      platform: m.platform,
-      budget: parseBudget(m.monthly_token_budget),
-    }));
+    .map(m => {
+      const count = keyCountMap.get(m.platform) ?? 0;
+      const baseBudget = parseBudget(m.monthly_token_budget);
+      return {
+        displayName: m.display_name,
+        platform: m.platform,
+        budget: baseBudget * count,
+      };
+    });
 
   const totalBudget = modelBudgets.reduce((s, m) => s + m.budget, 0);
 

@@ -364,10 +364,12 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
 
           for await (const chunk of gen) {
             if (!streamStarted) {
+              const keyUsed = (route.keyLabel && route.keyLabel.trim()) ? route.keyLabel.trim() : `Key #${route.keyId}`;
               res.setHeader('Content-Type', 'text/event-stream');
               res.setHeader('Cache-Control', 'no-cache');
               res.setHeader('Connection', 'keep-alive');
               res.setHeader('X-Routed-Via', `${route.platform}/${route.modelId}`);
+              res.setHeader('X-Key-Used', keyUsed);
               if (attempt > 0) res.setHeader('X-Fallback-Attempts', String(attempt));
               streamStarted = true;
             }
@@ -377,9 +379,11 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
           }
 
           if (!streamStarted) {
+            const keyUsed = (route.keyLabel && route.keyLabel.trim()) ? route.keyLabel.trim() : `Key #${route.keyId}`;
             // Upstream returned no chunks — emit minimal successful stream.
             res.setHeader('Content-Type', 'text/event-stream');
             res.setHeader('X-Routed-Via', `${route.platform}/${route.modelId}`);
+            res.setHeader('X-Key-Used', keyUsed);
           }
           res.write('data: [DONE]\n\n');
           res.end();
@@ -416,8 +420,18 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
         recordSuccess(route.modelDbId);
         setStickyModel(messages, route.modelDbId);
 
+        const keyUsed = (route.keyLabel && route.keyLabel.trim()) ? route.keyLabel.trim() : `Key #${route.keyId}`;
         res.setHeader('X-Routed-Via', `${route.platform}/${route.modelId}`);
+        res.setHeader('X-Key-Used', keyUsed);
         if (attempt > 0) res.setHeader('X-Fallback-Attempts', String(attempt));
+
+        if (result && typeof result === 'object') {
+          (result as any)._routed_via = {
+            platform: route.platform,
+            model: route.modelId,
+            keyUsed,
+          };
+        }
         res.json(result);
 
         logRequest(
