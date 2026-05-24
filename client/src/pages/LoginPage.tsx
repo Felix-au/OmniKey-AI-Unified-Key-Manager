@@ -77,10 +77,10 @@ export default function LoginPage() {
 
       {/* Main glass card */}
       <div className="w-full max-w-[420px] bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-8 shadow-2xl relative z-10 transition-all duration-300">
-        
+
         {/* Brand header */}
         <div className="flex flex-col items-center text-center mb-8">
-          <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center p-2.5 shadow-lg shadow-white/5 mb-4 animate-pulse">
+          <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center p-3.5 shadow-lg shadow-white/5 mb-4 animate-pulse">
             <img src={logoUrl} alt="OmniKey AI Logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-white mb-1.5">OmniKey AI</h1>
@@ -92,22 +92,20 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => { setIsRegister(false); setError(null); }}
-            className={`py-2 text-xs font-semibold rounded-xl transition-all ${
-              !isRegister
+            className={`py-2 text-xs font-semibold rounded-xl transition-all ${!isRegister
                 ? 'bg-slate-800 text-white shadow'
                 : 'text-slate-400 hover:text-slate-200'
-            }`}
+              }`}
           >
             Sign In
           </button>
           <button
             type="button"
             onClick={() => { setIsRegister(true); setError(null); }}
-            className={`py-2 text-xs font-semibold rounded-xl transition-all ${
-              isRegister
+            className={`py-2 text-xs font-semibold rounded-xl transition-all ${isRegister
                 ? 'bg-slate-800 text-white shadow'
                 : 'text-slate-400 hover:text-slate-200'
-            }`}
+              }`}
           >
             Create Account
           </button>
@@ -116,7 +114,7 @@ export default function LoginPage() {
         {/* Error message */}
         {error && (
           <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium px-4 py-3 rounded-2xl mb-6 flex items-start gap-2.5">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
             <span>{error}</span>
           </div>
         )}
@@ -214,7 +212,7 @@ export default function LoginPage() {
         {/* Footer note */}
         <div className="mt-6 pt-5 border-t border-slate-800/40 text-center">
           <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
-            Authentication is secured by Firebase Guard. Database persistence resides on cluster0 MongoDB.
+            Authentication is secured by Firebase Guard. Database persistence resides on MongoDB Atlas.
           </p>
         </div>
 

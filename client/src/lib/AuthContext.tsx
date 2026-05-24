@@ -24,25 +24,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [localDbEnabled, setLocalDbEnabled] = useState(true);
 
   useEffect(() => {
+    let unsubscribe: (() => void) | null = null;
+
     // 1. Detect dynamic database configuration mode from backend
-    async function checkConfig() {
+    async function initAuth() {
       try {
         const config = await apiFetch<{ localDbEnabled: boolean }>('/api/config');
         setLocalDbEnabled(config.localDbEnabled);
+        
+        if (config.localDbEnabled) {
+          // Local mode active: immediately complete loading with zero Firebase dependencies (offline-friendly)
+          setLoading(false);
+        } else {
+          // Cloud mode active: subscribe to Firebase Auth events
+          unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            setUser(currentUser);
+            setLoading(false);
+          });
+        }
       } catch (e) {
-        console.warn('Failed to load backend config, defaulting to local mode:', e);
+        console.warn('Failed to load backend config, defaulting to offline local mode:', e);
         setLocalDbEnabled(true);
+        setLoading(false);
       }
     }
-    checkConfig();
+    
+    initAuth();
 
-    // 2. Track Firebase Auth state changes
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   const logout = async () => {
