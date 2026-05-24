@@ -73,7 +73,7 @@ flowchart LR
 ### Starting OmniKey AI
 
 1. **Loads environment configuration**: Reads ports and `ENCRYPTION_KEY` from the `.env` file.
-2. **Database Initialization**: Connects to `server/data/freeapi.db`. Creates schema tables and seeds default models/fallbacks if it's a fresh setup.
+2. **Database Initialization**: Connects to `server/data/OmniKeyAI.db`. Creates schema tables and seeds default models/fallbacks if it's a fresh setup.
 3. **Starts Proxy Listener**: Binds Express to the configured port (default `3001`).
 4. **Starts React Client**: In development mode, Vite fires the UI on port `5173`. In production mode, Express serves the built client bundle.
 

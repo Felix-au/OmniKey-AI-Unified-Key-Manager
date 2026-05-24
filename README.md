@@ -290,7 +290,7 @@ All configuration is loaded from the environment variables in your `.env` file:
 |---|---|---|
 | `PORT` | `3001` | Express server port for incoming client API requests |
 | `ENCRYPTION_KEY` | *(Required)* | 32-byte hex key used to encrypt and decrypt provider keys |
-| `DATABASE_URL` | `./server/data/freeapi.db` | Absolute or relative path to SQLite database file |
+| `DATABASE_URL` | `./server/data/OmniKeyAI.db` | Absolute or relative path to SQLite database file |
 
 ---
 

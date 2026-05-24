@@ -23,7 +23,7 @@ node -e "console.log('ENCRYPTION_KEY=' + require('crypto').randomBytes(32).toStr
 npm run dev
 ```
 
-On first launch, the server will create a local SQLite database at `server/data/freeapi.db`, run migrations, seed 25+ model configurations, and start:
+On first launch, the server will create a local SQLite database at `server/data/OmniKeyAI.db`, run migrations, seed 25+ model configurations, and start:
 * Express server on `http://localhost:3001`
 * Vite React Dashboard on `http://localhost:5173`
 
@@ -113,7 +113,7 @@ The React Dashboard is your command center.
 |---|---|---|
 | `PORT` | `3001` | The backend proxy listener port |
 | `ENCRYPTION_KEY` | *(None)* | 32-byte hex string used to encrypt local API keys |
-| `DATABASE_URL` | `./server/data/freeapi.db` | Path where the SQLite database will be stored |
+| `DATABASE_URL` | `./server/data/OmniKeyAI.db` | Path where the SQLite database will be stored |
 
 ---
 
@@ -122,7 +122,7 @@ The React Dashboard is your command center.
 - **Personal Use Only** — Do not expose your local OmniKey AI server to the public web. It is designed as a single-user proxy.
 - **Provider ToS** — Your usage is governed by the Terms of Service of each individual upstream provider.
 - **Encryption Loss** — If you lose or change your `ENCRYPTION_KEY`, you will not be able to decrypt your stored keys and will need to re-enter them.
-- **Database Backup** — Your configurations, stats, and logs are kept in `server/data/freeapi.db`. Keep backups of this file.
+- **Database Backup** — Your configurations, stats, and logs are kept in `server/data/OmniKeyAI.db`. Keep backups of this file.
 
 ---
 
