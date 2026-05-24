@@ -126,6 +126,13 @@ function UnifiedKeySection() {
   )
 }
 
+function parseUtcDate(str: string | null | undefined): Date | null {
+  if (!str) return null
+  if (str.includes('T') && str.includes('Z')) return new Date(str)
+  const formatted = str.replace(' ', 'T') + (str.endsWith('Z') ? '' : 'Z')
+  return new Date(formatted)
+}
+
 export default function KeysPage() {
   const queryClient = useQueryClient()
   const [platform, setPlatform] = useState<Platform | ''>('')
@@ -377,7 +384,7 @@ export default function KeysPage() {
                           <div className="flex-1" />
                           {lastChecked && (
                             <span className="text-[11px] text-muted-foreground tabular-nums">
-                              {new Date(lastChecked).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}
+                              {parseUtcDate(lastChecked)?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}
                             </span>
                           )}
                           <Button variant="ghost" size="xs" onClick={() => checkKey.mutate(k.id)} disabled={checkKey.isPending}>

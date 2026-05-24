@@ -11,6 +11,13 @@ import { PageHeader } from '@/components/page-header'
 
 type TimeRange = '24h' | '7d' | '30d'
 
+function parseUtcDate(str: string | null | undefined): Date | null {
+  if (!str) return null
+  if (str.includes('T') && str.includes('Z')) return new Date(str)
+  const formatted = str.replace(' ', 'T') + (str.endsWith('Z') ? '' : 'Z')
+  return new Date(formatted)
+}
+
 function formatTokens(n?: number): string {
   if (!n) return '0'
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
@@ -232,7 +239,7 @@ export default function AnalyticsPage() {
                         <TableCell className="pl-4 text-xs">{e.platform}</TableCell>
                         <TableCell className="text-xs max-w-[200px] truncate">{e.error}</TableCell>
                         <TableCell className="text-right text-xs text-muted-foreground tabular-nums pr-4">
-                          {new Date(e.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}
+                          {parseUtcDate(e.createdAt)?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}
                         </TableCell>
                       </TableRow>
                     ))}
