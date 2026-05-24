@@ -1,6 +1,7 @@
 import admin from 'firebase-admin';
 import type { Request, Response, NextFunction } from 'express';
 import { UserSettings } from '../models/UserSettings.js';
+import { isLocalDbEnabled } from '../db/context.js';
 
 // Initialize Firebase Admin SDK
 if (admin.apps.length === 0) {
@@ -25,6 +26,13 @@ export async function requireDashboardAuth(
   res: Response,
   next: NextFunction
 ) {
+  // If local DB is enabled, bypass auth completely
+  if (isLocalDbEnabled()) {
+    req.userId = 'local-dev-user-uid';
+    req.userEmail = 'local-dev-user@example.com';
+    return next();
+  }
+
   // Option to bypass auth check in local dev environments if not configured
   if (!process.env.FIREBASE_PROJECT_ID) {
     req.userId = 'local-dev-user-uid';
@@ -61,6 +69,11 @@ export async function requireProxyAuth(
   res: Response,
   next: NextFunction
 ) {
+  // If local DB is enabled, bypass MongoDB validation (SQLite checks are handled inline in proxy)
+  if (isLocalDbEnabled()) {
+    req.userId = 'local-dev-user-uid';
+    return next();
+  }
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     res.status(401).json({ error: 'Access denied. Bearer token is missing.' });
