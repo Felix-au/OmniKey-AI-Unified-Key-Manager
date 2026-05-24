@@ -12,7 +12,7 @@ import { healthRouter } from './routes/health.js';
 import { settingsRouter } from './routes/settings.js';
 import { adminRouter } from './routes/admin.js';
 import { errorHandler } from './middleware/errorHandler.js';
-import { isLocalDbEnabled } from './db/context.js';
+import { isLocalDbEnabled, dbModeStorage } from './db/context.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -34,6 +34,17 @@ function getAllowedCorsOrigins() {
 export function createApp() {
   const app = express();
   const allowedCorsOrigins = getAllowedCorsOrigins();
+
+  // Dynamic Per-Request Database Context Middleware
+  app.use((req, res, next) => {
+    let mode = req.headers['x-database-mode'] as 'local' | 'cloud' | undefined;
+    if (!mode || (mode !== 'local' && mode !== 'cloud')) {
+      mode = process.env.MONGODB_URI ? 'cloud' : 'local';
+    }
+    dbModeStorage.run(mode, () => {
+      next();
+    });
+  });
 
   // CSP intentionally disabled — the SPA bundles inline styles and the OG
   // image is loaded from the same origin; enabling helmet's default CSP
@@ -80,7 +91,7 @@ export function createApp() {
   // Public config endpoint
   app.get('/api/config', (_req, res) => {
     res.json({
-      localDbEnabled: isLocalDbEnabled()
+      cloudDbAvailable: !!process.env.MONGODB_URI
     });
   });
 

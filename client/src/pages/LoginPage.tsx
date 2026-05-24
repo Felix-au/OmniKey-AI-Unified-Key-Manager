@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
+import { useAuth } from '@/lib/AuthContext'
 import { Button } from '@/components/ui/button'
 import logoUrl from '../assets/logo.png'
 
 export default function LoginPage() {
+  const { setDatabaseMode } = useAuth()
+  const [rememberMode, setRememberMode] = useState(true)
   const [isRegister, setIsRegister] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -208,6 +211,40 @@ export default function LoginPage() {
           </svg>
           Continue with Google
         </Button>
+
+        {/* Dynamic Mode Switcher (Local-First fallback) */}
+        <div className="mt-5 p-4 rounded-2xl bg-slate-950/60 border border-slate-900 flex flex-col items-center">
+          <p className="text-[10px] text-slate-400 font-semibold text-center mb-2.5">
+            Running offline or hosting locally?
+          </p>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={rememberMode}
+                onChange={(e) => setRememberMode(e.target.checked)}
+                className="rounded border-slate-800 bg-slate-950 text-violet-600 focus:ring-violet-500 w-3 h-3"
+              />
+              Remember choice
+            </label>
+            <Button
+              type="button"
+              variant="outline"
+              size="xs"
+              onClick={() => {
+                const confirmSwitch = window.confirm(
+                  "Only switch to local-first mode if you have run the project locally on your device; otherwise, it would not work."
+                )
+                if (confirmSwitch) {
+                  setDatabaseMode('local', rememberMode)
+                }
+              }}
+              className="text-[10px] font-bold py-1.5 px-3 h-auto text-violet-400 hover:text-violet-300 border-violet-500/20 hover:border-violet-500/40 bg-violet-950/10 hover:bg-violet-950/20 rounded-xl"
+            >
+              Switch to Local-First
+            </Button>
+          </div>
+        </div>
 
         {/* Footer note */}
         <div className="mt-6 pt-5 border-t border-slate-800/40 text-center">

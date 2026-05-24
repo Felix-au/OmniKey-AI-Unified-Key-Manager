@@ -7,7 +7,7 @@ import { routeRequest, recordRateLimitHit, recordSuccess, type RouteResult } fro
 import { recordRequest, recordTokens, setCooldown } from '../services/ratelimit.js';
 import { getDb, getUnifiedApiKey } from '../db/index.js';
 import { contentToString } from '../lib/content.js';
-import { isLocalDbEnabled } from '../db/context.js';
+import { isLocalDbEnabled, dbModeStorage } from '../db/context.js';
 import { UserSettings } from '../models/UserSettings.js';
 import { RequestLog } from '../models/RequestLog.js';
 import { Model } from '../models/Model.js';
@@ -232,267 +232,288 @@ export function isRetryableError(err: any): boolean {
 proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
   const start = Date.now();
   let userId = 'local-dev-user-uid';
+  const token = req.headers.authorization?.replace(/^Bearer\s+/i, '');
 
-  // 1. Resolve and authenticate user context
-  if (isLocalDbEnabled()) {
-    const token = req.headers.authorization?.replace(/^Bearer\s+/i, '');
-    const unifiedKey = getUnifiedApiKey();
-    if (!token || !timingSafeStringEqual(token, unifiedKey)) {
-      res.status(401).json({
-        error: { message: 'Invalid API key', type: 'authentication_error' },
-      });
-      return;
-    }
-  } else {
-    const token = req.headers.authorization?.replace(/^Bearer\s+/i, '');
-    if (!token || !token.startsWith('omnikey-')) {
-      res.status(401).json({
-        error: { message: 'Invalid API key format', type: 'authentication_error' },
-      });
-      return;
-    }
-    const settings = await UserSettings.findOne({ unifiedApiKey: token });
-    if (!settings) {
-      res.status(401).json({
-        error: { message: 'Invalid API key', type: 'authentication_error' },
-      });
-      return;
-    }
-    userId = settings.userId;
-  }
-
-  // 2. Validate request payload
-  const parsed = chatCompletionSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({
-      error: {
-        message: `Invalid request: ${parsed.error.errors.map(e => e.message).join(', ')}`,
-        type: 'invalid_request_error',
-      },
+  if (!token) {
+    res.status(401).json({
+      error: { message: 'Missing API key', type: 'authentication_error' },
     });
     return;
   }
 
-  const { model: requestedModel, temperature, max_tokens, top_p, stream, tools, tool_choice, parallel_tool_calls } = parsed.data;
-  const messages: ChatMessage[] = parsed.data.messages.map((m): ChatMessage => {
-    if (m.role === 'assistant') {
-      return {
-        role: 'assistant',
-        content: m.content ?? null,
-        ...(m.name ? { name: m.name } : {}),
-        ...(m.tool_calls ? { tool_calls: m.tool_calls.map(tc => ({
-          id: tc.id,
-          type: tc.type,
-          function: tc.function,
-          thought_signature: tc.thought_signature,
-        })) } : {}),
-      };
-    }
+  // Auto-detect database mode based on the timing-safe key itself
+  let isLocal = !process.env.MONGODB_URI;
+  let authenticated = false;
 
-    if (m.role === 'tool') {
-      return {
-        role: 'tool',
-        content: m.content,
-        tool_call_id: m.tool_call_id,
-        ...(m.name ? { name: m.name } : {}),
-      };
-    }
-
-    return {
-      role: m.role,
-      content: m.content,
-      ...(m.name ? { name: m.name } : {}),
-    };
-  });
-
-  const estimatedInputTokens = messages.reduce((sum, m) => {
-    const text = contentToString(m.content);
-    return sum + Math.ceil(text.length / 4);
-  }, 0);
-  const estimatedTotal = estimatedInputTokens + (max_tokens ?? 1000);
-
-  // 3. Resolve preferred sticky / auto-routed model
-  let preferredModel: number | string | undefined;
-  if (isAutoModel(requestedModel)) {
-    preferredModel = getStickyModel(messages);
-  } else if (requestedModel) {
-    if (isLocalDbEnabled()) {
-      const db = getDb();
-      const enabled = db.prepare('SELECT id FROM models WHERE model_id = ? AND enabled = 1').get(requestedModel) as { id: number } | undefined;
-      if (enabled) {
-        preferredModel = enabled.id;
-      } else {
-        const disabled = db.prepare('SELECT id FROM models WHERE model_id = ?').get(requestedModel) as { id: number } | undefined;
-        const reason = disabled ? 'is disabled' : 'is not in the catalog';
-        res.status(400).json({
-          error: {
-            message: `Model '${requestedModel}' ${reason}. Use 'auto' (or omit the 'model' field) to auto-route, or call /v1/models for the available list.`,
-            type: 'invalid_request_error',
-            code: 'model_not_found',
-          },
-        });
-        return;
+  // 1. Check cloud database (if URI present)
+  if (process.env.MONGODB_URI && token.startsWith('omnikey-')) {
+    try {
+      const settings = await UserSettings.findOne({ unifiedApiKey: token });
+      if (settings) {
+        userId = settings.userId;
+        isLocal = false;
+        authenticated = true;
       }
-    } else {
-      const enabled = await Model.findOne({ modelId: requestedModel, enabled: true });
-      if (enabled) {
-        preferredModel = enabled._id.toString();
-      } else {
-        const disabled = await Model.findOne({ modelId: requestedModel });
-        const reason = disabled ? 'is disabled' : 'is not in the catalog';
-        res.status(400).json({
-          error: {
-            message: `Model '${requestedModel}' ${reason}. Use 'auto' (or omit the 'model' field) to auto-route, or call /v1/models for the available list.`,
-            type: 'invalid_request_error',
-            code: 'model_not_found',
-          },
-        });
-        return;
-      }
+    } catch (e) {
+      console.warn('[Proxy] Failed to query MongoDB key:', e);
     }
-  } else {
-    preferredModel = getStickyModel(messages);
   }
 
-  // 4. Retry scheduling loop
-  const skipKeys = new Set<string>();
-  let lastError: any = null;
-
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    let route: RouteResult;
+  // 2. Fall back to local SQLite
+  if (!authenticated) {
     try {
-      route = await routeRequest(estimatedTotal, skipKeys.size > 0 ? skipKeys : undefined, preferredModel, userId);
-    } catch (err: any) {
-      if (lastError) {
-        res.status(429).json({
-          error: {
-            message: `All models rate-limited. Last error: ${lastError.message}`,
-            type: 'rate_limit_error',
-          },
-        });
-      } else {
-        res.status(err.status ?? 503).json({
-          error: { message: err.message, type: 'routing_error' },
-        });
+      const unifiedKey = getUnifiedApiKey();
+      if (timingSafeStringEqual(token, unifiedKey)) {
+        isLocal = true;
+        authenticated = true;
       }
-      return;
+    } catch (e) {
+      console.warn('[Proxy] Failed to query SQLite key:', e);
     }
+  }
 
-    recordRequest(route.platform, route.modelId, route.keyId as any);
+  if (!authenticated) {
+    res.status(401).json({
+      error: { message: 'Invalid API key', type: 'authentication_error' },
+    });
+    return;
+  }
 
-    try {
-      if (stream) {
-        let totalOutputTokens = 0;
-        let streamStarted = false;
-        try {
-          const gen = route.provider.streamChatCompletion(
-            route.apiKey, messages, route.modelId,
-            { temperature, max_tokens, top_p, tools, tool_choice, parallel_tool_calls },
-          );
-
-          for await (const chunk of gen) {
-            if (!streamStarted) {
-              const keyUsed = (route.keyLabel && route.keyLabel.trim()) ? route.keyLabel.trim() : `Key #${route.keyId}`;
-              res.setHeader('Content-Type', 'text/event-stream');
-              res.setHeader('Cache-Control', 'no-cache');
-              res.setHeader('Connection', 'keep-alive');
-              res.setHeader('X-Routed-Via', `${route.platform}/${route.modelId}`);
-              res.setHeader('X-Key-Used', keyUsed);
-              if (attempt > 0) res.setHeader('X-Fallback-Attempts', String(attempt));
-              streamStarted = true;
-            }
-            const text = chunk.choices[0]?.delta?.content ?? '';
-            totalOutputTokens += Math.ceil(text.length / 4);
-            res.write(`data: ${JSON.stringify(chunk)}\n\n`);
-          }
-
-          if (!streamStarted) {
-            const keyUsed = (route.keyLabel && route.keyLabel.trim()) ? route.keyLabel.trim() : `Key #${route.keyId}`;
-            res.setHeader('Content-Type', 'text/event-stream');
-            res.setHeader('X-Routed-Via', `${route.platform}/${route.modelId}`);
-            res.setHeader('X-Key-Used', keyUsed);
-          }
-          res.write('data: [DONE]\n\n');
-          res.end();
-
-          recordTokens(route.platform, route.modelId, route.keyId as any, estimatedInputTokens + totalOutputTokens);
-          recordSuccess(route.modelDbId);
-          setStickyModel(messages, route.modelDbId);
-          logRequest(route.platform, route.modelId, 'success', estimatedInputTokens, totalOutputTokens, Date.now() - start, null, userId);
-          return;
-        } catch (streamErr: any) {
-          if (streamStarted) {
-            console.error(`[Proxy] Mid-stream error from ${route.displayName}:`, streamErr.message);
-            const payload = { error: { message: `Provider error (${route.displayName}): stream interrupted`, type: 'stream_error' } };
-            try { res.write(`data: ${JSON.stringify(payload)}\n\n`); } catch {}
-            try { res.write('data: [DONE]\n\n'); res.end(); } catch {}
-            logRequest(route.platform, route.modelId, 'error', estimatedInputTokens, totalOutputTokens, Date.now() - start, streamErr.message, userId);
-            return;
-          }
-          throw streamErr;
-        }
-      } else {
-        const result = await route.provider.chatCompletion(
-          route.apiKey, messages, route.modelId,
-          { temperature, max_tokens, top_p, tools, tool_choice, parallel_tool_calls },
-        );
-
-        const totalTokens = result.usage?.total_tokens ?? 0;
-        recordTokens(route.platform, route.modelId, route.keyId as any, totalTokens);
-        recordSuccess(route.modelDbId);
-        setStickyModel(messages, route.modelDbId);
-
-        const keyUsed = (route.keyLabel && route.keyLabel.trim()) ? route.keyLabel.trim() : `Key #${route.keyId}`;
-        res.setHeader('X-Routed-Via', `${route.platform}/${route.modelId}`);
-        res.setHeader('X-Key-Used', keyUsed);
-        if (attempt > 0) res.setHeader('X-Fallback-Attempts', String(attempt));
-
-        if (result && typeof result === 'object') {
-          (result as any)._routed_via = {
-            platform: route.platform,
-            model: route.modelId,
-            keyUsed,
-          };
-        }
-        res.json(result);
-
-        logRequest(
-          route.platform, route.modelId, 'success',
-          result.usage?.prompt_tokens ?? 0,
-          result.usage?.completion_tokens ?? 0,
-          Date.now() - start, null, userId
-        );
-        return;
-      }
-    } catch (err: any) {
-      const latency = Date.now() - start;
-      logRequest(route.platform, route.modelId, 'error', estimatedInputTokens, 0, latency, err.message, userId);
-
-      if (isRetryableError(err)) {
-        const skipId = `${route.platform}:${route.modelId}:${route.keyId}`;
-        skipKeys.add(skipId);
-        setCooldown(route.platform, route.modelId, route.keyId as any, 120_000);
-        recordRateLimitHit(route.modelDbId);
-        lastError = err;
-        console.log(`[Proxy] ${err.message.slice(0, 60)} from ${route.displayName}, falling back (attempt ${attempt + 1}/${MAX_RETRIES})`);
-        continue;
-      }
-
-      res.status(502).json({
+  // Wrap the entire request logic inside the appropriate database context
+  await dbModeStorage.run(isLocal ? 'local' : 'cloud', async () => {
+    // 2. Validate request payload
+    const parsed = chatCompletionSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({
         error: {
-          message: `Provider error (${route.displayName}): ${err.message}`,
-          type: 'provider_error',
+          message: `Invalid request: ${parsed.error.errors.map(e => e.message).join(', ')}`,
+          type: 'invalid_request_error',
         },
       });
       return;
     }
-  }
 
-  res.status(429).json({
-    error: {
-      message: `All models rate-limited after ${MAX_RETRIES} attempts. Last: ${lastError?.message}`,
-      type: 'rate_limit_error',
-    },
+    const { model: requestedModel, temperature, max_tokens, top_p, stream, tools, tool_choice, parallel_tool_calls } = parsed.data;
+    const messages: ChatMessage[] = parsed.data.messages.map((m): ChatMessage => {
+      if (m.role === 'assistant') {
+        return {
+          role: 'assistant',
+          content: m.content ?? null,
+          ...(m.name ? { name: m.name } : {}),
+          ...(m.tool_calls ? { tool_calls: m.tool_calls.map(tc => ({
+            id: tc.id,
+            type: tc.type,
+            function: tc.function,
+            thought_signature: tc.thought_signature,
+          })) } : {}),
+        };
+      }
+
+      if (m.role === 'tool') {
+        return {
+          role: 'tool',
+          content: m.content,
+          tool_call_id: m.tool_call_id,
+          ...(m.name ? { name: m.name } : {}),
+        };
+      }
+
+      return {
+        role: m.role,
+        content: m.content,
+        ...(m.name ? { name: m.name } : {}),
+      };
+    });
+
+    const estimatedInputTokens = messages.reduce((sum, m) => {
+      const text = contentToString(m.content);
+      return sum + Math.ceil(text.length / 4);
+    }, 0);
+    const estimatedTotal = estimatedInputTokens + (max_tokens ?? 1000);
+
+    // 3. Resolve preferred sticky / auto-routed model
+    let preferredModel: number | string | undefined;
+    if (isAutoModel(requestedModel)) {
+      preferredModel = getStickyModel(messages);
+    } else if (requestedModel) {
+      if (isLocalDbEnabled()) {
+        const db = getDb();
+        const enabled = db.prepare('SELECT id FROM models WHERE model_id = ? AND enabled = 1').get(requestedModel) as { id: number } | undefined;
+        if (enabled) {
+          preferredModel = enabled.id;
+        } else {
+          const disabled = db.prepare('SELECT id FROM models WHERE model_id = ?').get(requestedModel) as { id: number } | undefined;
+          const reason = disabled ? 'is disabled' : 'is not in the catalog';
+          res.status(400).json({
+            error: {
+              message: `Model '${requestedModel}' ${reason}. Use 'auto' (or omit the 'model' field) to auto-route, or call /v1/models for the available list.`,
+              type: 'invalid_request_error',
+              code: 'model_not_found',
+            },
+          });
+          return;
+        }
+      } else {
+        const enabled = await Model.findOne({ modelId: requestedModel, enabled: true });
+        if (enabled) {
+          preferredModel = enabled._id.toString();
+        } else {
+          const disabled = await Model.findOne({ modelId: requestedModel });
+          const reason = disabled ? 'is disabled' : 'is not in the catalog';
+          res.status(400).json({
+            error: {
+              message: `Model '${requestedModel}' ${reason}. Use 'auto' (or omit the 'model' field) to auto-route, or call /v1/models for the available list.`,
+              type: 'invalid_request_error',
+              code: 'model_not_found',
+            },
+          });
+          return;
+        }
+      }
+    } else {
+      preferredModel = getStickyModel(messages);
+    }
+
+    // 4. Retry scheduling loop
+    const skipKeys = new Set<string>();
+    let lastError: any = null;
+
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      let route: RouteResult;
+      try {
+        route = await routeRequest(estimatedTotal, skipKeys.size > 0 ? skipKeys : undefined, preferredModel, userId);
+      } catch (err: any) {
+        if (lastError) {
+          res.status(429).json({
+            error: {
+              message: `All models rate-limited. Last error: ${lastError.message}`,
+              type: 'rate_limit_error',
+            },
+          });
+        } else {
+          res.status(err.status ?? 503).json({
+            error: { message: err.message, type: 'routing_error' },
+          });
+        }
+        return;
+      }
+
+      recordRequest(route.platform, route.modelId, route.keyId as any);
+
+      try {
+        if (stream) {
+          let totalOutputTokens = 0;
+          let streamStarted = false;
+          try {
+            const gen = route.provider.streamChatCompletion(
+              route.apiKey, messages, route.modelId,
+              { temperature, max_tokens, top_p, tools, tool_choice, parallel_tool_calls },
+            );
+
+            for await (const chunk of gen) {
+              if (!streamStarted) {
+                const keyUsed = (route.keyLabel && route.keyLabel.trim()) ? route.keyLabel.trim() : `Key #${route.keyId}`;
+                res.setHeader('Content-Type', 'text/event-stream');
+                res.setHeader('Cache-Control', 'no-cache');
+                res.setHeader('Connection', 'keep-alive');
+                res.setHeader('X-Routed-Via', `${route.platform}/${route.modelId}`);
+                res.setHeader('X-Key-Used', keyUsed);
+                if (attempt > 0) res.setHeader('X-Fallback-Attempts', String(attempt));
+                streamStarted = true;
+              }
+              const text = chunk.choices[0]?.delta?.content ?? '';
+              totalOutputTokens += Math.ceil(text.length / 4);
+              res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+            }
+
+            if (!streamStarted) {
+              const keyUsed = (route.keyLabel && route.keyLabel.trim()) ? route.keyLabel.trim() : `Key #${route.keyId}`;
+              res.setHeader('Content-Type', 'text/event-stream');
+              res.setHeader('X-Routed-Via', `${route.platform}/${route.modelId}`);
+              res.setHeader('X-Key-Used', keyUsed);
+            }
+            res.write('data: [DONE]\n\n');
+            res.end();
+
+            recordTokens(route.platform, route.modelId, route.keyId as any, estimatedInputTokens + totalOutputTokens);
+            recordSuccess(route.modelDbId);
+            setStickyModel(messages, route.modelDbId);
+            logRequest(route.platform, route.modelId, 'success', estimatedInputTokens, totalOutputTokens, Date.now() - start, null, userId);
+            return;
+          } catch (streamErr: any) {
+            if (streamStarted) {
+              console.error(`[Proxy] Mid-stream error from ${route.displayName}:`, streamErr.message);
+              const payload = { error: { message: `Provider error (${route.displayName}): stream interrupted`, type: 'stream_error' } };
+              try { res.write(`data: ${JSON.stringify(payload)}\n\n`); } catch {}
+              try { res.write('data: [DONE]\n\n'); res.end(); } catch {}
+              logRequest(route.platform, route.modelId, 'error', estimatedInputTokens, totalOutputTokens, Date.now() - start, streamErr.message, userId);
+              return;
+            }
+            throw streamErr;
+          }
+        } else {
+          const result = await route.provider.chatCompletion(
+            route.apiKey, messages, route.modelId,
+            { temperature, max_tokens, top_p, tools, tool_choice, parallel_tool_calls },
+          );
+
+          const totalTokens = result.usage?.total_tokens ?? 0;
+          recordTokens(route.platform, route.modelId, route.keyId as any, totalTokens);
+          recordSuccess(route.modelDbId);
+          setStickyModel(messages, route.modelDbId);
+
+          const keyUsed = (route.keyLabel && route.keyLabel.trim()) ? route.keyLabel.trim() : `Key #${route.keyId}`;
+          res.setHeader('X-Routed-Via', `${route.platform}/${route.modelId}`);
+          res.setHeader('X-Key-Used', keyUsed);
+          if (attempt > 0) res.setHeader('X-Fallback-Attempts', String(attempt));
+
+          if (result && typeof result === 'object') {
+            (result as any)._routed_via = {
+              platform: route.platform,
+              model: route.modelId,
+              keyUsed,
+            };
+          }
+          res.json(result);
+
+          logRequest(
+            route.platform, route.modelId, 'success',
+            result.usage?.prompt_tokens ?? 0,
+            result.usage?.completion_tokens ?? 0,
+            Date.now() - start, null, userId
+          );
+          return;
+        }
+      } catch (err: any) {
+        const latency = Date.now() - start;
+        logRequest(route!.platform, route!.modelId, 'error', estimatedInputTokens, 0, latency, err.message, userId);
+
+        if (isRetryableError(err)) {
+          const skipId = `${route!.platform}:${route!.modelId}:${route!.keyId}`;
+          skipKeys.add(skipId);
+          setCooldown(route!.platform, route!.modelId, route!.keyId as any, 120_000);
+          recordRateLimitHit(route!.modelDbId);
+          lastError = err;
+          console.log(`[Proxy] ${err.message.slice(0, 60)} from ${route!.displayName}, falling back (attempt ${attempt + 1}/${MAX_RETRIES})`);
+          continue;
+        }
+
+        res.status(502).json({
+          error: {
+            message: `Provider error (${route!.displayName}): ${err.message}`,
+            type: 'provider_error',
+          },
+        });
+        return;
+      }
+    }
+
+    res.status(429).json({
+      error: {
+        message: `All models rate-limited after ${MAX_RETRIES} attempts. Last: ${lastError?.message}`,
+        type: 'rate_limit_error',
+      },
+    });
   });
 });
 

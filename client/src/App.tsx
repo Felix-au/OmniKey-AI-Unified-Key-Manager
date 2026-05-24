@@ -70,7 +70,7 @@ function Brand() {
 }
 
 function DashboardLayout() {
-  const { user, loading, localDbEnabled, logout } = useAuth()
+  const { user, loading, localDbEnabled, cloudDbAvailable, logout, setDatabaseMode } = useAuth()
 
   if (loading) {
     return (
@@ -101,6 +101,26 @@ function DashboardLayout() {
             <NavItem to="/analytics">Analytics</NavItem>
           </nav>
           <div className="ml-auto py-2 flex items-center gap-4">
+            {localDbEnabled && cloudDbAvailable && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setDatabaseMode('cloud')}
+                className="text-xs font-semibold text-violet-600 dark:text-violet-400 border-violet-500/20 hover:border-violet-500/40 bg-violet-500/5 hover:bg-violet-500/10 rounded-xl h-8 px-3"
+              >
+                Switch to Cloud Mode
+              </Button>
+            )}
+            {localDbEnabled && !cloudDbAvailable && (
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1">
+                Local-Only Mode
+              </span>
+            )}
+            {!localDbEnabled && (
+              <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider bg-emerald-500/5 border border-emerald-500/10 rounded-xl px-2.5 py-1">
+                Cloud Connected
+              </span>
+            )}
             <DarkModeToggle />
             {!localDbEnabled && user && (
               <Button

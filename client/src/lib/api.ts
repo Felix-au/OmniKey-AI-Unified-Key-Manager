@@ -3,8 +3,10 @@ import { auth } from './firebase.js';
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+  const selectedMode = localStorage.getItem('omnikey_db_mode') || 'cloud';
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    'x-database-mode': selectedMode,
     ...(options?.headers as Record<string, string>),
   };
 
