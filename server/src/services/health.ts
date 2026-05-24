@@ -2,62 +2,115 @@ import { getDb } from '../db/index.js';
 import { getProvider } from '../providers/index.js';
 import { decrypt } from '../lib/crypto.js';
 import type { Platform, KeyStatus } from '@omnikey-ai/shared/types.js';
+import { isLocalDbEnabled } from '../db/context.js';
+import { ApiKey } from '../models/ApiKey.js';
 
 const CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const CONSECUTIVE_FAILURES_TO_DISABLE = 3;
 
 // Track consecutive failures per key
-const failureCount = new Map<number, number>();
+const failureCountLocal = new Map<number, number>();
+const failureCountMongo = new Map<string, number>();
 
-export async function checkKeyHealth(keyId: number): Promise<KeyStatus> {
-  const db = getDb();
-  const row = db.prepare('SELECT * FROM api_keys WHERE id = ?').get(keyId) as any;
-  if (!row) return 'error';
+export async function checkKeyHealth(keyId: string | number): Promise<KeyStatus> {
+  const localMode = isLocalDbEnabled();
 
-  const provider = getProvider(row.platform as Platform);
-  if (!provider) return 'error';
+  if (localMode) {
+    const db = getDb();
+    const numericId = typeof keyId === 'string' ? parseInt(keyId, 10) : keyId;
+    const row = db.prepare('SELECT * FROM api_keys WHERE id = ?').get(numericId) as any;
+    if (!row) return 'error';
 
-  try {
-    const apiKey = decrypt(row.encrypted_key, row.iv, row.auth_tag);
-    const isValid = await provider.validateKey(apiKey);
+    const provider = getProvider(row.platform as Platform);
+    if (!provider) return 'error';
 
-    const status: KeyStatus = isValid ? 'healthy' : 'invalid';
+    try {
+      const apiKey = decrypt(row.encrypted_key, row.iv, row.auth_tag);
+      const isValid = await provider.validateKey(apiKey);
 
-    db.prepare("UPDATE api_keys SET status = ?, last_checked_at = datetime('now') WHERE id = ?")
-      .run(status, keyId);
+      const status: KeyStatus = isValid ? 'healthy' : 'invalid';
 
-    if (isValid) {
-      failureCount.delete(keyId);
-    } else {
-      const count = (failureCount.get(keyId) ?? 0) + 1;
-      failureCount.set(keyId, count);
+      db.prepare("UPDATE api_keys SET status = ?, last_checked_at = datetime('now') WHERE id = ?")
+        .run(status, numericId);
 
-      if (count >= CONSECUTIVE_FAILURES_TO_DISABLE) {
-        db.prepare('UPDATE api_keys SET enabled = 0 WHERE id = ?').run(keyId);
-        console.log(`[Health] Auto-disabled key ${keyId} after ${count} consecutive failures`);
+      if (isValid) {
+        failureCountLocal.delete(numericId);
+      } else {
+        const count = (failureCountLocal.get(numericId) ?? 0) + 1;
+        failureCountLocal.set(numericId, count);
+
+        if (count >= CONSECUTIVE_FAILURES_TO_DISABLE) {
+          db.prepare('UPDATE api_keys SET enabled = 0 WHERE id = ?').run(numericId);
+          console.log(`[Health] Auto-disabled SQLite key ${numericId} after ${count} consecutive failures`);
+        }
       }
-    }
 
-    return status;
-  } catch (err: any) {
-    // Transport errors (DNS/timeout/TLS) — provider unreachable, not necessarily
-    // a bad key. Mark status='error' but do NOT increment failure counter — auto-
-    // disable is reserved for confirmed 401/403 (returned by validateKey as false).
-    console.error(`[Health] Key ${keyId} transport error:`, err.message);
-    db.prepare("UPDATE api_keys SET status = ?, last_checked_at = datetime('now') WHERE id = ?")
-      .run('error', keyId);
-    return 'error';
+      return status;
+    } catch (err: any) {
+      console.error(`[Health] SQLite Key ${numericId} transport error:`, err.message);
+      db.prepare("UPDATE api_keys SET status = ?, last_checked_at = datetime('now') WHERE id = ?")
+        .run('error', numericId);
+      return 'error';
+    }
+  } else {
+    // MongoDB Cloud Mode
+    const row = await ApiKey.findById(keyId);
+    if (!row) return 'error';
+
+    const provider = getProvider(row.platform as Platform);
+    if (!provider) return 'error';
+
+    try {
+      const apiKey = decrypt(row.encryptedKey, row.iv, row.authTag);
+      const isValid = await provider.validateKey(apiKey);
+
+      const status: KeyStatus = isValid ? 'healthy' : 'invalid';
+
+      row.status = status;
+      row.lastCheckedAt = new Date();
+      await row.save();
+
+      const stringId = keyId.toString();
+      if (isValid) {
+        failureCountMongo.delete(stringId);
+      } else {
+        const count = (failureCountMongo.get(stringId) ?? 0) + 1;
+        failureCountMongo.set(stringId, count);
+
+        if (count >= CONSECUTIVE_FAILURES_TO_DISABLE) {
+          row.enabled = false;
+          await row.save();
+          console.log(`[Health] Auto-disabled MongoDB key ${stringId} after ${count} consecutive failures`);
+        }
+      }
+
+      return status;
+    } catch (err: any) {
+      console.error(`[Health] MongoDB Key ${keyId} transport error:`, err.message);
+      row.status = 'error';
+      row.lastCheckedAt = new Date();
+      await row.save();
+      return 'error';
+    }
   }
 }
 
 export async function checkAllKeys(): Promise<void> {
-  const db = getDb();
-  const keys = db.prepare('SELECT id, platform FROM api_keys WHERE enabled = 1').all() as { id: number; platform: string }[];
+  const localMode = isLocalDbEnabled();
 
-  console.log(`[Health] Checking ${keys.length} keys...`);
-
-  for (const key of keys) {
-    await checkKeyHealth(key.id);
+  if (localMode) {
+    const db = getDb();
+    const keys = db.prepare('SELECT id FROM api_keys WHERE enabled = 1').all() as { id: number }[];
+    console.log(`[Health] Checking ${keys.length} local keys...`);
+    for (const key of keys) {
+      await checkKeyHealth(key.id);
+    }
+  } else {
+    const keys = await ApiKey.find({ enabled: true });
+    console.log(`[Health] Checking ${keys.length} MongoDB cloud keys...`);
+    for (const key of keys) {
+      await checkKeyHealth(key._id.toString());
+    }
   }
 
   console.log(`[Health] Check complete.`);

@@ -43,7 +43,7 @@ export interface Model {
 export type KeyStatus = 'healthy' | 'rate_limited' | 'invalid' | 'error' | 'unknown';
 
 export interface ApiKey {
-  id: number;
+  id: string;
   platform: Platform;
   label: string;
   maskedKey: string;

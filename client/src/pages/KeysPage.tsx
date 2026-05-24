@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
+import { auth } from '@/lib/firebase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -55,7 +56,7 @@ interface HealthPlatform {
 
 interface HealthData {
   platforms: HealthPlatform[]
-  keys: { id: number; platform: string; status: string; lastCheckedAt: string | null }[]
+  keys: { id: string; platform: string; status: string; lastCheckedAt: string | null }[]
 }
 
 function UnifiedKeySection() {
@@ -167,7 +168,7 @@ export default function KeysPage() {
   })
 
   const deleteKey = useMutation({
-    mutationFn: (id: number) => apiFetch(`/api/keys/${id}`, { method: 'DELETE' }),
+    mutationFn: (id: string) => apiFetch(`/api/keys/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['keys'] })
       queryClient.invalidateQueries({ queryKey: ['health'] })
@@ -183,7 +184,7 @@ export default function KeysPage() {
   })
 
   const checkKey = useMutation({
-    mutationFn: (keyId: number) => apiFetch(`/api/health/check/${keyId}`, { method: 'POST' }),
+    mutationFn: (keyId: string) => apiFetch(`/api/health/check/${keyId}`, { method: 'POST' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['health'] })
       queryClient.invalidateQueries({ queryKey: ['keys'] })
@@ -200,13 +201,19 @@ export default function KeysPage() {
     addKey.mutate({ platform, key, label: label || undefined })
   }
 
-  const healthKeyMap = new Map<number, { status: string; lastCheckedAt: string | null }>()
+  const healthKeyMap = new Map<string, { status: string; lastCheckedAt: string | null }>()
   for (const k of healthData?.keys ?? []) healthKeyMap.set(k.id, k)
 
   const handleExportCsv = async () => {
     try {
       const base = import.meta.env.BASE_URL.replace(/\/$/, '')
-      const response = await fetch(`${base}/api/keys/export`)
+      const headers: Record<string, string> = {}
+      const user = auth.currentUser
+      if (user) {
+        const token = await user.getIdToken()
+        headers['Authorization'] = `Bearer ${token}`
+      }
+      const response = await fetch(`${base}/api/keys/export`, { headers })
       if (!response.ok) throw new Error('Failed to export keys')
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
@@ -233,11 +240,17 @@ export default function KeysPage() {
 
       try {
         const base = import.meta.env.BASE_URL.replace(/\/$/, '')
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        }
+        const user = auth.currentUser
+        if (user) {
+          const token = await user.getIdToken()
+          headers['Authorization'] = `Bearer ${token}`
+        }
         const response = await fetch(`${base}/api/keys/import`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
           body: JSON.stringify({ csvText }),
         })
         const data = await response.json()
