@@ -6,6 +6,7 @@ import KeysPage from '@/pages/KeysPage'
 import PlaygroundPage from '@/pages/PlaygroundPage'
 import FallbackPage from '@/pages/FallbackPage'
 import AnalyticsPage from '@/pages/AnalyticsPage'
+import logoUrl from './assets/logo.png'
 
 const queryClient = new QueryClient()
 
@@ -59,8 +60,8 @@ function DarkModeToggle() {
 
 function Brand() {
   return (
-    <div className="flex items-center gap-2">
-      <span className="inline-block size-2 rounded-full bg-foreground" />
+    <div className="flex items-center gap-2.5">
+      <img src={logoUrl} alt="OmniKey AI Logo" className="h-6 w-auto object-contain" />
       <span className="font-semibold tracking-tight text-sm">OmniKey AI</span>
     </div>
   )
