@@ -67,6 +67,16 @@ export function createApp() {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
+  // Render keep-alive public health check
+  app.get('/api/cron-health', (_req, res) => {
+    res.json({
+      status: 'active',
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+      message: 'OmniKey AI server keep-alive heartbeat successful.'
+    });
+  });
+
   // Public config endpoint
   app.get('/api/config', (_req, res) => {
     res.json({
