@@ -47,7 +47,7 @@ describe('Routing Key Exhaustion', () => {
     vi.clearAllMocks();
   });
 
-  it('should skip exhausted Key B and use functional Key A for the same high-priority model', () => {
+  it('should skip exhausted Key B and use functional Key A for the same high-priority model', async () => {
     const db = getDb();
     const keys = db.prepare("SELECT id, label FROM api_keys").all();
     const keyA = keys.find(k => k.label === 'Key A');
@@ -64,7 +64,7 @@ describe('Routing Key Exhaustion', () => {
     (ratelimit.canUseTokens as any).mockReturnValue(true);
 
     // Act: Route request
-    const result = routeRequest(100);
+    const result = await routeRequest(100);
 
     // Assert: It should have picked the Pro model despite Key B being exhausted
     expect(result.modelId).toBe('gemini-1.5-pro');
@@ -72,12 +72,12 @@ describe('Routing Key Exhaustion', () => {
     expect(ratelimit.canMakeRequest).toHaveBeenCalled();
   });
 
-  it('should throw 429 when every key on every model is exhausted', () => {
+  it('should throw 429 when every key on every model is exhausted', async () => {
     (ratelimit.canMakeRequest as any).mockReturnValue(false);
-    expect(() => routeRequest(100)).toThrow(/All models exhausted/);
+    await expect(() => routeRequest(100)).rejects.toThrow(/All models exhausted/);
   });
 
-  it('should fall back to Flash when Pro is exhausted but Flash has quota', () => {
+  it('should fall back to Flash when Pro is exhausted but Flash has quota', async () => {
     (ratelimit.canMakeRequest as any).mockImplementation((_platform: string, modelId: string) => {
       if (modelId === 'gemini-1.5-pro') return false;
       if (modelId === 'gemini-1.5-flash') return true;
@@ -85,7 +85,7 @@ describe('Routing Key Exhaustion', () => {
     });
     (ratelimit.canUseTokens as any).mockReturnValue(true);
 
-    const result = routeRequest(100);
+    const result = await routeRequest(100);
     expect(result.modelId).toBe('gemini-1.5-flash');
   });
 });
