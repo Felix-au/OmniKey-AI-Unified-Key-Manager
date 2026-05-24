@@ -12,6 +12,7 @@ import { healthRouter } from './routes/health.js';
 import { settingsRouter } from './routes/settings.js';
 import { adminRouter } from './routes/admin.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { isLocalDbEnabled } from './db/context.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -64,6 +65,13 @@ export function createApp() {
   // Health check
   app.get('/api/ping', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
+  // Public config endpoint
+  app.get('/api/config', (_req, res) => {
+    res.json({
+      localDbEnabled: isLocalDbEnabled()
+    });
   });
 
   // Error handler (for API routes)
