@@ -5,7 +5,7 @@ import type {
   ChatToolDefinition,
   ChatToolChoice,
   Platform,
-} from '@freellmapi/shared/types.js';
+} from '@omnikey-ai/shared/types.js';
 
 export interface CompletionOptions {
   model?: string;

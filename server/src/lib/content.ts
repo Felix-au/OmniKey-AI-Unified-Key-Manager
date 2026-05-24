@@ -1,4 +1,4 @@
-import type { ChatMessage } from '@freellmapi/shared/types.js';
+import type { ChatMessage } from '@omnikey-ai/shared/types.js';
 
 // OpenAI-spec message content can be one of:
 //   - string                        (plain text)

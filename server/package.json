@@ -1,5 +1,5 @@
 {
-  "name": "@freellmapi/server",
+  "name": "@omnikey-ai/server",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -11,7 +11,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@freellmapi/shared": "*",
+    "@omnikey-ai/shared": "*",
     "better-sqlite3": "^12.4.1",
     "cors": "^2.8.5",
     "dotenv": "^17.4.2",

@@ -2,7 +2,7 @@ import type {
   ChatMessage,
   ChatCompletionResponse,
   ChatCompletionChunk,
-} from '@freellmapi/shared/types.js';
+} from '@omnikey-ai/shared/types.js';
 import { BaseProvider, type CompletionOptions } from './base.js';
 import { flattenMessageContent } from '../lib/content.js';
 

@@ -6,7 +6,7 @@ import type {
   ChatToolChoice,
   ChatToolDefinition,
   TokenUsage,
-} from '@freellmapi/shared/types.js';
+} from '@omnikey-ai/shared/types.js';
 import { BaseProvider, type CompletionOptions } from './base.js';
 import { contentToString } from '../lib/content.js';
 

@@ -1,5 +1,5 @@
 {
-  "name": "@freellmapi/client",
+  "name": "@omnikey-ai/client",
   "private": true,
   "version": "0.0.0",
   "type": "module",

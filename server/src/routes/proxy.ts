@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
-import type { ChatMessage } from '@freellmapi/shared/types.js';
+import type { ChatMessage } from '@omnikey-ai/shared/types.js';
 import { routeRequest, recordRateLimitHit, recordSuccess, type RouteResult } from '../services/router.js';
 import { recordRequest, recordTokens, setCooldown } from '../services/ratelimit.js';
 import { getDb, getUnifiedApiKey } from '../db/index.js';
