@@ -94,7 +94,7 @@ print(response.choices[0].message.content)
 
 ## 🔵 Dashboard Interface
 
-The React Dashboard is your command center.
+The React Dashboard is your command center. It features a responsive layout that persistent toggles between **Light/Dark Themes** directly from the header controls.
 
 | Tab / Section | Description |
 |---|---|
@@ -103,6 +103,7 @@ The React Dashboard is your command center.
 | **Fallback Chain** | Sort the provider priority chain dynamically using drag-and-drop. |
 | **Stats & Logs** | Track token consumption, daily/monthly totals, and historical query latency. |
 | **Dev Corner** | Interactive proxy completion form, dynamic JavaScript SDK snippet compiler, SSE streaming, and terminal sandbox console. |
+| **Admin Console (`/admin`)** | High-level operations center monitoring user distributions, success rates, latency distributions, error breakdowns, and overall savings (in Rupees `₹`). Enables editing model catalogs globally, inspecting logs (with resolved Developer Emails), and rotating admin login credentials (secured with HMAC-SHA256). |
 
 ---
 

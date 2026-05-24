@@ -50,6 +50,11 @@ Authorization: Bearer omnikey-your-unified-key-here
 | **GET** | `/api/fallback-config` | Get the current fallback priority chain | Dashboard |
 | **POST** | `/api/fallback-config` | Update the priority order of fallback providers | Dashboard |
 | **GET** | `/api/stats/usage` | Fetch daily and monthly token consumption stats | Dashboard |
+| **POST** | `/api/admin/login` | Log in as admin and obtain a session token | Public Admin |
+| **GET** | `/api/admin/stats` | Retrieve administrative dashboard stats (Savings in ₹) | Auth Admin |
+| **POST** | `/api/admin/change-credentials` | Update username/password (Hashed with HMAC-SHA256) | Auth Admin |
+| **POST** | `/api/admin/toggle-model` | Globally enable or disable a model in the catalog | Auth Admin |
+| **POST** | `/api/admin/flush-logs` | Delete recent proxy request audit trails | Auth Admin |
 
 ---
 
@@ -244,6 +249,97 @@ Retrieves capabilities of the host server environment configuration at runtime.
   "defaultLocalMode": false
 }
 ```
+
+---
+
+## Admin Console APIs (`/api/admin`)
+
+These endpoints manage administrative actions and overall dashboard statistics:
+
+### 1. Admin Login (`POST /api/admin/login`)
+Verify credentials and create an in-memory session token.
+* **Payload:**
+```json
+{
+  "username": "admin",
+  "password": "your-password"
+}
+```
+* **Response Shape (`200 OK`):**
+```json
+{
+  "success": true,
+  "token": "admin-session-token-uuid"
+}
+```
+
+### 2. Admin Overall Statistics (`GET /api/admin/stats`)
+Fetch comprehensive stats on platform usage, latency distribution, top errors, model catalogs, and active developer records. Requires header `Authorization: Bearer <admin-session-token-uuid>`.
+* **Response Shape (`200 OK`):**
+```json
+{
+  "success": true,
+  "system": {
+    "totalUsers": 2,
+    "totalKeys": 5,
+    "activeKeys": 4,
+    "totalRequests": 1200,
+    "successRate": 99.2,
+    "overallCostSaved": 4.524,
+    "averageCostSavedPerRequest": 0.00377,
+    "averageLatencyMs": 420
+  },
+  "platformBreakdown": [
+    {
+      "platform": "google",
+      "totalRequests": 800,
+      "successRate": 99.5,
+      "tokensProcessed": 1200000,
+      "avgLatencyMs": 350,
+      "costSaved": 3.25
+    }
+  ],
+  "recentLogs": [
+    {
+      "createdAt": "2026-05-24T18:43:00.000Z",
+      "platform": "google",
+      "modelId": "gemini-2.5-flash",
+      "status": "success",
+      "latencyMs": 320,
+      "inputTokens": 1000,
+      "outputTokens": 2000,
+      "error": null,
+      "userId": "user-uid",
+      "userEmail": "developer@example.com"
+    }
+  ]
+}
+```
+*Note: The frontend dashboard converts and renders the `overallCostSaved` and `averageCostSavedPerRequest` values to INR (Rupees ₹) at a rate of 83 INR/USD.*
+
+### 3. Update Admin Credentials (`POST /api/admin/change-credentials`)
+Updates admin login credentials. Passwords are deterministic HMAC-SHA256 hashed on persistence. Requires Bearer Admin Token.
+* **Payload:**
+```json
+{
+  "newUsername": "admin",
+  "newPassword": "newPassword123"
+}
+```
+
+### 4. Toggle Model Status (`POST /api/admin/toggle-model`)
+Enables or disables a model globally across proxy routers. Requires Bearer Admin Token.
+* **Payload:**
+```json
+{
+  "platform": "google",
+  "modelId": "gemini-2.5-flash",
+  "enabled": false
+}
+```
+
+### 5. Flush Logs (`POST /api/admin/flush-logs`)
+Wipes audit log directory. Requires Bearer Admin Token.
 
 ---
 

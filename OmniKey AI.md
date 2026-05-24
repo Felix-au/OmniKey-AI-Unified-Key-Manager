@@ -216,10 +216,24 @@ To prevent API keys from getting banned or throwing persistent rate limit errors
 ## UI Guide — Dashboard & Models
 
 The React client dashboard has a responsive visual layout:
-* **Models Catalog**: Lists all 60+ supported models across 12 platforms.
+* **Models Catalog**: Lists all 60+ supported models across 12 providers.
 * **Health Check Status**: Dials showing API latency, key states, and exact execution timing timestamps.
 * **Budget Tracking Bars**: Live progress indicators of token quotas.
 * **Developer Corner**: Live compiler templates generating Node/JS client request templates (SSE or standard HTTP blocks) alongside a sandbox execution console.
+* **Responsive Theme Switcher**: Toggle persistently between light and dark modes from the page header.
+
+---
+
+## UI Guide — Admin Console (`/admin`)
+
+The Administrative interface can be reached by appending `/admin` to your dashboard port. It allows operators to monitor, manage, and configure server infrastructure:
+* **Dashboard Tab**:
+  - Displays high-level KPIs: Total Users, API Keys (active count), Overall Savings (formatted in Rupees `₹` at 83 INR/USD), and Avg Saved per request (INR `₹`).
+  - Request volume charts and latency distribution percentages (Fast, Normal, Slow, Very Slow).
+  - Top 5 error breakdown tracking for debug visibility.
+* **Models Tab**: Allows admins to enable/disable specific model definitions globally across all providers.
+* **Logs Tab**: Shows the 15 most recent proxy request logs, mapping client UIDs to their registered **Developer Emails** for audit clarity. Features a "Flush Audit Logs" button.
+* **Security Tab**: Rotate administrative access credentials (username and password). New passwords are automatically hashed with HMAC-SHA256 using a deterministic salt before persistence.
 
 ---
 
@@ -227,7 +241,7 @@ The React client dashboard has a responsive visual layout:
 
 * **Master Key Generation**: The server displays your master unified `omnikey-...` API key on startup.
 * **AES-256-GCM Storage**: When you input a key, it is encrypted symmetrically with your `ENCRYPTION_KEY` using a unique initialization vector.
-* **Database Mode Selection**: Toggle between Local-First SQLite Mode and Cloud MongoDB Atlas Mode directly from the client interface (saved persistently in browser local storage).
+* **Database Mode Selection**: Toggle between Local-First SQLite Mode and Cloud MongoDB Atlas Mode directly from the client interface (saved persistently in browser local storage). Persistent fallback credentials (`admin` / `admin`) auto-seed MongoDB collections or local database setups on startup.
 
 ---
 

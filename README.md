@@ -76,13 +76,17 @@ Behind the scenes, OmniKey AI handles secure key storage (encrypted at rest usin
 | **Intelligent Re-routing** | Dynamically skips exhausted keys without caller awareness. |
 | **Multi-Tenant Token Routing** | Automatically routes requests to Cloud MongoDB or SQLite databases dynamically by inspecting API key prefixes. |
 
-### 📊 Real-Time Dashboard
+### 📊 Real-Time Dashboard & Admin Console
 | Feature | Description |
 |---|---|
 | **Model Catalog** | Complete list of 60+ models, their states, and active status. |
 | **Usage Gauges** | Clean visuals illustrating token budgets and daily/monthly stats. |
 | **Settings Panel** | Live drag-and-drop fallback chain ordering and configuration. |
 | **Developer Corner** | Premium sandbox featuring request inputs, auto-compiling JavaScript snippet templates (SSE / JSON), and visual streaming output console. |
+| **Admin Console** | Secure page (`/admin`) presenting stats on total users, active key distribution, and overall savings (in Rupees ₹). |
+| **Model Routing Controls** | Enable or disable individual models globally in real-time from the models panel. |
+| **Audit Logs & Security** | View live proxy request trails with mapped developer emails, flush log history, and securely rotate admin credentials (secured with HMAC-SHA256). |
+| **Responsive Theme Switcher** | Responsive layout supporting persistent light and dark modes across the app. |
 
 ---
 
@@ -296,9 +300,10 @@ All configuration is loaded from the environment variables in your `.env` file:
 | `DATABASE_URL` | `./server/data/OmniKeyAI.db` | Absolute or relative path to SQLite database file |
 | `MONGODB_URI` | *(Optional)* | Cloud database cluster address for multi-tenant deployment mode |
 | `FIREBASE_PROJECT_ID` | *(Optional)* | Firebase gateway configuration ID for multi-tenant authentication |
+| `VITE_API_URL` | *(Optional)* | Custom backend endpoint url for frontend client routing |
 
 > [!NOTE]
-> `LOCAL_DB_ENABLED` is deprecated. Selecting Local or Cloud database mode is handled directly on the frontend dashboard login UI. Uptime pinger cron-jobs are supported via the public `/api/cron-health` endpoint.
+> `LOCAL_DB_ENABLED` is deprecated. Selecting Local or Cloud database mode is handled directly on the frontend dashboard login UI. Uptime pinger cron-jobs are supported via the public `/api/cron-health` endpoint. Default admin credentials (`admin` / `admin`) are seeded automatically on startup if empty.
 
 ---
 
