@@ -142,7 +142,7 @@ keysRouter.delete('/:id', async (req: AuthenticatedRequest, res: Response, next)
     const idStr = req.params.id;
 
     if (isLocalDbEnabled()) {
-      const id = parseInt(idStr, 10);
+      const id = parseInt(idStr as string, 10);
       if (isNaN(id)) {
         res.status(400).json({ error: { message: 'Invalid key ID' } });
         return;
@@ -183,7 +183,7 @@ keysRouter.patch('/:id', async (req: AuthenticatedRequest, res: Response, next) 
     }
 
     if (isLocalDbEnabled()) {
-      const id = parseInt(idStr, 10);
+      const id = parseInt(idStr as string, 10);
       if (isNaN(id)) {
         res.status(400).json({ error: { message: 'Invalid key ID' } });
         return;
@@ -239,7 +239,7 @@ keysRouter.get('/export', async (req: AuthenticatedRequest, res: Response, next)
     let csv = 'platform,key,label\n';
     for (const row of rows) {
       try {
-        const realKey = decrypt(row.encrypted_key, row.iv, row.auth_tag);
+        const realKey = decrypt(row.encrypted_key as string, row.iv as string, row.auth_tag as string);
         const escapeCsv = (str: string) => {
           const escaped = (str || '').replace(/"/g, '""');
           return escaped.includes(',') || escaped.includes('"') || escaped.includes('\n') ? `"${escaped}"` : escaped;
@@ -350,7 +350,7 @@ keysRouter.post('/import', async (req: AuthenticatedRequest, res: Response, next
         const { encrypted, iv, authTag } = encrypt(item.key);
         bulkDocs.push({
           userId: req.userId!,
-          platform: item.platform,
+          platform: item.platform as any,
           label: item.label,
           encryptedKey: encrypted,
           iv,
