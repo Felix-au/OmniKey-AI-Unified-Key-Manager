@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { PageHeader } from '@/components/page-header'
 
 interface FallbackEntry {
@@ -200,38 +201,38 @@ generateCompletion();`;
 
           <div className="space-y-4">
             <div>
-              <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">
+              <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
                 Unified API Authorization Key
               </label>
-              <input
+              <Input
                 type="text"
                 value={apiKey}
                 readOnly
-                className="w-full bg-muted border rounded-xl px-3.5 py-2 text-xs font-mono text-slate-300 select-all cursor-text focus:outline-none focus:ring-1 focus:ring-ring"
+                className="w-full font-mono text-xs bg-muted/40 select-all cursor-text"
               />
             </div>
 
             <div>
-              <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">
+              <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
                 Proxy Endpoint Address
               </label>
-              <input
+              <Input
                 type="text"
                 value={completionEndpoint}
                 readOnly
-                className="w-full bg-muted border rounded-xl px-3.5 py-2 text-xs font-mono text-slate-300 select-all cursor-text focus:outline-none focus:ring-1 focus:ring-ring"
+                className="w-full font-mono text-xs bg-muted/40 select-all cursor-text"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">
+                <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
                   Router Model Target
                 </label>
                 <select
                   value={selectedModel}
                   onChange={e => setSelectedModel(e.target.value)}
-                  className="w-full bg-background border rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="w-full bg-background border rounded-lg h-8 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   <option value="auto">auto (best intelligent model)</option>
                   {availableModels.map(m => (
@@ -243,13 +244,13 @@ generateCompletion();`;
               </div>
 
               <div>
-                <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">
+                <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
                   Execution Output Mode
                 </label>
                 <select
                   value={stream ? 'true' : 'false'}
                   onChange={e => setStream(e.target.value === 'true')}
-                  className="w-full bg-background border rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="w-full bg-background border rounded-lg h-8 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   <option value="false">Standard JSON (blocking)</option>
                   <option value="true">Streaming Events (SSE)</option>
@@ -259,7 +260,7 @@ generateCompletion();`;
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">
+                <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
                   Temperature ({temperature})
                 </label>
                 <input
@@ -274,7 +275,7 @@ generateCompletion();`;
               </div>
 
               <div>
-                <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">
+                <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
                   Max Tokens (optional)
                 </label>
                 <input
@@ -282,12 +283,12 @@ generateCompletion();`;
                   placeholder="Catalog Limit"
                   value={maxTokens}
                   onChange={e => setMaxTokens(e.target.value)}
-                  className="w-full bg-background border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="w-full bg-background border rounded-lg px-3 h-8 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">
+                <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
                   Top P Selection
                 </label>
                 <input
@@ -297,13 +298,13 @@ generateCompletion();`;
                   max="1"
                   value={topP}
                   onChange={e => setTopP(parseFloat(e.target.value))}
-                  className="w-full bg-background border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="w-full bg-background border rounded-lg px-3 h-8 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">
+              <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
                 Developer System Prompt
               </label>
               <textarea
@@ -311,12 +312,12 @@ generateCompletion();`;
                 value={systemPrompt}
                 onChange={e => setSystemPrompt(e.target.value)}
                 placeholder="Initialize global AI constraints here..."
-                className="w-full bg-background border rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+                className="w-full bg-background border rounded-lg px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring resize-none"
               />
             </div>
 
             <div>
-              <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">
+              <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
                 User Conversation Prompt
               </label>
               <textarea
@@ -324,7 +325,7 @@ generateCompletion();`;
                 value={userPrompt}
                 onChange={e => setUserPrompt(e.target.value)}
                 placeholder="Ask your router whatever you need..."
-                className="w-full bg-background border rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+                className="w-full bg-background border rounded-lg px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring resize-none"
               />
             </div>
 
