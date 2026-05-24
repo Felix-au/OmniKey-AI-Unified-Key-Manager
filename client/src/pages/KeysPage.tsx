@@ -209,7 +209,7 @@ export default function KeysPage() {
 
   const handleExportCsv = async () => {
     try {
-      const base = import.meta.env.BASE_URL.replace(/\/$/, '')
+      const base = (import.meta.env.VITE_API_URL || import.meta.env.BASE_URL).replace(/\/$/, '')
       const headers: Record<string, string> = {}
       const user = auth.currentUser
       if (user) {
@@ -242,7 +242,7 @@ export default function KeysPage() {
       if (typeof csvText !== 'string') return
 
       try {
-        const base = import.meta.env.BASE_URL.replace(/\/$/, '')
+        const base = (import.meta.env.VITE_API_URL || import.meta.env.BASE_URL).replace(/\/$/, '')
         const headers: Record<string, string> = {
           'Content-Type': 'application/json',
         }

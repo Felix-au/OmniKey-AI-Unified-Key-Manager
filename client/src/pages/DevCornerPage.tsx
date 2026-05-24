@@ -41,9 +41,8 @@ export default function DevCornerPage() {
   const availableModels = fallbackEntries.filter(e => e.keyCount > 0 && e.enabled)
   const apiKey = keyData?.apiKey || 'omnikey-placeholder-key'
   
-  const base = import.meta.env.BASE_URL.replace(/\/$/, '')
-  const currentOrigin = window.location.origin
-  const baseApiUrl = `${currentOrigin}${base}/v1`
+  const base = (import.meta.env.VITE_API_URL || import.meta.env.BASE_URL).replace(/\/$/, '')
+  const baseApiUrl = base.startsWith('http') ? `${base}/v1` : `${window.location.origin}${base}/v1`
   const completionEndpoint = `${baseApiUrl}/chat/completions`
 
   // Dynamically compile JavaScript request snippet

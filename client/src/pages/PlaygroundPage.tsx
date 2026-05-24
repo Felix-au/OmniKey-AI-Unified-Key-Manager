@@ -72,7 +72,7 @@ export default function PlaygroundPage() {
       }
       if (selectedModel !== 'auto') body.model = selectedModel
 
-      const base = import.meta.env.BASE_URL.replace(/\/$/, '')
+      const base = (import.meta.env.VITE_API_URL || import.meta.env.BASE_URL).replace(/\/$/, '')
       const start = Date.now()
       const res = await fetch(`${base}/v1/chat/completions`, {
         method: 'POST',
