@@ -99,9 +99,10 @@ The React Dashboard is your command center.
 | Tab / Section | Description |
 |---|---|
 | **Overview / Models** | View active providers, token budget bars, and the full catalog of 60+ models. |
-| **Keys Page** | Add, edit, or delete credentials. Display your unified key and toggle provider statuses. |
+| **Keys Page** | Add, edit, or delete credentials. Display your unified key, export/import CSV datasets (authenticated), and toggle provider statuses. |
 | **Fallback Chain** | Sort the provider priority chain dynamically using drag-and-drop. |
 | **Stats & Logs** | Track token consumption, daily/monthly totals, and historical query latency. |
+| **Dev Corner** | Interactive proxy completion form, dynamic JavaScript SDK snippet compiler, SSE streaming, and terminal sandbox console. |
 
 ---
 
@@ -114,12 +115,18 @@ The React Dashboard is your command center.
 | `PORT` | `3001` | The backend proxy listener port |
 | `ENCRYPTION_KEY` | *(None)* | 32-byte hex string used to encrypt local API keys |
 | `DATABASE_URL` | `./server/data/OmniKeyAI.db` | Path where the SQLite database will be stored |
+| `MONGODB_URI` | *(Optional)* | Cloud database cluster address for multi-tenant deployments |
+| `FIREBASE_PROJECT_ID` | *(Optional)* | Firebase gateway configuration ID for multi-tenant authentication |
+
+> [!NOTE]
+> `LOCAL_DB_ENABLED` has been deprecated. Mode selection (Local SQLite vs. Cloud MongoDB Atlas) is determined by user preference on the client-side login UI and persists automatically in browser storage. Multi-tenant token patterns starting with `omnikey-` automatically route to MongoDB collections, enabling simultaneous multi-client operations.
 
 ---
 
 ## ⚠️ Important Notes
 
-- **Personal Use Only** — Do not expose your local OmniKey AI server to the public web. It is designed as a single-user proxy.
+- **Render / Keep-Alive Cron** — The API provides a public `/api/cron-health` endpoint returning server uptime status. You can ping this every 2 minutes via a cron-job to prevent deployment instances from sleeping.
+- **Health Check Timestamps** — Upstream provider credential verification checks record and render precise local execution timestamps.
 - **Provider ToS** — Your usage is governed by the Terms of Service of each individual upstream provider.
 - **Encryption Loss** — If you lose or change your `ENCRYPTION_KEY`, you will not be able to decrypt your stored keys and will need to re-enter them.
 - **Database Backup** — Your configurations, stats, and logs are kept in `server/data/OmniKeyAI.db`. Keep backups of this file.
@@ -131,9 +138,11 @@ The React Dashboard is your command center.
 | File | Purpose |
 |---|---|
 | `server/src/index.ts` | Server orchestrator and HTTP server entry point |
-| `server/src/db/index.ts` | SQLite wrapper, seeds, and key storage encryptions |
+| `server/src/db/context.ts` | Per-request database connection context router (`AsyncLocalStorage`) |
 | `server/src/services/router.ts` | Fallback routing logic and active model selection |
-| `server/src/routes/proxy.ts` | OpenAI-compatible endpoint route handler |
+| `server/src/routes/proxy.ts` | OpenAI-compatible completions proxy route with multi-tenant credential auto-routing |
+| `server/src/routes/ping.ts` | Keep-alive heartbeat endpoints (/api/cron-health) |
+| `client/src/pages/DevCornerPage.tsx` | Interactive sandbox configuration form and dynamic JS template generator |
 | `client/src/App.tsx` | Single-page dashboard application view |
 | `shared/src/types.ts` | Common schema typings between client and server |
 

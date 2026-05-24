@@ -217,8 +217,9 @@ To prevent API keys from getting banned or throwing persistent rate limit errors
 
 The React client dashboard has a responsive visual layout:
 * **Models Catalog**: Lists all 60+ supported models across 12 platforms.
-* **Health Check status**: Dials showing API latency and key states.
-* **Budget Tracking bars**: Live progress indicators of token quotas.
+* **Health Check Status**: Dials showing API latency, key states, and exact execution timing timestamps.
+* **Budget Tracking Bars**: Live progress indicators of token quotas.
+* **Developer Corner**: Live compiler templates generating Node/JS client request templates (SSE or standard HTTP blocks) alongside a sandbox execution console.
 
 ---
 
@@ -226,16 +227,23 @@ The React client dashboard has a responsive visual layout:
 
 * **Master Key Generation**: The server displays your master unified `omnikey-...` API key on startup.
 * **AES-256-GCM Storage**: When you input a key, it is encrypted symmetrically with your `ENCRYPTION_KEY` using a unique initialization vector.
+* **Database Mode Selection**: Toggle between Local-First SQLite Mode and Cloud MongoDB Atlas Mode directly from the client interface (saved persistently in browser local storage).
 
 ---
 
-## Database Schema
+## Database Schema & Multitenancy
 
-OmniKey AI uses SQLite with 4 core tables:
-* `api_keys`: Encrypted key payloads, status, and provider labels.
-* `fallback_config`: Fallback chain ranking and priority order.
-* `catalog`: Complete model list with provider mappings.
-* `usage_logs`: Historic transaction logs, token counts, and latency metrics.
+OmniKey AI operates with two database adapter contexts dynamically toggled on a per-request basis via `AsyncLocalStorage` middleware checking client headers:
+
+### 1. Local SQLite Context (Single User Mode)
+- `api_keys`: Stored credentials, decryption salts, and provider labels.
+- `fallback_config`: Priority ranking maps.
+- `catalog`: Provider model target directory.
+- `usage_logs`: Token totals, request logs, and latency stats.
+
+### 2. Cloud MongoDB Atlas Context (Multi-Tenant Mode)
+- Uses mongoose schemas to support concurrent multi-client sessions.
+- Automatically handles token mappings. Multi-tenant API token patterns starting with `omnikey-` will automatically authenticate and query collections against MongoDB.
 
 ---
 
@@ -247,7 +255,11 @@ Adapters normalize distinct APIs into a single standard:
 
 ---
 
-## Troubleshooting
+## Troubleshooting & Utilities
+
+### Keep-Alive Cron Pinger
+* **Symptom**: Cloud platform hosts (like Render) sleep after inactive periods.
+* **Solution**: Enable a cron ping target against `/api/cron-health` to receive uptime stats every 2 minutes.
 
 ### Decryption Failures
 * **Symptom**: Server console outputs `Decryption failed` errors.
@@ -264,8 +276,9 @@ Adapters normalize distinct APIs into a single standard:
 ### Tech Stack
 * **Runtime**: Node.js (v20+)
 * **Server Framework**: Express with TypeScript
-* **Database**: SQLite3
-* **Dashboard client**: React, Vite, Tailwind CSS
+* **State Managers**: Node `AsyncLocalStorage` for concurrent database tenancy
+* **Database Engine**: SQLite3 & MongoDB Atlas (Mongoose)
+* **Dashboard Client**: React, Vite, Tailwind CSS, Shadcn-inspired UI
 
 ---
 
