@@ -69,4 +69,5 @@ scratch/
 # Custom un-tracked documents
 future_changes.md
 changelog.md
+.agentrules
 
