@@ -357,7 +357,7 @@ fallbackRouter.get('/token-usage', async (req: AuthenticatedRequest, res: Respon
 
       const modelBudgets = userConfigs
         .map(c => c.modelId)
-        .filter(m => m && m.enabled && platformSet.has(m.platform))
+        .filter(m => m && platformSet.has(m.platform))
         .map(m => {
           const count = keyCountMap.get(m.platform) ?? 0;
           const baseBudget = parseBudget(m.monthlyTokenBudget);
