@@ -25,6 +25,7 @@
 - [Features](#-features)
 - [Architecture](#-architecture)
 - [Pipeline Flow](#-pipeline-flow)
+- [Debate Arena](#-debate-arena)
 - [Quick Start](#-quick-start)
 - [Project Structure](#-project-structure)
 - [Dependencies](#-dependencies)
@@ -90,6 +91,7 @@ Behind the scenes, OmniKey AI handles key storage (encrypted using AES-256-GCM),
 | **Model Routing Controls** | Enable or disable individual models globally in real-time from the models panel. |
 | **Audit Logs & Security** | View live proxy request trails with mapped developer emails, flush log history, and securely rotate admin credentials (secured with HMAC-SHA256). |
 | **UI Polish & Themes** | Persistent support for light/dark mode theme toggles and a header shortcut button to quickly toggle database contexts. Uses custom themed Confirmation Modals instead of native alerts. |
+| **AI Debate Arena** | Configurable arena to stage multi-round debates between two player models under the supervision of an analytical Judge model with custom stance/critique prompts. |
 
 ---
 
@@ -197,6 +199,51 @@ flowchart TD
     I -->|Has Alternatives| G
     I -->|No Alternatives| K["429/500 Error response"]
 ```
+
+## ⚔️ Debate Arena
+
+The **AI Debate Arena** allows users to stage structured debates between two AI models arguing opposing sides (In Favor vs. Against) of a topic under the supervision of a Judge model.
+
+### Orchestration Sequence
+
+The React frontend orchestrates the multi-agent debate sequentially by calling the proxy gateway:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant App as React Frontend (DebatePage)
+    participant Server as OmniKey Router Server
+    
+    User->>App: Set configurations (Topic, Players, Rounds, Judge, Interval) & click "Start"
+    
+    loop For each Round (1 to N)
+        App->>Server: Request Player 1 Turn (with Topic, role prompt, & history)
+        Server-->>App: Return Player 1 Argument
+        App->>App: Append Turn 1 to UI
+        
+        App->>Server: Request Player 2 Turn (with Topic, role prompt, & history including Player 1's Turn)
+        Server-->>App: Return Player 2 Counter-Argument
+        App->>App: Append Turn 2 to UI (Round complete)
+        
+        alt Judging Interval is "Every Round"
+            App->>Server: Request Judge Critique (with Topic, Round history)
+            Server-->>App: Return Intermediate Judgment
+            App->>App: Append Judgment to UI
+        end
+    end
+    
+    alt Judging Interval is "At the End"
+        App->>Server: Request Final Verdict (with Topic, entire debate history)
+        Server-->>App: Return Final Verdict & Declare Winner
+        App->>App: Append Final Verdict to UI
+    end
+```
+
+### Telemetry & Safeguards
+- **Real-time Status Tracking:** Showcases active stages (`thinking`, `typing`, `evaluating`) along with token latency metrics.
+- **Strict API Compatibility:** Automatically sanitizes prompt history arrays to alternate roles and end with a `user` role, guaranteeing flawless execution on strict providers like Groq or Anthropic.
+
 
 <details>
 <summary>ASCII fallback (click to expand)</summary>
