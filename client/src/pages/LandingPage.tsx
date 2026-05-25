@@ -154,14 +154,14 @@ function OceanBackground({ dark }: { dark: boolean }) {
           ctx.beginPath(); ctx.arc(px, py, pt.r * 3.5, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill()
           ctx.beginPath(); ctx.arc(px, py, pt.r * 0.6, 0, Math.PI * 2); ctx.fillStyle = `rgba(230,248,255,${Math.min(a * 1.4, 0.9)})`; ctx.fill()
         } else {
-          // Red star — dark-mode-equivalent intensity
+          // Silver glow + black core
           const g = ctx.createRadialGradient(px, py, 0, px, py, pt.r * 3.5)
-          g.addColorStop(0,   `rgba(255,80,40,${a})`)
-          g.addColorStop(0.4, `rgba(200,20,20,${a * 0.5})`)
-          g.addColorStop(1,   'rgba(120,0,0,0)')
+          g.addColorStop(0,   `rgba(220,220,230,${a})`)
+          g.addColorStop(0.4, `rgba(160,165,175,${a * 0.5})`)
+          g.addColorStop(1,   'rgba(100,105,115,0)')
           ctx.beginPath(); ctx.arc(px, py, pt.r * 3.5, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill()
-          // Red core (same size as dark mode core)
-          ctx.beginPath(); ctx.arc(px, py, pt.r * 0.6, 0, Math.PI * 2); ctx.fillStyle = `rgba(255,60,40,${Math.min(a * 1.4, 0.9)})`; ctx.fill()
+          // Black core
+          ctx.beginPath(); ctx.arc(px, py, pt.r * 0.6, 0, Math.PI * 2); ctx.fillStyle = `rgba(5,5,8,${Math.min(a * 1.4, 0.95)})`; ctx.fill()
         }
       })
       phase += 0.6; t++
