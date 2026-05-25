@@ -288,6 +288,25 @@ export default function FallbackPage() {
 
   const hasChanges = localEntries !== null
 
+  function handleEnableAll() {
+    const hasGloballyDisabled = allEntries.some(e => e.globallyDisabled)
+    if (hasGloballyDisabled) {
+      const confirm = window.confirm(
+        "Warning: This will enable all models, including those disabled by the system administrator due to non-availability or other issues. Proceed with caution."
+      )
+      if (!confirm) return
+    }
+    const updated = allEntries.map(e => ({ ...e, enabled: true }))
+    setLocalEntries(updated)
+  }
+
+  function handleDisableRecommended() {
+    const updated = allEntries.map(e =>
+      e.globallyDisabled ? { ...e, enabled: false } : e
+    )
+    setLocalEntries(updated)
+  }
+
   return (
     <div>
       <PageHeader
@@ -323,6 +342,26 @@ export default function FallbackPage() {
           </div>
         ) : (
           <>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={handleEnableAll}>
+                  Enable all
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleDisableRecommended}>
+                  Disable recommended
+                </Button>
+              </div>
+              {hasChanges && (
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setLocalEntries(null)}>
+                    Discard
+                  </Button>
+                  <Button size="sm" onClick={handleSave} disabled={saveMutation.isPending}>
+                    {saveMutation.isPending ? 'Saving…' : 'Save order'}
+                  </Button>
+                </div>
+              )}
+            </div>
             <div className="rounded-lg border divide-y overflow-hidden">
               <DndContext
                 sensors={sensors}
@@ -345,16 +384,6 @@ export default function FallbackPage() {
               </DndContext>
             </div>
 
-            {hasChanges && (
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" size="sm" onClick={() => setLocalEntries(null)}>
-                  Discard
-                </Button>
-                <Button size="sm" onClick={handleSave} disabled={saveMutation.isPending}>
-                  {saveMutation.isPending ? 'Saving…' : 'Save order'}
-                </Button>
-              </div>
-            )}
 
             {unconfiguredPlatforms.length > 0 && (
               <p className="text-xs text-muted-foreground">
