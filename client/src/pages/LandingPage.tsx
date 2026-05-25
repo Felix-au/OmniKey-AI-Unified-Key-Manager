@@ -518,7 +518,7 @@ export default function LandingPage() {
             onClick={() => navigate('/playground')}
             className="cta-btn bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold px-8 py-3.5 rounded-2xl text-base shadow-lg shadow-violet-500/20"
           >
-            Get Started Free →
+            Get Started →
           </button>
           <a
             href="https://github.com/Felix-au/OmniKey-AI-Unified-Key-Manager"
@@ -758,7 +758,7 @@ export default function LandingPage() {
             <img src={logoUrl} alt="OmniKey AI" className="h-5 w-5 object-contain opacity-70" />
             <span className="font-semibold text-foreground">OmniKey AI</span>
           </div>
-          <span>Built for developers who want a billion free LLM tokens.</span>
+          <span>Seemlessly develop with 1B+ tokens without worrying about rate limits.</span>
           <a href="https://github.com/Felix-au/OmniKey-AI-Unified-Key-Manager" target="_blank" rel="noreferrer" className="cta-btn hover:text-foreground transition-colors flex items-center gap-1.5">
             <GitHubIcon size={15} />
             GitHub
