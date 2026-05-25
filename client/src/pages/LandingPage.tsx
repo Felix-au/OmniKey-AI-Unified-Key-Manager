@@ -65,20 +65,20 @@ function OceanBackground({ dark }: { dark: boolean }) {
     // Each blob: orbit center (ox,oy), orbit radii (rx,ry), frequencies (fx,fy),
     // phase offset, glow radius factor, RGBA
     const darkBlobs = [
-      { ox:.50, oy:.40, rx:.38, ry:.30, fx:.00038, fy:.00029, ph:0.00, r:.70, c:[139,92,246,  0.55] },
-      { ox:.50, oy:.55, rx:.42, ry:.36, fx:.00025, fy:.00041, ph:1.30, r:.65, c:[99,102,241,  0.50] },
-      { ox:.50, oy:.45, rx:.28, ry:.42, fx:.00055, fy:.00021, ph:2.50, r:.60, c:[59,130,246,  0.45] },
-      { ox:.50, oy:.50, rx:.22, ry:.28, fx:.00031, fy:.00048, ph:0.75, r:.55, c:[168,85,247,  0.40] },
-      { ox:.50, oy:.48, rx:.46, ry:.22, fx:.00017, fy:.00062, ph:3.20, r:.75, c:[6,182,212,   0.30] },
-      { ox:.50, oy:.52, rx:.33, ry:.38, fx:.00044, fy:.00033, ph:4.10, r:.50, c:[79,70,229,   0.35] },
+      { ox:.50, oy:.40, rx:.38, ry:.30, fx:.00038, fy:.00029, ph:0.00, r:.70, c:[139,92,246,  0.22] },
+      { ox:.50, oy:.55, rx:.42, ry:.36, fx:.00025, fy:.00041, ph:1.30, r:.65, c:[99,102,241,  0.20] },
+      { ox:.50, oy:.45, rx:.28, ry:.42, fx:.00055, fy:.00021, ph:2.50, r:.60, c:[59,130,246,  0.18] },
+      { ox:.50, oy:.50, rx:.22, ry:.28, fx:.00031, fy:.00048, ph:0.75, r:.55, c:[168,85,247,  0.16] },
+      { ox:.50, oy:.48, rx:.46, ry:.22, fx:.00017, fy:.00062, ph:3.20, r:.75, c:[6,182,212,   0.12] },
+      { ox:.50, oy:.52, rx:.33, ry:.38, fx:.00044, fy:.00033, ph:4.10, r:.50, c:[79,70,229,   0.14] },
     ]
     const lightBlobs = [
-      { ox:.50, oy:.40, rx:.38, ry:.30, fx:.00038, fy:.00029, ph:0.00, r:.70, c:[139,92,246,  0.28] },
-      { ox:.50, oy:.55, rx:.42, ry:.36, fx:.00025, fy:.00041, ph:1.30, r:.65, c:[99,102,241,  0.25] },
-      { ox:.50, oy:.45, rx:.28, ry:.42, fx:.00055, fy:.00021, ph:2.50, r:.60, c:[236,72,153,  0.22] },
-      { ox:.50, oy:.50, rx:.22, ry:.28, fx:.00031, fy:.00048, ph:0.75, r:.55, c:[251,191,36,  0.20] },
-      { ox:.50, oy:.48, rx:.46, ry:.22, fx:.00017, fy:.00062, ph:3.20, r:.75, c:[6,182,212,   0.20] },
-      { ox:.50, oy:.52, rx:.33, ry:.38, fx:.00044, fy:.00033, ph:4.10, r:.50, c:[167,139,250, 0.22] },
+      { ox:.50, oy:.40, rx:.38, ry:.30, fx:.00038, fy:.00029, ph:0.00, r:.70, c:[200,180,255, 0.35] },
+      { ox:.50, oy:.55, rx:.42, ry:.36, fx:.00025, fy:.00041, ph:1.30, r:.65, c:[180,200,255, 0.30] },
+      { ox:.50, oy:.45, rx:.28, ry:.42, fx:.00055, fy:.00021, ph:2.50, r:.60, c:[255,180,230, 0.25] },
+      { ox:.50, oy:.50, rx:.22, ry:.28, fx:.00031, fy:.00048, ph:0.75, r:.55, c:[255,220,180, 0.22] },
+      { ox:.50, oy:.48, rx:.46, ry:.22, fx:.00017, fy:.00062, ph:3.20, r:.75, c:[180,240,255, 0.28] },
+      { ox:.50, oy:.52, rx:.33, ry:.38, fx:.00044, fy:.00033, ph:4.10, r:.50, c:[210,180,255, 0.25] },
     ]
     const blobs = dark ? darkBlobs : lightBlobs
 
@@ -89,13 +89,13 @@ function OceanBackground({ dark }: { dark: boolean }) {
       // Deep background
       const bg = ctx.createRadialGradient(W*.5, H*.4, 0, W*.5, H*.5, diag*.7)
       if (dark) {
-        bg.addColorStop(0,   '#0f0520')
-        bg.addColorStop(0.5, '#020817')
-        bg.addColorStop(1,   '#000308')
+        bg.addColorStop(0,   '#080212')
+        bg.addColorStop(0.5, '#010509')
+        bg.addColorStop(1,   '#000102')
       } else {
-        bg.addColorStop(0,   '#fdfaff')
-        bg.addColorStop(0.5, '#f0f4ff')
-        bg.addColorStop(1,   '#e0eeff')
+        bg.addColorStop(0,   '#ffffff')
+        bg.addColorStop(0.5, '#f8f6ff')
+        bg.addColorStop(1,   '#f0eeff')
       }
       ctx.fillStyle = bg
       ctx.fillRect(0, 0, W, H)
@@ -412,7 +412,7 @@ export default function LandingPage() {
   const debateCfg = useDebateConfig()
   const heroRef = useRef<HTMLElement>(null)
   const stat1 = useCountUp(100)
-  const stat2 = useCountUp(1)
+  const stat2 = useCountUp(1000, 2000)
   const stat3 = useCountUp(12)
 
   return (
@@ -491,7 +491,7 @@ export default function LandingPage() {
       <div className="max-w-4xl mx-auto px-6 mb-8">
         <div className="grid grid-cols-3 divide-x divide-border rounded-2xl border border-border bg-card/60 backdrop-blur">
           {[{ ref: stat1.ref, val: `${stat1.val}+`, label: 'Models Available' },
-            { ref: stat2.ref, val: `${stat2.val}B+`, label: 'Free Tokens / Month' },
+            { ref: stat2.ref, val: stat2.val < 1000 ? `${stat2.val}M` : '1B+', label: 'Free Tokens / Month' },
             { ref: stat3.ref, val: `${stat3.val}`, label: 'Free Providers' }].map(({ ref, val, label }) => (
             <div key={label} ref={ref} className="py-6 text-center stat-animate">
               <div className="text-3xl font-extrabold text-foreground stat-num">{val}</div>
