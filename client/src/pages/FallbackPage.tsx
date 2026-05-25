@@ -29,6 +29,7 @@ interface FallbackEntry {
   penalty: number
   rateLimitHits: number
   enabled: boolean
+  globallyDisabled: boolean
   platform: string
   modelId: string
   displayName: string
@@ -182,6 +183,11 @@ function SortableModelRow({
             </span>
           )}
         </div>
+        {entry.globallyDisabled && (
+          <div className="text-xs text-red-500 dark:text-red-400 font-semibold mt-0.5">
+            ⚠️ Disabled by admin (recommended to keep disabled)
+          </div>
+        )}
         <div className="flex gap-3 mt-0.5 text-xs text-muted-foreground tabular-nums">
           <span>Intel #{entry.intelligenceRank}</span>
           <span>Speed #{entry.speedRank}</span>
@@ -254,6 +260,15 @@ export default function FallbackPage() {
   }
 
   function handleToggle(modelDbId: number, enabled: boolean) {
+    const target = allEntries.find(e => e.modelDbId === modelDbId)
+    if (target && target.globallyDisabled && enabled) {
+      const confirm = window.confirm(
+        "Warning: This model has been disabled by the system administrator due to non-availability or other issues. Enabling it may cause completions or fallback routes using it to fail."
+      )
+      if (!confirm) {
+        return
+      }
+    }
     const updated = allEntries.map(e =>
       e.modelDbId === modelDbId ? { ...e, enabled } : e
     )
