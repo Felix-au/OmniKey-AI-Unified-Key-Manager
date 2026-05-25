@@ -85,7 +85,7 @@ function OceanBackground({ dark }: { dark: boolean }) {
     ]
     const waves = dark ? darkWaves : lightWaves
     // 45 particles with per-particle random params
-    const particles = Array.from({ length: 45 }, () => ({
+    const particles = Array.from({ length: 36 }, () => ({
       x: Math.random(), y: 0.3 + Math.random() * 0.7,
       r: 1.2 + Math.random() * 2.8,
       speed: 0.00008 + Math.random() * 0.00014,
@@ -104,7 +104,6 @@ function OceanBackground({ dark }: { dark: boolean }) {
         grad.addColorStop(0, '#e0f4ff'); grad.addColorStop(0.5, '#bae8ff'); grad.addColorStop(1, '#7dd3fc')
       }
       ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H)
-      const myShift = (mouse.y - 0.5) * 0.018 * H
       waves.forEach(({ amp, freq, speed, yBase, color, noiseA, noiseF, noiseS }, wi) => {
         const p = phase * speed + wi * 0.6
         // Two slow-beat sines = organic random amplitude per wave
@@ -112,8 +111,8 @@ function OceanBackground({ dark }: { dark: boolean }) {
         const eAmp = amp + ampNoise
         ctx.beginPath(); ctx.moveTo(0, H)
         for (let x = 0; x <= W + 2; x += 2) {
-          const y = yBase * H + myShift
-            + Math.sin(x * freq + p + mouse.x * 0.3) * eAmp
+          const y = yBase * H
+            + Math.sin(x * freq + p) * eAmp
             + Math.sin(x * freq * 1.7 + p * 1.3) * eAmp * 0.35
           ctx.lineTo(x, y)
         }
