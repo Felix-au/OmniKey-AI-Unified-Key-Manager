@@ -102,7 +102,7 @@ fallbackRouter.get('/', async (req: AuthenticatedRequest, res: Response, next) =
           userId: req.userId!,
           modelId: m._id,
           priority: idx + 1,
-          enabled: true
+          enabled: m.enabled
         }));
         await UserFallbackConfig.insertMany(initialDocs);
 
@@ -124,7 +124,7 @@ fallbackRouter.get('/', async (req: AuthenticatedRequest, res: Response, next) =
             userId: req.userId!,
             modelId: m._id,
             priority: maxPriority + idx + 1,
-            enabled: true
+            enabled: m.enabled
           }));
           await UserFallbackConfig.insertMany(newDocs);
 

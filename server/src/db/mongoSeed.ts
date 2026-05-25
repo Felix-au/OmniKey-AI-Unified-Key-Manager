@@ -4,6 +4,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { Model } from '../models/Model.js';
 import { AdminUser } from '../models/AdminUser.js';
+import { UserFallbackConfig } from '../models/UserFallbackConfig.js';
 import { hashPassword } from '../lib/crypto.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -73,7 +74,14 @@ export async function seedMongoModels(): Promise<void> {
         if (existing.tpdLimit !== tpdLimit) { existing.tpdLimit = tpdLimit; isChanged = true; }
         if (existing.monthlyTokenBudget !== monthlyTokenBudget) { existing.monthlyTokenBudget = monthlyTokenBudget; isChanged = true; }
         if (existing.contextWindow !== contextWindow) { existing.contextWindow = contextWindow; isChanged = true; }
-        if (existing.enabled !== enabled) { existing.enabled = enabled; isChanged = true; }
+        if (existing.enabled !== enabled) {
+          existing.enabled = enabled;
+          isChanged = true;
+          if (!enabled) {
+            // Disable by default for all users if globally disabled
+            await UserFallbackConfig.updateMany({ modelId: existing._id }, { $set: { enabled: false } });
+          }
+        }
 
         if (isChanged) {
           await existing.save();
