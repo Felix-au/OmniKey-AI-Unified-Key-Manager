@@ -97,8 +97,37 @@ export default function DebatePage() {
       roundNum: number
     ): Promise<DebateMessage | null> => {
       const start = Date.now()
+
+      // Sanitize messages to enforce alternating roles and end with a 'user' role
+      const systemMsg = apiMessages.find(m => m.role === 'system')
+      const chatMsgs = apiMessages.filter(m => m.role !== 'system' && !m.content.startsWith('Error:'))
+      
+      const sanitized: { role: string; content: string }[] = []
+      if (systemMsg) sanitized.push(systemMsg)
+      
+      for (const msg of chatMsgs) {
+        const last = sanitized[sanitized.length - 1]
+        // Merge consecutive identical roles
+        if (last && last.role !== 'system' && last.role === msg.role) {
+          last.content += `\n\n${msg.content}`
+        } else {
+          sanitized.push({ role: msg.role, content: msg.content })
+        }
+      }
+
+      // Ensure there is at least one 'user' message
+      if (sanitized.filter(m => m.role === 'user').length === 0) {
+        sanitized.push({ role: 'user', content: 'Begin the debate.' })
+      }
+
+      // Ensure final message role is 'user'
+      const finalMsg = sanitized[sanitized.length - 1]
+      if (finalMsg && finalMsg.role === 'assistant') {
+        sanitized.push({ role: 'user', content: 'Formulate your next response.' })
+      }
+
       const body: any = {
-        messages: apiMessages,
+        messages: sanitized,
       }
       if (modelId !== 'auto') body.model = modelId
 
