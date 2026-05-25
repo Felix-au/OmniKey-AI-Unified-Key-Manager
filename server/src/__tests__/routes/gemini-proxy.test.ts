@@ -45,6 +45,12 @@ describe('Gemini proxy router', () => {
     expect(body.name).toBe('models/auto');
   });
 
+  it('retrieves details for models/nvidia/llama-3.1-70b-instruct', async () => {
+    const { status, body } = await request(app, 'GET', '/v1beta/models/nvidia/llama-3.1-70b-instruct');
+    expect(status).toBe(404);
+    expect(body.error.message).toContain("nvidia/llama-3.1-70b-instruct");
+  });
+
   it('rejects post generateContent with missing API key', async () => {
     const { status, body } = await request(app, 'POST', '/v1beta/models/auto:generateContent', {
       contents: [{ role: 'user', parts: [{ text: 'hello' }] }]

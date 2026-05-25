@@ -206,9 +206,10 @@ geminiProxyRouter.get('/models', async (req: Request, res: Response, next) => {
 });
 
 // Gemini-compatible Single Model Detail API
-geminiProxyRouter.get('/models/:model', async (req: Request, res: Response, next) => {
+geminiProxyRouter.get('/models/*model', async (req: Request, res: Response, next) => {
   try {
-    const modelParam = req.params.model as string;
+    const rawParam = req.params.model;
+    const modelParam = Array.isArray(rawParam) ? rawParam.join('/') : (rawParam as string || '');
     let modelId = modelParam;
     if (modelParam.endsWith(':generateContent')) {
       modelId = modelParam.slice(0, -':generateContent'.length);
@@ -248,7 +249,7 @@ geminiProxyRouter.get('/models/:model', async (req: Request, res: Response, next
 });
 
 // Gemini-compatible generateContent / streamGenerateContent Route
-geminiProxyRouter.post('/models/:model', async (req: Request, res: Response) => {
+geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => {
   const start = Date.now();
   let userId = 'local-dev-user-uid';
   
@@ -337,7 +338,8 @@ geminiProxyRouter.post('/models/:model', async (req: Request, res: Response) => 
 
     const { messages, temperature, max_tokens, top_p } = parsed;
     
-    const modelParam = req.params.model as string;
+    const rawParam = req.params.model;
+    const modelParam = Array.isArray(rawParam) ? rawParam.join('/') : (rawParam as string || '');
     let modelId = modelParam;
     let method = 'generateContent';
     
