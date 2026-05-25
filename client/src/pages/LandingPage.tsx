@@ -59,29 +59,33 @@ function OceanBackground({ dark }: { dark: boolean }) {
     let animId: number
     let phase = 0
     let t = 0
-    const mouse = { x: 0.5, y: 0.5 }
+    const mouse = { x: 0.5, y: 0.5, inside: false }
     const onMouse = (e: MouseEvent) => {
       mouse.x = e.clientX / window.innerWidth
       mouse.y = e.clientY / window.innerHeight
     }
+    const onEnter = () => { mouse.inside = true }
+    const onLeave = () => { mouse.inside = false }
     window.addEventListener('mousemove', onMouse)
+    window.addEventListener('mouseenter', onEnter)
+    window.addEventListener('mouseleave', onLeave)
     const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight }
     resize()
     window.addEventListener('resize', resize)
     // Wave layers: noiseA=random amp range, noiseF/noiseS=slow beat freqs
     const darkWaves = [
-      { amp:68, freq:0.0045, speed:0.008, yBase:0.42, color:'rgba(15,23,71,0.9)',    noiseA:19, noiseF:0.00031, noiseS:0.00019 },
-      { amp:55, freq:0.007,  speed:0.013, yBase:0.52, color:'rgba(23,37,110,0.75)',  noiseA:15, noiseF:0.00042, noiseS:0.00024 },
-      { amp:47, freq:0.006,  speed:0.018, yBase:0.60, color:'rgba(30,58,138,0.65)',  noiseA:12, noiseF:0.00038, noiseS:0.00031 },
-      { amp:38, freq:0.009,  speed:0.024, yBase:0.68, color:'rgba(37,99,235,0.40)',  noiseA:10, noiseF:0.00055, noiseS:0.00027 },
-      { amp:30, freq:0.011,  speed:0.032, yBase:0.76, color:'rgba(99,102,241,0.30)', noiseA:9,  noiseF:0.00061, noiseS:0.00035 },
+      { amp: 68, freq: 0.0045, speed: 0.008, yBase: 0.42, color: 'rgba(15,23,71,0.9)', noiseA: 19, noiseF: 0.00031, noiseS: 0.00019 },
+      { amp: 55, freq: 0.007, speed: 0.013, yBase: 0.52, color: 'rgba(23,37,110,0.75)', noiseA: 15, noiseF: 0.00042, noiseS: 0.00024 },
+      { amp: 47, freq: 0.006, speed: 0.018, yBase: 0.60, color: 'rgba(30,58,138,0.65)', noiseA: 12, noiseF: 0.00038, noiseS: 0.00031 },
+      { amp: 38, freq: 0.009, speed: 0.024, yBase: 0.68, color: 'rgba(37,99,235,0.40)', noiseA: 10, noiseF: 0.00055, noiseS: 0.00027 },
+      { amp: 30, freq: 0.011, speed: 0.032, yBase: 0.76, color: 'rgba(99,102,241,0.30)', noiseA: 9, noiseF: 0.00061, noiseS: 0.00035 },
     ]
     const lightWaves = [
-      { amp:68, freq:0.0045, speed:0.008, yBase:0.42, color:'rgba(186,230,253,0.85)', noiseA:19, noiseF:0.00031, noiseS:0.00019 },
-      { amp:55, freq:0.007,  speed:0.013, yBase:0.52, color:'rgba(125,211,252,0.70)', noiseA:15, noiseF:0.00042, noiseS:0.00024 },
-      { amp:47, freq:0.006,  speed:0.018, yBase:0.60, color:'rgba(56,189,248,0.55)',  noiseA:12, noiseF:0.00038, noiseS:0.00031 },
-      { amp:38, freq:0.009,  speed:0.024, yBase:0.68, color:'rgba(14,165,233,0.40)',  noiseA:10, noiseF:0.00055, noiseS:0.00027 },
-      { amp:30, freq:0.011,  speed:0.032, yBase:0.76, color:'rgba(2,132,199,0.30)',   noiseA:9,  noiseF:0.00061, noiseS:0.00035 },
+      { amp: 68, freq: 0.0045, speed: 0.008, yBase: 0.42, color: 'rgba(186,230,253,0.85)', noiseA: 19, noiseF: 0.00031, noiseS: 0.00019 },
+      { amp: 55, freq: 0.007, speed: 0.013, yBase: 0.52, color: 'rgba(125,211,252,0.70)', noiseA: 15, noiseF: 0.00042, noiseS: 0.00024 },
+      { amp: 47, freq: 0.006, speed: 0.018, yBase: 0.60, color: 'rgba(56,189,248,0.55)', noiseA: 12, noiseF: 0.00038, noiseS: 0.00031 },
+      { amp: 38, freq: 0.009, speed: 0.024, yBase: 0.68, color: 'rgba(14,165,233,0.40)', noiseA: 10, noiseF: 0.00055, noiseS: 0.00027 },
+      { amp: 30, freq: 0.011, speed: 0.032, yBase: 0.76, color: 'rgba(2,132,199,0.30)', noiseA: 9, noiseF: 0.00061, noiseS: 0.00035 },
     ]
     const waves = dark ? darkWaves : lightWaves
     // 45 particles with per-particle random params
@@ -119,40 +123,62 @@ function OceanBackground({ dark }: { dark: boolean }) {
         ctx.lineTo(W, H); ctx.closePath()
         ctx.fillStyle = color; ctx.fill()
       })
-      particles.forEach(pt => {
+      particles.forEach((pt, i) => {
         pt.y -= pt.speed; pt.wobble += pt.wobbleSpeed; pt.phase += pt.twinkleSpeed
         if (pt.y < -0.05) { pt.y = 1.05; pt.x = Math.random() }
-        // Cursor pull — stronger influence
-        pt.x += (mouse.x - pt.x) * 0.0022
-        pt.y += (mouse.y - pt.y) * 0.0015
+        // Cursor pull — only when mouse is inside window
+        if (mouse.inside) {
+          pt.x += (mouse.x - pt.x) * 0.0022
+          pt.y += (mouse.y - pt.y) * 0.0015
+        }
+        // Particle repulsion — push away from nearby particles
+        for (let j = i + 1; j < particles.length; j++) {
+          const other = particles[j]
+          const dx = (pt.x - other.x) * W
+          const dy = (pt.y - other.y) * H
+          const dist = Math.sqrt(dx * dx + dy * dy)
+          const minDist = 40 // px — minimum separation
+          if (dist < minDist && dist > 0) {
+            const force = (minDist - dist) / minDist * 0.00035
+            const nx = dx / dist, ny = dy / dist
+            pt.x += nx * force; pt.y += ny * force / H * W
+            other.x -= nx * force; other.y -= ny * force / H * W
+          }
+        }
         const px = pt.x * W + Math.sin(pt.wobble) * 6
         const py = pt.y * H
         const a = pt.alpha * (0.5 + 0.5 * Math.sin(pt.phase))
         if (dark) {
           const g = ctx.createRadialGradient(px, py, 0, px, py, pt.r * 3.5)
-          g.addColorStop(0, `rgba(200,240,255,${a})`); g.addColorStop(0.4, `rgba(147,210,255,${a*0.5})`); g.addColorStop(1, 'rgba(99,180,255,0)')
+          g.addColorStop(0, `rgba(200,240,255,${a})`); g.addColorStop(0.4, `rgba(147,210,255,${a * 0.5})`); g.addColorStop(1, 'rgba(99,180,255,0)')
           ctx.beginPath(); ctx.arc(px, py, pt.r * 3.5, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill()
-          ctx.beginPath(); ctx.arc(px, py, pt.r * 0.6, 0, Math.PI * 2); ctx.fillStyle = `rgba(230,248,255,${Math.min(a*1.4,0.9)})`; ctx.fill()
+          ctx.beginPath(); ctx.arc(px, py, pt.r * 0.6, 0, Math.PI * 2); ctx.fillStyle = `rgba(230,248,255,${Math.min(a * 1.4, 0.9)})`; ctx.fill()
         } else {
           // Black-light glow: large dark halo + bright navy core
           const glowR = pt.r * 6
           const g = ctx.createRadialGradient(px, py, 0, px, py, glowR)
-          g.addColorStop(0, `rgba(5,10,40,${Math.min(a*0.9,0.75)})`)
-          g.addColorStop(0.3, `rgba(10,20,80,${a*0.55})`)
-          g.addColorStop(0.65, `rgba(20,40,120,${a*0.25})`)
+          g.addColorStop(0, `rgba(5,10,40,${Math.min(a * 0.9, 0.75)})`)
+          g.addColorStop(0.3, `rgba(10,20,80,${a * 0.55})`)
+          g.addColorStop(0.65, `rgba(20,40,120,${a * 0.25})`)
           g.addColorStop(1, 'rgba(30,58,138,0)')
           ctx.beginPath(); ctx.arc(px, py, glowR, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill()
           // Bright hard core
-          ctx.beginPath(); ctx.arc(px, py, pt.r * 0.55, 0, Math.PI * 2); ctx.fillStyle = `rgba(2,8,30,${Math.min(a*1.6,0.85)})`; ctx.fill()
+          ctx.beginPath(); ctx.arc(px, py, pt.r * 0.55, 0, Math.PI * 2); ctx.fillStyle = `rgba(2,8,30,${Math.min(a * 1.6, 0.85)})`; ctx.fill()
         }
       })
       phase += 0.6; t++
       animId = requestAnimationFrame(draw)
     }
     draw()
-    return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize); window.removeEventListener('mousemove', onMouse) }
+    return () => {
+      cancelAnimationFrame(animId)
+      window.removeEventListener('resize', resize)
+      window.removeEventListener('mousemove', onMouse)
+      window.removeEventListener('mouseenter', onEnter)
+      window.removeEventListener('mouseleave', onLeave)
+    }
   }, [dark])
-  return <canvas ref={canvasRef} style={{ position:'fixed', inset:0, zIndex:-1, pointerEvents:'none', width:'100%', height:'100%' }} />
+  return <canvas ref={canvasRef} style={{ position: 'fixed', inset: 0, zIndex: -1, pointerEvents: 'none', width: '100%', height: '100%' }} />
 }
 
 // ── Animated chat hook ───────────────────────────────────────────────────────
@@ -323,7 +349,7 @@ function useCountUp(target: number, duration = 1200) {
   return { val, ref }
 }
 
-// \u2500\u2500 GitHub icon \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ── GitHub icon ──────────────────────────────────────────────────────────────
 const GitHubIcon = ({ size = 16 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
     <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z" />
@@ -667,8 +693,8 @@ export default function LandingPage() {
               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Round 1 of 3</div>
               {debateMsgs.map((m, i) => i < debateVisible ? (
                 <div key={i} className={`rounded-xl border px-4 py-3 text-xs leading-relaxed animate-fade-up ${m.role === 'infavor' ? 'border-emerald-500/30 bg-emerald-500/5' :
-                    m.role === 'against' ? 'border-rose-500/30 bg-rose-500/5' :
-                      'border-amber-500/30 bg-amber-500/5'
+                  m.role === 'against' ? 'border-rose-500/30 bg-rose-500/5' :
+                    'border-amber-500/30 bg-amber-500/5'
                   }`}>
                   <div className={`text-[10px] font-semibold mb-1 ${m.role === 'infavor' ? 'text-emerald-500' : m.role === 'against' ? 'text-rose-500' : 'text-amber-500'}`}>{m.label}</div>
                   {m.text}
@@ -704,9 +730,9 @@ export default function LandingPage() {
                   <span className="text-muted-foreground select-none text-sm">⠿</span>
                   <span className="text-xs text-muted-foreground w-4">{i + 1}</span>
                   <span className={`w-2 h-2 rounded-full shrink-0 transition-colors duration-500 ${isRerouted ? 'bg-emerald-500 animate-pulse' :
-                      showError ? 'bg-red-500' :
-                        p.status === 'active' ? 'bg-emerald-500 animate-pulse' :
-                          'bg-slate-400'
+                    showError ? 'bg-red-500' :
+                      p.status === 'active' ? 'bg-emerald-500 animate-pulse' :
+                        'bg-slate-400'
                     }`} />
                   <span className="text-xs font-medium text-foreground flex-1">{p.name}</span>
                   {isDragging && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-500 animate-fade-up">Moving ↑</span>}
@@ -717,49 +743,14 @@ export default function LandingPage() {
               )
             })}
             <div className={`px-4 py-3 text-[10px] transition-all duration-700 ${routingPhase === 'rerouting' || routingPhase === 'done'
-                ? 'text-emerald-500 bg-emerald-500/5'
-                : 'text-muted-foreground bg-muted/20'
+              ? 'text-emerald-500 bg-emerald-500/5'
+              : 'text-muted-foreground bg-muted/20'
               }`}>
               {routingPhase === 'idle' ? '● Monitoring provider health...' :
                 routingPhase === 'error' ? '⚠ Groq returned 429 — initiating failover...' :
                   '✓ Request auto-routed to Cerebras after Groq 429'}
             </div>
           </MockCard>
-        </div>
-      </Section>
-
-      {/* ── SECTION: Fallback Config ── */}
-      <Section alt>
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          <MockCard className="divide-y divide-border">
-            <div className="px-4 py-3 bg-muted/40 dark:bg-white/5 text-xs font-semibold text-muted-foreground flex items-center justify-between">
-              <span>Configure Priority Order</span>
-              <span className="text-[10px] text-violet-500 font-semibold">Drag to reorder</span>
-            </div>
-            {fallbackOrder.order.map((provIdx, rowIdx) => {
-              const isDragging = fallbackOrder.dragging === rowIdx
-              return (
-                <div key={provIdx} className={`chain-row px-4 py-3.5 flex items-center gap-3 ${isDragging ? 'drag-hint' : ''}`}>
-                  <span className="text-muted-foreground cursor-grab text-sm select-none">⠿</span>
-                  <span className="text-xs text-muted-foreground w-4">{rowIdx + 1}</span>
-                  <span className={`w-2 h-2 rounded-full shrink-0 ${rowIdx === 0 ? 'bg-emerald-500' : 'bg-slate-400'
-                    }`} />
-                  <span className="text-xs font-medium text-foreground flex-1 animate-drop-in">{allProviders[provIdx]}</span>
-                  {rowIdx === 0 && <span className="text-[10px] bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full font-semibold">Primary</span>}
-                  {isDragging && <span className="text-[10px] bg-violet-500/10 text-violet-500 px-2 py-0.5 rounded-full font-semibold animate-fade-up">Moving ↑</span>}
-                </div>
-              )
-            })}
-            <div className="px-4 py-3 bg-muted/10 flex gap-2 items-center">
-              <div className="cta-btn text-[10px] font-semibold px-3 py-1.5 rounded-xl bg-violet-600 text-white cursor-default">Save Order</div>
-              <span className="text-[10px] text-muted-foreground">Changes apply instantly to all routing</span>
-            </div>
-          </MockCard>
-          <div>
-            <Pill label="Fallback Config" color="amber" />
-            <SectionHeading>You Control the Priority.</SectionHeading>
-            <SectionSub>Drag providers into your preferred order. OmniKey tries them top-to-bottom on every request, automatically skipping any that are rate-limited or unavailable.</SectionSub>
-          </div>
         </div>
       </Section>
 
