@@ -54,6 +54,22 @@ export function initDb(dbPath?: string): Database.Database {
   ensureUnifiedKey(db);
   seedAdmin(db);
 
+  // Sync global disabled status to fallback_config once
+  try {
+    const isSynced = db.prepare("SELECT value FROM settings WHERE key = 'global_disabled_synced'").get() as { value: string } | undefined;
+    if (!isSynced) {
+      db.prepare(`
+        UPDATE fallback_config 
+        SET enabled = 0 
+        WHERE model_db_id IN (SELECT id FROM models WHERE enabled = 0)
+      `).run();
+      db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('global_disabled_synced', 'true')").run();
+      console.log('[SQLite] Synced global disabled status to fallback_config.');
+    }
+  } catch (err: any) {
+    console.warn('[SQLite] Failed to sync global disabled status:', err.message || err);
+  }
+
   console.log(`Database initialized at ${resolvedPath}`);
   return db;
 }
@@ -201,11 +217,11 @@ function seedModels(db: Database.Database) {
   insertMany();
 
   // Seed default fallback config from models
-  const allModels = db.prepare('SELECT id, intelligence_rank FROM models ORDER BY intelligence_rank ASC').all() as { id: number; intelligence_rank: number }[];
-  const insertFallback = db.prepare('INSERT INTO fallback_config (model_db_id, priority, enabled) VALUES (?, ?, 1)');
+  const allModels = db.prepare('SELECT id, intelligence_rank, enabled FROM models ORDER BY intelligence_rank ASC').all() as { id: number; intelligence_rank: number; enabled: number }[];
+  const insertFallback = db.prepare('INSERT INTO fallback_config (model_db_id, priority, enabled) VALUES (?, ?, ?)');
   const insertFallbacks = db.transaction(() => {
     for (let i = 0; i < allModels.length; i++) {
-      insertFallback.run(allModels[i].id, i + 1);
+      insertFallback.run(allModels[i].id, i + 1, allModels[i].enabled);
     }
   });
   insertFallbacks();
@@ -283,9 +299,9 @@ function migrateModels(db: Database.Database) {
     `).all() as { id: number }[];
     if (missing.length > 0) {
       const maxPriority = (db.prepare('SELECT COALESCE(MAX(priority), 0) AS mx FROM fallback_config').get() as { mx: number }).mx;
-      const addFallback = db.prepare('INSERT INTO fallback_config (model_db_id, priority, enabled) VALUES (?, ?, 1)');
+      const addFallback = db.prepare('INSERT INTO fallback_config (model_db_id, priority, enabled) VALUES (?, ?, (SELECT enabled FROM models WHERE id = ?))');
       for (let i = 0; i < missing.length; i++) {
-        addFallback.run(missing[i].id, maxPriority + i + 1);
+        addFallback.run(missing[i].id, maxPriority + i + 1, missing[i].id);
       }
     }
   });
@@ -950,8 +966,8 @@ function migrateModelsV11(db: Database.Database) {
     `).all() as { id: number }[];
     if (missing.length > 0) {
       const maxPriority = (db.prepare('SELECT COALESCE(MAX(priority), 0) AS mx FROM fallback_config').get() as { mx: number }).mx;
-      const addFb = db.prepare('INSERT INTO fallback_config (model_db_id, priority, enabled) VALUES (?, ?, 1)');
-      for (let i = 0; i < missing.length; i++) addFb.run(missing[i].id, maxPriority + i + 1);
+      const addFb = db.prepare('INSERT INTO fallback_config (model_db_id, priority, enabled) VALUES (?, ?, (SELECT enabled FROM models WHERE id = ?))');
+      for (let i = 0; i < missing.length; i++) addFb.run(missing[i].id, maxPriority + i + 1, missing[i].id);
     }
   });
   apply();
