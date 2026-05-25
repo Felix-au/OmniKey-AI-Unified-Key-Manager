@@ -31,6 +31,7 @@ export default function ModelsPage() {
 
   // In-memory availability state
   const [availability, setAvailability] = useState<Record<string, { status: CheckStatus; error?: string }>>({})
+  const [sortBy, setSortBy] = useState<string>('default')
 
   // Perform check for a single model
   const checkModel = async (modelId: string) => {
@@ -73,23 +74,61 @@ export default function ModelsPage() {
     })
   }
 
+  // Sort model configurations
+  const sortedEntries = [...fallbackEntries].sort((a, b) => {
+    if (sortBy === 'name') {
+      return a.displayName.localeCompare(b.displayName)
+    }
+    if (sortBy === 'platform') {
+      return a.platform.localeCompare(b.platform)
+    }
+    if (sortBy === 'userStatus') {
+      const aVal = a.keyCount > 0 && a.enabled ? 1 : 0
+      const bVal = b.keyCount > 0 && b.enabled ? 1 : 0
+      return bVal - aVal // Enabled first
+    }
+    if (sortBy === 'adminStatus') {
+      const aVal = a.globallyDisabled ? 0 : 1
+      const bVal = b.globallyDisabled ? 0 : 1
+      return bVal - aVal // Active first
+    }
+    // Default: priority sort
+    return a.priority - b.priority
+  })
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <PageHeader 
           title="Model Registry & Status" 
           description="View active models, user enablement preferences, and check live endpoint availability in real-time."
         />
-        <Button 
-          onClick={checkAll} 
-          disabled={fallbackEntries.length === 0}
-          className="bg-violet-600 hover:bg-violet-500 text-white font-semibold rounded-xl text-xs h-9 px-4 flex items-center gap-1.5 shadow-lg shadow-violet-600/15 border-none cursor-pointer"
-        >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-          </svg>
-          Check All Active
-        </Button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span>Sort by:</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="bg-card border border-border rounded-xl text-xs h-9 px-3 focus:outline-none focus:border-violet-500 text-foreground cursor-pointer"
+            >
+              <option value="default">Default Priority</option>
+              <option value="name">Model Name (A-Z)</option>
+              <option value="platform">Platform (A-Z)</option>
+              <option value="userStatus">User Enabled First</option>
+              <option value="adminStatus">Admin Active First</option>
+            </select>
+          </div>
+          <Button 
+            onClick={checkAll} 
+            disabled={fallbackEntries.length === 0}
+            className="bg-violet-600 hover:bg-violet-500 text-white font-semibold rounded-xl text-xs h-9 px-4 flex items-center gap-1.5 shadow-lg shadow-violet-600/15 border-none cursor-pointer"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+            </svg>
+            Check All Active
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -105,6 +144,7 @@ export default function ModelsPage() {
           <table className="w-full border-collapse text-left text-sm">
             <thead>
               <tr className="border-b bg-muted/40 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <th className="p-4 w-12 text-center">#</th>
                 <th className="p-4">Platform</th>
                 <th className="p-4">Model Name</th>
                 <th className="p-4">Size</th>
@@ -114,7 +154,7 @@ export default function ModelsPage() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {fallbackEntries.map(entry => {
+              {sortedEntries.map((entry, index) => {
                 const info = availability[entry.modelId] || { status: 'unchecked' }
                 return (
                   <tr 
@@ -126,6 +166,9 @@ export default function ModelsPage() {
                       }
                     }}
                   >
+                    <td className="p-4 text-center text-xs font-semibold text-muted-foreground">
+                      {index + 1}
+                    </td>
                     <td className="p-4 font-medium text-foreground">
                       <span className="capitalize">{entry.platform}</span>
                     </td>
