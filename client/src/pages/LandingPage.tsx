@@ -1,6 +1,107 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import logoUrl from '../assets/logo.png'
+
+// ── Aurora background CSS ────────────────────────────────────────────────────
+const auroraCSS = `
+@keyframes blob1 {
+  0%,100%{transform:translate(0,0) scale(1)}
+  33%{transform:translate(60px,-80px) scale(1.15)}
+  66%{transform:translate(-40px,40px) scale(0.9)}
+}
+@keyframes blob2 {
+  0%,100%{transform:translate(0,0) scale(1)}
+  33%{transform:translate(-80px,60px) scale(0.85)}
+  66%{transform:translate(50px,-30px) scale(1.1)}
+}
+@keyframes blob3 {
+  0%,100%{transform:translate(0,0) scale(1)}
+  50%{transform:translate(30px,70px) scale(1.2)}
+}
+@keyframes fadeSlideUp {
+  from{opacity:0;transform:translateY(16px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@keyframes typingDot {
+  0%,80%,100%{opacity:0.2;transform:scale(0.8)}
+  40%{opacity:1;transform:scale(1)}
+}
+.aurora-blob{position:absolute;border-radius:50%;filter:blur(90px);opacity:0.45;pointer-events:none;}
+.blob-1{width:600px;height:600px;background:radial-gradient(circle,rgba(139,92,246,0.5),transparent 70%);top:-100px;left:-100px;animation:blob1 18s infinite ease-in-out;}
+.blob-2{width:500px;height:500px;background:radial-gradient(circle,rgba(99,102,241,0.4),transparent 70%);top:40%;right:-100px;animation:blob2 22s infinite ease-in-out;}
+.blob-3{width:400px;height:400px;background:radial-gradient(circle,rgba(168,85,247,0.3),transparent 70%);bottom:-80px;left:40%;animation:blob3 15s infinite ease-in-out;}
+.animate-fade-up{animation:fadeSlideUp 0.5s ease both;}
+.typing-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:currentColor;animation:typingDot 1.2s infinite;}
+.typing-dot:nth-child(2){animation-delay:0.2s;}
+.typing-dot:nth-child(3){animation-delay:0.4s;}
+`
+
+// ── Animated chat hook ───────────────────────────────────────────────────────
+function useAnimatedChat() {
+  const [visible, setVisible] = useState(0)
+  const [typing, setTyping] = useState(false)
+  useEffect(() => {
+    const cycle = () => {
+      setVisible(0); setTyping(false)
+      const delays = [600, 1800, 3000, 4400]
+      delays.forEach((d, i) => {
+        setTimeout(() => { setTyping(true) }, d)
+        setTimeout(() => { setTyping(false); setVisible(i + 1) }, d + 900)
+      })
+      setTimeout(cycle, 9000)
+    }
+    const t = setTimeout(cycle, 400)
+    return () => clearTimeout(t)
+  }, [])
+  return { visible, typing }
+}
+
+// ── Animated debate hook ─────────────────────────────────────────────────────
+function useAnimatedDebate() {
+  const [visible, setVisible] = useState(0)
+  useEffect(() => {
+    const cycle = () => {
+      setVisible(0)
+      ;[1200, 3500, 6200].forEach((d, i) => setTimeout(() => setVisible(i + 1), d))
+      setTimeout(cycle, 10000)
+    }
+    const t = setTimeout(cycle, 600)
+    return () => clearTimeout(t)
+  }, [])
+  return visible
+}
+
+// ── Animated routing hook ────────────────────────────────────────────────────
+function useAnimatedRouting() {
+  const [phase, setPhase] = useState<'idle'|'error'|'rerouting'|'done'>('idle')
+  useEffect(() => {
+    const cycle = () => {
+      setPhase('idle')
+      setTimeout(() => setPhase('error'), 1500)
+      setTimeout(() => setPhase('rerouting'), 3000)
+      setTimeout(() => setPhase('done'), 4500)
+      setTimeout(cycle, 8000)
+    }
+    const t = setTimeout(cycle, 800)
+    return () => clearTimeout(t)
+  }, [])
+  return phase
+}
+
+// ── Arena animated latency ───────────────────────────────────────────────────
+function useArenaVisible() {
+  const [visible, setVisible] = useState(0)
+  useEffect(() => {
+    const cycle = () => {
+      setVisible(0)
+      ;[300, 700, 1200, 1800].forEach((d, i) => setTimeout(() => setVisible(i + 1), d))
+      setTimeout(cycle, 6000)
+    }
+    const t = setTimeout(cycle, 200)
+    return () => clearTimeout(t)
+  }, [])
+  return visible
+}
 
 function useDark() {
   const [dark, setDark] = useState(() =>
@@ -96,13 +197,23 @@ function MockCard({ children, className = '' }: { children: React.ReactNode; cla
   )
 }
 
+// ── Sun/Moon SVG icons ────────────────────────────────────────────────────────
+const SunIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.07-14.07 1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2m-4.93-7.07-1.41 1.41M6.34 17.66l-1.41 1.41"/></svg>)
+const MoonIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>)
+
 // ── Landing Page ──────────────────────────────────────────────────────────────
 export default function LandingPage() {
   const navigate = useNavigate()
   const { dark, toggle } = useDark()
+  const chat = useAnimatedChat()
+  const debateVisible = useAnimatedDebate()
+  const routingPhase = useAnimatedRouting()
+  const arenaVisible = useArenaVisible()
+  const heroRef = useRef<HTMLElement>(null)
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <style>{auroraCSS}</style>
 
       {/* NAV */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur border-b border-border">
@@ -119,8 +230,8 @@ export default function LandingPage() {
             <a href="https://github.com/Felix-au/OmniKey-AI-Unified-Key-Manager" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">GitHub</a>
           </nav>
           <div className="ml-auto flex items-center gap-3">
-            <button onClick={toggle} className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors text-sm">
-              {dark ? '☀' : '🌙'}
+            <button onClick={toggle} title="Toggle theme" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors">
+              {dark ? <SunIcon /> : <MoonIcon />}
             </button>
             <button
               onClick={() => navigate('/playground')}
@@ -133,9 +244,12 @@ export default function LandingPage() {
       </header>
 
       {/* HERO */}
-      <section className="relative py-28 px-6 text-center overflow-hidden">
-        <div className="absolute inset-0 -z-10 flex items-center justify-center pointer-events-none">
-          <div className="w-[600px] h-[600px] rounded-full bg-violet-500/10 dark:bg-violet-500/5 blur-3xl" />
+      <section ref={heroRef} className="relative py-28 px-6 text-center overflow-hidden">
+        {/* Aurora blobs */}
+        <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
+          <div className="aurora-blob blob-1 dark:opacity-40 opacity-20" />
+          <div className="aurora-blob blob-2 dark:opacity-35 opacity-15" />
+          <div className="aurora-blob blob-3 dark:opacity-30 opacity-10" />
         </div>
         <span className="inline-block text-xs font-semibold px-3 py-1 rounded-full border border-violet-500/30 bg-violet-500/10 text-violet-500 mb-6">
           ⚡ 12 Free LLM Providers. Zero Lock-in.
@@ -199,14 +313,21 @@ export default function LandingPage() {
               <span className="text-[10px] bg-violet-500/10 text-violet-500 border border-violet-500/20 rounded-full px-2 py-0.5 font-semibold">OpenAI Format</span>
             </div>
             <div className="p-4 space-y-3 min-h-[220px]">
-              {mockChat.map((m, i) => (
-                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              {mockChat.map((m, i) => i < chat.visible && (
+                <div key={i} className={`flex animate-fade-up ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed ${m.role === 'user' ? 'bg-violet-600 text-white' : 'bg-muted/60 dark:bg-white/8 text-foreground border border-border'}`}>
                     {m.text}
                     {m.meta && <div className="mt-1 text-[10px] opacity-60">{m.meta}</div>}
                   </div>
                 </div>
               ))}
+              {chat.typing && (
+                <div className="flex justify-start animate-fade-up">
+                  <div className="bg-muted/60 border border-border rounded-xl px-3 py-2 flex gap-1 items-center text-muted-foreground">
+                    <span className="typing-dot"/><span className="typing-dot"/><span className="typing-dot"/>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="border-t border-border px-4 py-3 flex gap-2">
               <div className="flex-1 bg-muted/40 dark:bg-white/5 rounded-xl text-xs px-3 py-2 text-muted-foreground">Type a message...</div>
@@ -225,10 +346,10 @@ export default function LandingPage() {
             </div>
             <div className="grid grid-cols-2 gap-0 divide-x divide-y divide-border">
               {arenaPanels.map((p, i) => (
-                <div key={i} className="p-3">
+                <div key={i} className={`p-3 transition-all duration-500 ${i < arenaVisible ? 'opacity-100' : 'opacity-0'}`}>
                   <div className={`text-[10px] font-semibold mb-2 ${p.color} flex items-center justify-between`}>
                     <span>{p.model}</span>
-                    <span className="text-muted-foreground font-normal">{p.latency}</span>
+                    <span className="text-muted-foreground font-normal">{i < arenaVisible ? p.latency : '...'}</span>
                   </div>
                   <p className="text-xs text-foreground/80 leading-relaxed whitespace-pre-line">{p.text}</p>
                 </div>
@@ -287,18 +408,22 @@ export default function LandingPage() {
               <div className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-xs font-semibold rounded-xl px-4 py-2.5 text-center cursor-default">Start Debate Arena</div>
             </div>
             {/* Transcript */}
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-3">
               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Round 1 of 3</div>
-              {debateMsgs.map((m, i) => (
-                <div key={i} className={`rounded-xl border px-4 py-3 text-xs leading-relaxed ${
-                  m.role === 'infavor' ? 'border-emerald-500/30 bg-emerald-500/5 text-foreground' :
-                  m.role === 'against' ? 'border-rose-500/30 bg-rose-500/5 text-foreground' :
-                  'border-amber-500/30 bg-amber-500/5 text-foreground'
+              {debateMsgs.map((m, i) => i < debateVisible ? (
+                <div key={i} className={`rounded-xl border px-4 py-3 text-xs leading-relaxed animate-fade-up ${
+                  m.role === 'infavor' ? 'border-emerald-500/30 bg-emerald-500/5' :
+                  m.role === 'against' ? 'border-rose-500/30 bg-rose-500/5' :
+                  'border-amber-500/30 bg-amber-500/5'
                 }`}>
                   <div className={`text-[10px] font-semibold mb-1 ${m.role === 'infavor' ? 'text-emerald-500' : m.role === 'against' ? 'text-rose-500' : 'text-amber-500'}`}>{m.label}</div>
                   {m.text}
                 </div>
-              ))}
+              ) : i === debateVisible ? (
+                <div key={i} className="flex gap-1 px-4 py-3 text-muted-foreground animate-fade-up">
+                  <span className="typing-dot"/><span className="typing-dot"/><span className="typing-dot"/>
+                </div>
+              ) : null)}
             </div>
           </div>
         </MockCard>
@@ -314,17 +439,35 @@ export default function LandingPage() {
           </div>
           <MockCard className="divide-y divide-border">
             <div className="px-4 py-3 bg-muted/40 dark:bg-white/5 text-xs font-semibold text-muted-foreground">Fallback Chain — Priority Order</div>
-            {fallbackChain.map((p, i) => (
-              <div key={i} className="px-4 py-3.5 flex items-center gap-3">
-                <span className="text-xs text-muted-foreground w-4">{i + 1}</span>
-                <span className={`w-2 h-2 rounded-full shrink-0 ${p.status === 'active' ? 'bg-emerald-500 animate-pulse' : p.status === 'limited' ? 'bg-red-500' : 'bg-slate-400'}`} />
-                <span className="text-xs font-medium text-foreground flex-1">{p.name}</span>
-                {p.note && <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${p.status === 'limited' ? 'bg-red-500/10 text-red-500' : 'bg-slate-500/10 text-muted-foreground'}`}>{p.note}</span>}
-                {p.latency !== '—' && <span className="text-[10px] text-emerald-500 font-semibold">{p.latency} avg</span>}
-              </div>
-            ))}
-            <div className="px-4 py-3 text-[10px] text-muted-foreground bg-muted/20">
-              → Request auto-routed to Cerebras after Groq 429
+            {fallbackChain.map((p, i) => {
+              const isGroq = p.name === 'Groq'
+              const isCerebras = p.name === 'Cerebras'
+              const showError = isGroq && (routingPhase === 'error' || routingPhase === 'rerouting' || routingPhase === 'done')
+              const isRerouted = isCerebras && (routingPhase === 'rerouting' || routingPhase === 'done')
+              return (
+                <div key={i} className={`px-4 py-3.5 flex items-center gap-3 transition-colors duration-700 ${isRerouted ? 'bg-emerald-500/5' : ''}`}>
+                  <span className="text-xs text-muted-foreground w-4">{i + 1}</span>
+                  <span className={`w-2 h-2 rounded-full shrink-0 transition-colors duration-500 ${
+                    isRerouted ? 'bg-emerald-500 animate-pulse' :
+                    showError ? 'bg-red-500' :
+                    p.status === 'active' ? 'bg-emerald-500 animate-pulse' :
+                    'bg-slate-400'
+                  }`} />
+                  <span className="text-xs font-medium text-foreground flex-1">{p.name}</span>
+                  {showError && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 animate-fade-up">429 Rate Limited</span>}
+                  {isRerouted && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 animate-fade-up">↑ Active</span>}
+                  {p.status === 'active' && !showError && <span className="text-[10px] text-emerald-500 font-semibold">{p.latency} avg</span>}
+                </div>
+              )
+            })}
+            <div className={`px-4 py-3 text-[10px] transition-all duration-700 ${
+              routingPhase === 'rerouting' || routingPhase === 'done'
+                ? 'text-emerald-500 bg-emerald-500/5'
+                : 'text-muted-foreground bg-muted/20'
+            }`}>
+              {routingPhase === 'idle' ? '● Monitoring provider health...' :
+               routingPhase === 'error' ? '⚠ Groq returned 429 — initiating failover...' :
+               '✓ Request auto-routed to Cerebras after Groq 429'}
             </div>
           </MockCard>
         </div>
