@@ -11,12 +11,6 @@ const SQLITE_PATH = path.resolve(__dirname, '../../data/OmniKeyAI.db');
 
 export async function seedMongoModels(): Promise<void> {
   try {
-    const existingCount = await Model.countDocuments();
-    if (existingCount > 0) {
-      console.log(`MongoDB Model catalog already initialized with ${existingCount} models.`);
-      return;
-    }
-
     let sqliteModels: any[] = [];
 
     // 1. Attempt to extract models from local SQLite database to preserve any custom changes
@@ -40,27 +34,86 @@ export async function seedMongoModels(): Promise<void> {
       console.log(`Using default catalog of ${sqliteModels.length} models for seeding.`);
     }
 
-    // 3. Format and insert models into MongoDB
-    const docs = sqliteModels.map((m) => ({
-      platform: m.platform,
-      modelId: m.model_id || m.modelId,
-      displayName: m.display_name || m.displayName,
-      intelligenceRank: Number(m.intelligence_rank || m.intelligenceRank),
-      speedRank: Number(m.speed_rank || m.speedRank),
-      sizeLabel: m.size_label || m.sizeLabel || '',
-      rpmLimit: m.rpm_limit !== undefined ? m.rpm_limit : m.rpmLimit,
-      rpdLimit: m.rpd_limit !== undefined ? m.rpd_limit : m.rpdLimit,
-      tpmLimit: m.tpm_limit !== undefined ? m.tpm_limit : m.tpmLimit,
-      tpdLimit: m.tpd_limit !== undefined ? m.tpd_limit : m.tpdLimit,
-      monthlyTokenBudget: m.monthly_token_budget || m.monthlyTokenBudget || '',
-      contextWindow: m.context_window !== undefined ? m.context_window : m.contextWindow,
-      enabled: m.enabled === 1 || m.enabled === true
-    }));
+    // 3. Reconcile MongoDB models with the source models catalog
+    let addedCount = 0;
+    let updatedCount = 0;
+    let disabledOrDeletedCount = 0;
 
-    await Model.insertMany(docs);
-    console.log(`Successfully seeded ${docs.length} models into MongoDB.`);
+    const sourceKeys = new Set<string>();
+
+    for (const m of sqliteModels) {
+      const platform = m.platform;
+      const modelId = m.model_id || m.modelId;
+      const displayName = m.display_name || m.displayName;
+      const intelligenceRank = Number(m.intelligence_rank || m.intelligenceRank);
+      const speedRank = Number(m.speed_rank || m.speedRank);
+      const sizeLabel = m.size_label || m.sizeLabel || '';
+      const rpmLimit = m.rpm_limit !== undefined ? m.rpm_limit : m.rpmLimit;
+      const rpdLimit = m.rpd_limit !== undefined ? m.rpd_limit : m.rpdLimit;
+      const tpmLimit = m.tpm_limit !== undefined ? m.tpm_limit : m.tpmLimit;
+      const tpdLimit = m.tpd_limit !== undefined ? m.tpd_limit : m.tpdLimit;
+      const monthlyTokenBudget = m.monthly_token_budget || m.monthlyTokenBudget || '';
+      const contextWindow = m.context_window !== undefined ? m.context_window : m.contextWindow;
+      const enabled = m.enabled === 1 || m.enabled === true;
+
+      sourceKeys.add(`${platform}:${modelId}`);
+
+      const existing = await Model.findOne({ platform, modelId });
+
+      if (existing) {
+        // Check for updates
+        let isChanged = false;
+        if (existing.displayName !== displayName) { existing.displayName = displayName; isChanged = true; }
+        if (existing.intelligenceRank !== intelligenceRank) { existing.intelligenceRank = intelligenceRank; isChanged = true; }
+        if (existing.speedRank !== speedRank) { existing.speedRank = speedRank; isChanged = true; }
+        if (existing.sizeLabel !== sizeLabel) { existing.sizeLabel = sizeLabel; isChanged = true; }
+        if (existing.rpmLimit !== rpmLimit) { existing.rpmLimit = rpmLimit; isChanged = true; }
+        if (existing.rpdLimit !== rpdLimit) { existing.rpdLimit = rpdLimit; isChanged = true; }
+        if (existing.tpmLimit !== tpmLimit) { existing.tpmLimit = tpmLimit; isChanged = true; }
+        if (existing.tpdLimit !== tpdLimit) { existing.tpdLimit = tpdLimit; isChanged = true; }
+        if (existing.monthlyTokenBudget !== monthlyTokenBudget) { existing.monthlyTokenBudget = monthlyTokenBudget; isChanged = true; }
+        if (existing.contextWindow !== contextWindow) { existing.contextWindow = contextWindow; isChanged = true; }
+        if (existing.enabled !== enabled) { existing.enabled = enabled; isChanged = true; }
+
+        if (isChanged) {
+          await existing.save();
+          updatedCount++;
+        }
+      } else {
+        // Create new model
+        await Model.create({
+          platform,
+          modelId,
+          displayName,
+          intelligenceRank,
+          speedRank,
+          sizeLabel,
+          rpmLimit,
+          rpdLimit,
+          tpmLimit,
+          tpdLimit,
+          monthlyTokenBudget,
+          contextWindow,
+          enabled
+        });
+        addedCount++;
+      }
+    }
+
+    // 4. Disable or remove models in MongoDB that are no longer in SQLite/source catalog
+    const allMongoModels = await Model.find();
+    for (const mm of allMongoModels) {
+      const key = `${mm.platform}:${mm.modelId}`;
+      if (!sourceKeys.has(key)) {
+        // If it was present in Mongo but not in SQLite source, delete it to keep catalogs in exact sync
+        await Model.deleteOne({ _id: mm._id });
+        disabledOrDeletedCount++;
+      }
+    }
+
+    console.log(`MongoDB catalog synchronization complete. Added: ${addedCount}, Updated: ${updatedCount}, Removed: ${disabledOrDeletedCount}.`);
   } catch (error) {
-    console.error('Error during MongoDB model catalog seeding:', error);
+    console.error('Error during MongoDB model catalog synchronization:', error);
   }
 }
 

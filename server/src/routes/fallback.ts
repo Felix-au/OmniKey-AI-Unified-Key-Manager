@@ -39,7 +39,7 @@ fallbackRouter.get('/', async (req: AuthenticatedRequest, res: Response, next) =
         SELECT fc.model_db_id, fc.priority, fc.enabled,
                m.platform, m.model_id, m.display_name, m.intelligence_rank,
                m.speed_rank, m.size_label, m.rpm_limit, m.rpd_limit,
-               m.monthly_token_budget
+               m.monthly_token_budget, m.enabled as model_enabled
         FROM fallback_config fc
         JOIN models m ON m.id = fc.model_db_id
         ORDER BY fc.priority ASC
@@ -73,7 +73,7 @@ fallbackRouter.get('/', async (req: AuthenticatedRequest, res: Response, next) =
           effectivePriority: r.priority + (penalty?.penalty ?? 0),
           penalty: penalty?.penalty ?? 0,
           rateLimitHits: penalty?.count ?? 0,
-          enabled: r.enabled === 1,
+          enabled: r.enabled === 1 && r.model_enabled === 1,
           platform: r.platform,
           modelId: r.model_id,
           displayName: r.display_name,
@@ -96,7 +96,7 @@ fallbackRouter.get('/', async (req: AuthenticatedRequest, res: Response, next) =
 
       if (userConfigs.length === 0) {
         // Auto-seed default user configs if missing
-        const systemModels = await Model.find({ enabled: true }).sort({ intelligenceRank: 1 });
+        const systemModels = await Model.find().sort({ intelligenceRank: 1 });
         const initialDocs = systemModels.map((m, idx) => ({
           userId: req.userId!,
           modelId: m._id,
@@ -108,6 +108,29 @@ fallbackRouter.get('/', async (req: AuthenticatedRequest, res: Response, next) =
         userConfigs = await UserFallbackConfig.find({ userId: req.userId })
           .populate<{ modelId: IModel }>('modelId')
           .sort({ priority: 1 });
+      } else {
+        // Dynamic auto-healing: append config docs for any newly added models in the catalog
+        const allCatalogModels = await Model.find();
+        const existingModelIds = new Set(
+          userConfigs.map(c => c.modelId?._id?.toString()).filter(Boolean)
+        );
+
+        const missingModels = allCatalogModels.filter(m => !existingModelIds.has(m._id.toString()));
+
+        if (missingModels.length > 0) {
+          const maxPriority = userConfigs.reduce((max, c) => Math.max(max, c.priority), 0);
+          const newDocs = missingModels.map((m, idx) => ({
+            userId: req.userId!,
+            modelId: m._id,
+            priority: maxPriority + idx + 1,
+            enabled: true
+          }));
+          await UserFallbackConfig.insertMany(newDocs);
+
+          userConfigs = await UserFallbackConfig.find({ userId: req.userId })
+            .populate<{ modelId: IModel }>('modelId')
+            .sort({ priority: 1 });
+        }
       }
 
       // 2. Count enabled keys per platform for this user
@@ -141,7 +164,7 @@ fallbackRouter.get('/', async (req: AuthenticatedRequest, res: Response, next) =
           effectivePriority: c.priority + (penalty?.penalty ?? 0),
           penalty: penalty?.penalty ?? 0,
           rateLimitHits: penalty?.count ?? 0,
-          enabled: c.enabled,
+          enabled: c.enabled && m.enabled,
           platform: m.platform,
           modelId: m.modelId,
           displayName: m.displayName,
