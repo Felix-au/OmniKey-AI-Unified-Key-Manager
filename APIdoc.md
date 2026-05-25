@@ -339,6 +339,9 @@ Retrieves capabilities of the host server environment configuration at runtime.
 }
 ```
 
+### 5. Client-Side Multi-Agent Orchestration (Debate Arena)
+The frontend Debate Arena orchestrates multi-agent debates entirely on the client side using standard sequential calls to `/v1/chat/completions`. Under the hood, the client dynamically maps and sanitizes prompt arrays to satisfy strict provider requirements (e.g., merging consecutive identical roles into a single message, ensuring alternating `user`/`assistant` structures, and forcing the history list to end with a `user` role).
+
 ---
 
 ## Admin Console APIs (`/api/admin`)
