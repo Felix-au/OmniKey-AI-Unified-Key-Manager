@@ -19,11 +19,12 @@
 11. [Example 6 — Checking Stats & Key Limits](#example-6--checking-stats--key-limits)
 12. [Smart Routing — How OmniKey AI Handles Limits](#smart-routing--how-omnikey-ai-handles-limits)
 13. [UI Guide — Dashboard & Models](#ui-guide--dashboard--models)
-14. [UI Guide — Keys & Encryption](#ui-guide--keys--encryption)
-15. [Database Schema](#database-schema)
-16. [Provider Adaptors](#provider-adaptors)
-17. [Troubleshooting](#troubleshooting)
-18. [Project Summary](#project-summary)
+14. [UI Guide — Debate Arena](#ui-guide--debate-arena)
+15. [UI Guide — Keys & Encryption](#ui-guide--keys--encryption)
+16. [Database Schema](#database-schema)
+17. [Provider Adaptors](#provider-adaptors)
+18. [Troubleshooting](#troubleshooting)
+19. [Project Summary](#project-summary)
 
 ---
 
@@ -240,8 +241,27 @@ The React client dashboard has a responsive visual layout:
 * **Budget Tracking Bars**: Live progress indicators of token quotas.
 * **Playground**: Integrated API Format toggle allowing testing using either standard OpenAI format or Gemini JSON format in real-time.
 * **Developer Corner**: Sandboxed terminal featuring format toggling, auto-compiling JS client code snippet templates for both OpenAI and Gemini, and rendering stream console blocks.
+* **Debate Arena**: Configurable page to stage multi-round debates between two model personas under a Judge model, featuring status prompts and history sanitization.
 * **Responsive Theme Switcher**: Toggle persistently between light and dark modes from the page header.
 * **Switch to Local**: A shortcut button next to the database status label to instantly toggle between local database mode and cloud mode.
+
+---
+
+## UI Guide — Debate Arena
+
+The **AI Debate Arena** is an advanced orchestration sandbox designed to pits two separate models against each other.
+
+### 1. Setup Panel
+* **Topic Input:** Describe the topic of discussion.
+* **In Favor / Against / Judge Models:** Select active catalog models to fill the agent roles.
+* **Number of Turns:** Configure the length of the debate.
+* **Opening Player:** Select who goes first.
+* **Judging Interval:** Choose between judging incrementally at the end of each round, or a final cumulative verdict at the end.
+
+### 2. Sandbox Floor
+* Messages are rendered in user-friendly blocks colored by role (Green for In Favor, Red for Against, Amber/Gold for Judge critiques).
+* Detailed real-time status and telemetry logs show latency and routed key tags.
+* Flawless backend compatibility handles message sanitization automatically.
 
 ---
 
