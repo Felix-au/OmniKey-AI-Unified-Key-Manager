@@ -154,21 +154,14 @@ function OceanBackground({ dark }: { dark: boolean }) {
           ctx.beginPath(); ctx.arc(px, py, pt.r * 3.5, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill()
           ctx.beginPath(); ctx.arc(px, py, pt.r * 0.6, 0, Math.PI * 2); ctx.fillStyle = `rgba(230,248,255,${Math.min(a * 1.4, 0.9)})`; ctx.fill()
         } else {
-          // Bright metallic red star glow
-          const glowR = pt.r * 7
-          const g = ctx.createRadialGradient(px, py, 0, px, py, glowR)
-          g.addColorStop(0,    `rgba(255,255,220,${Math.min(a * 1.1, 0.9)})`)  // white-hot center
-          g.addColorStop(0.15, `rgba(255,80,40,${Math.min(a * 1.0, 0.85)})`)   // bright orange-red
-          g.addColorStop(0.4,  `rgba(220,20,20,${a * 0.65})`)                  // crimson
-          g.addColorStop(0.7,  `rgba(160,0,0,${a * 0.3})`)                     // deep red
-          g.addColorStop(1,    'rgba(100,0,0,0)')
-          ctx.beginPath(); ctx.arc(px, py, glowR, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill()
-          // Bright red core
-          const coreG = ctx.createRadialGradient(px, py, 0, px, py, pt.r * 0.9)
-          coreG.addColorStop(0, `rgba(255,240,200,${Math.min(a * 1.5, 1)})`)   // hot white tip
-          coreG.addColorStop(0.5, `rgba(255,60,40,${Math.min(a * 1.3, 0.95)})`)
-          coreG.addColorStop(1, `rgba(200,0,0,${Math.min(a * 1.1, 0.8)})`)
-          ctx.beginPath(); ctx.arc(px, py, pt.r * 0.9, 0, Math.PI * 2); ctx.fillStyle = coreG; ctx.fill()
+          // Red star — dark-mode-equivalent intensity
+          const g = ctx.createRadialGradient(px, py, 0, px, py, pt.r * 3.5)
+          g.addColorStop(0,   `rgba(255,80,40,${a})`)
+          g.addColorStop(0.4, `rgba(200,20,20,${a * 0.5})`)
+          g.addColorStop(1,   'rgba(120,0,0,0)')
+          ctx.beginPath(); ctx.arc(px, py, pt.r * 3.5, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill()
+          // Red core (same size as dark mode core)
+          ctx.beginPath(); ctx.arc(px, py, pt.r * 0.6, 0, Math.PI * 2); ctx.fillStyle = `rgba(255,60,40,${Math.min(a * 1.4, 0.9)})`; ctx.fill()
         }
       })
       phase += 0.6; t++
