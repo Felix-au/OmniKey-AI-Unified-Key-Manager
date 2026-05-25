@@ -6,26 +6,17 @@ import logoUrl from '../assets/logo.png'
 const auroraCSS = `
 @keyframes blob1 {
   0%,100%{transform:translate(0,0) scale(1)}
-  33%{transform:translate(80px,-100px) scale(1.1)}
-  66%{transform:translate(-60px,50px) scale(0.92)}
+  33%{transform:translate(60px,-80px) scale(1.15)}
+  66%{transform:translate(-40px,40px) scale(0.9)}
 }
 @keyframes blob2 {
   0%,100%{transform:translate(0,0) scale(1)}
-  33%{transform:translate(-100px,70px) scale(0.88)}
-  66%{transform:translate(60px,-40px) scale(1.12)}
+  33%{transform:translate(-80px,60px) scale(0.85)}
+  66%{transform:translate(50px,-30px) scale(1.1)}
 }
 @keyframes blob3 {
   0%,100%{transform:translate(0,0) scale(1)}
-  50%{transform:translate(40px,90px) scale(1.18)}
-}
-@keyframes blob4 {
-  0%,100%{transform:translate(0,0) scale(1)}
-  40%{transform:translate(-70px,-60px) scale(1.08)}
-  80%{transform:translate(50px,40px) scale(0.94)}
-}
-@keyframes blob5 {
-  0%,100%{transform:translate(0,0) scale(1)}
-  60%{transform:translate(90px,-30px) scale(1.15)}
+  50%{transform:translate(30px,70px) scale(1.2)}
 }
 @keyframes fadeSlideUp {
   from{opacity:0;transform:translateY(16px)}
@@ -35,33 +26,12 @@ const auroraCSS = `
   0%,80%,100%{opacity:0.2;transform:scale(0.8)}
   40%{opacity:1;transform:scale(1)}
 }
-.aurora-layer{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;}
-.aurora-blob{position:absolute;border-radius:50%;filter:blur(100px);pointer-events:none;}
-/* Dark mode blobs */
-.blob-1{width:700px;height:700px;background:radial-gradient(circle,rgba(139,92,246,0.45),transparent 70%);top:-150px;left:-150px;animation:blob1 20s infinite ease-in-out;opacity:0.5;}
-.blob-2{width:600px;height:600px;background:radial-gradient(circle,rgba(99,102,241,0.38),transparent 70%);top:30%;right:-120px;animation:blob2 25s infinite ease-in-out;opacity:0.45;}
-.blob-3{width:500px;height:500px;background:radial-gradient(circle,rgba(168,85,247,0.35),transparent 70%);bottom:10%;left:35%;animation:blob3 17s infinite ease-in-out;opacity:0.4;}
-.blob-4{width:450px;height:450px;background:radial-gradient(circle,rgba(79,70,229,0.3),transparent 70%);top:60%;left:-80px;animation:blob4 22s infinite ease-in-out;opacity:0.35;}
-.blob-5{width:380px;height:380px;background:radial-gradient(circle,rgba(196,100,255,0.28),transparent 70%);bottom:-100px;right:15%;animation:blob5 19s infinite ease-in-out;opacity:0.38;}
-/* Light mode — much more subtle */
-:root:not(.dark) .blob-1{opacity:0.12;}
-:root:not(.dark) .blob-2{opacity:0.10;}
-:root:not(.dark) .blob-3{opacity:0.09;}
-:root:not(.dark) .blob-4{opacity:0.08;}
-:root:not(.dark) .blob-5{opacity:0.08;}
-/* Dot grid overlay */
-.dot-grid{position:fixed;inset:0;z-index:0;pointer-events:none;
-  background-image:radial-gradient(circle,rgba(139,92,246,0.18) 1px,transparent 1px);
-  background-size:32px 32px;}
-.dark .dot-grid{background-image:radial-gradient(circle,rgba(139,92,246,0.12) 1px,transparent 1px);}
-:root:not(.dark) .dot-grid{background-image:radial-gradient(circle,rgba(139,92,246,0.08) 1px,transparent 1px);}
-/* Content must sit above the fixed bg */
-.landing-content{position:relative;z-index:1;}
 .animate-fade-up{animation:fadeSlideUp 0.5s ease both;}
 .typing-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:currentColor;animation:typingDot 1.2s infinite;}
 .typing-dot:nth-child(2){animation-delay:0.2s;}
 .typing-dot:nth-child(3){animation-delay:0.4s;}
 @keyframes countUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shimmer{0%{background-position:200% center}100%{background-position:-200% center}}
 @keyframes dropIn{0%{opacity:0;transform:translateY(-6px) scale(0.97)}100%{opacity:1;transform:translateY(0) scale(1)}}
 .stat-animate{animation:countUp 0.6s ease both;}
 .provider-pill{transition:all 0.18s ease;cursor:default;}
@@ -77,6 +47,75 @@ const auroraCSS = `
 .stat-num{display:inline-block;transition:color 0.2s;cursor:default;}
 .stat-num:hover{animation:statPop 0.4s ease;color:rgb(139,92,246);}
 `
+
+// ── Ocean wave background ─────────────────────────────────────────────────────
+function OceanBackground({ dark }: { dark: boolean }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    let animId: number
+    let phase = 0
+    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight }
+    resize()
+    window.addEventListener('resize', resize)
+    // Wave layers: {amp, freq, speed, yBase, color}
+    const darkWaves = [
+      { amp: 80,  freq: 0.0045, speed: 0.008, yBase: 0.42, color: 'rgba(15,23,71,0.9)'   },
+      { amp: 65,  freq: 0.007,  speed: 0.013, yBase: 0.52, color: 'rgba(23,37,110,0.75)'  },
+      { amp: 55,  freq: 0.006,  speed: 0.018, yBase: 0.60, color: 'rgba(30,58,138,0.65)'  },
+      { amp: 45,  freq: 0.009,  speed: 0.024, yBase: 0.68, color: 'rgba(37,99,235,0.40)'  },
+      { amp: 35,  freq: 0.011,  speed: 0.032, yBase: 0.76, color: 'rgba(99,102,241,0.30)' },
+    ]
+    const lightWaves = [
+      { amp: 80,  freq: 0.0045, speed: 0.008, yBase: 0.42, color: 'rgba(186,230,253,0.85)' },
+      { amp: 65,  freq: 0.007,  speed: 0.013, yBase: 0.52, color: 'rgba(125,211,252,0.70)' },
+      { amp: 55,  freq: 0.006,  speed: 0.018, yBase: 0.60, color: 'rgba(56,189,248,0.55)'  },
+      { amp: 45,  freq: 0.009,  speed: 0.024, yBase: 0.68, color: 'rgba(14,165,233,0.40)'  },
+      { amp: 35,  freq: 0.011,  speed: 0.032, yBase: 0.76, color: 'rgba(2,132,199,0.30)'   },
+    ]
+    const waves = dark ? darkWaves : lightWaves
+    const draw = () => {
+      const W = canvas.width, H = canvas.height
+      // Sky/base gradient
+      const grad = ctx.createLinearGradient(0, 0, 0, H)
+      if (dark) {
+        grad.addColorStop(0, '#020817')
+        grad.addColorStop(0.5, '#030d1e')
+        grad.addColorStop(1, '#0a1628')
+      } else {
+        grad.addColorStop(0, '#e0f4ff')
+        grad.addColorStop(0.5, '#bae8ff')
+        grad.addColorStop(1, '#7dd3fc')
+      }
+      ctx.fillStyle = grad
+      ctx.fillRect(0, 0, W, H)
+      // Draw each wave layer back-to-front
+      waves.forEach(({ amp, freq, speed, yBase, color }, wi) => {
+        const p = phase * speed + wi * 0.6
+        ctx.beginPath()
+        ctx.moveTo(0, H)
+        for (let x = 0; x <= W + 2; x += 2) {
+          const y = yBase * H
+            + Math.sin(x * freq + p) * amp
+            + Math.sin(x * freq * 1.7 + p * 1.3) * amp * 0.35
+          ctx.lineTo(x, y)
+        }
+        ctx.lineTo(W, H)
+        ctx.closePath()
+        ctx.fillStyle = color
+        ctx.fill()
+      })
+      phase += 0.6
+      animId = requestAnimationFrame(draw)
+    }
+    draw()
+    return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize) }
+  }, [dark])
+  return <canvas ref={canvasRef} style={{ position:'fixed', inset:0, zIndex:-1, pointerEvents:'none', width:'100%', height:'100%' }} />
+}
 
 // ── Animated chat hook ───────────────────────────────────────────────────────
 function useAnimatedChat() {
@@ -369,21 +408,9 @@ export default function LandingPage() {
   const stat3 = useCountUp(12)
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen text-foreground relative">
       <style>{auroraCSS}</style>
-
-      {/* ── Full-page animated aurora background ── */}
-      <div className="aurora-layer">
-        <div className="aurora-blob blob-1" />
-        <div className="aurora-blob blob-2" />
-        <div className="aurora-blob blob-3" />
-        <div className="aurora-blob blob-4" />
-        <div className="aurora-blob blob-5" />
-      </div>
-      <div className="dot-grid" />
-
-      {/* ── All content above the fixed bg ── */}
-      <div className="landing-content">
+      <OceanBackground dark={dark} />
 
       {/* NAV */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur border-b border-border">
@@ -414,11 +441,7 @@ export default function LandingPage() {
       </header>
 
       {/* HERO */}
-      <section ref={heroRef} className="relative py-28 px-6 text-center overflow-hidden">
-        {/* extra glow ring centred on the hero headline */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none -z-10">
-          <div className="w-[500px] h-[300px] bg-violet-500/10 dark:bg-violet-500/5 blur-[80px] rounded-full" />
-        </div>
+      <section ref={heroRef} className="relative py-28 px-6 text-center">
         <span className="inline-block text-xs font-semibold px-3 py-1 rounded-full border border-violet-500/30 bg-violet-500/10 text-violet-500 mb-6">
           ⚡ 12 Free LLM Providers. Zero Lock-in.
         </span>
@@ -726,7 +749,6 @@ export default function LandingPage() {
           </a>
         </div>
       </footer>
-      </div>{/* end landing-content */}
     </div>
   )
 }
