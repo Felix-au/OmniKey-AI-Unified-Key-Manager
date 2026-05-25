@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { keysRouter } from './routes/keys.js';
 import { modelsRouter } from './routes/models.js';
 import { proxyRouter } from './routes/proxy.js';
+import { geminiProxyRouter } from './routes/gemini-proxy.js';
 import { fallbackRouter } from './routes/fallback.js';
 import { analyticsRouter } from './routes/analytics.js';
 import { healthRouter } from './routes/health.js';
@@ -72,6 +73,9 @@ export function createApp() {
 
   // OpenAI-compatible proxy
   app.use('/v1', proxyRouter);
+
+  // Gemini-compatible proxy
+  app.use('/v1beta', geminiProxyRouter);
 
   // Health check
   app.get('/api/ping', (_req, res) => {
