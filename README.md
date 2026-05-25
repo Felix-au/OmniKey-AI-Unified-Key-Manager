@@ -36,9 +36,13 @@
 
 ## 🔍 Overview
 
-**OmniKey AI** is a self-hosted, OpenAI-compatible proxy that wraps 12 free-tier LLM providers—Gemini, OpenRouter, Cerebras, Groq, Mistral, GitHub Models, SambaNova, Cohere, Cloudflare, Z.ai (Zhipu), HuggingFace, and NVIDIA—into a single API. Instead of dealing with multiple API keys, client SDKs, rate limits, and failure modes, you get a single endpoint (`/v1/chat/completions`) and a single unified API key.
+**OmniKey AI** is a self-hosted, multi-format API gateway proxy that wraps 12 free-tier LLM providers—Gemini, OpenRouter, Cerebras, Groq, Mistral, GitHub Models, SambaNova, Cohere, Cloudflare, Z.ai (Zhipu), HuggingFace, and NVIDIA—into a unified environment. 
 
-Behind the scenes, OmniKey AI handles secure key storage (encrypted at rest using AES-256-GCM), keeps track of rate limits and token budgets for each provider key, dynamically selects the best available model, and seamlessly falls back to backup providers if your active connection fails or hits a rate limit.
+The proxy serves two endpoints natively:
+* **OpenAI-Compatible Endpoint (`/v1`)**: Point OpenAI SDKs or clients at `/v1/chat/completions` using your unified OpenAI key (`omnikey-` prefix).
+* **Gemini-Compatible Endpoint (`/v1beta`)**: Point Gemini SDKs or REST clients at `/v1beta/models/:model` (supporting `generateContent` and `streamGenerateContent` methods) using your unified Gemini key (`omnikey-g-` prefix).
+
+Behind the scenes, OmniKey AI handles key storage (encrypted using AES-256-GCM), key duplication protection, rate limits, model routing, fallback cascades, and local telemetry logging of daily/monthly token counts.
 
 ---
 
@@ -48,27 +52,27 @@ Behind the scenes, OmniKey AI handles secure key storage (encrypted at rest usin
 
 | Feature | Manual Multi-Provider Integration | OmniKey AI |
 |---|---|---|
-| **API Endpoints** | A dozen different URLs and payload formats | Single `/v1/chat/completions` endpoint |
-| **API Keys** | 12 separate keys to rotate, secure, and manage | One unified key (`omnikey-...`) stored securely |
+| **API Endpoints** | A dozen different URLs and payload formats | Dual `/v1` (OpenAI format) & `/v1beta` (Gemini format) |
+| **API Keys** | 12 separate keys to rotate, secure, and manage | Twin unified keys (`omnikey-` / `omnikey-g-`) stored securely |
 | **Failover** | Manual retry logic; app crashes when provider is down | Automatic fallback to backup providers in milliseconds |
 | **Rate-Limits (429)** | Request fails immediately | Transparent retry across next best provider |
 | **Usage Tracking** | Custom logging per platform to track free caps | Automatic local tracking of daily/monthly token usage |
 | **Privacy** | Credentials stored in plain-text `.env` files | AES-256-GCM envelope encryption in local SQLite |
-| **Visuals** | CLI-only or no interface | Modern React-based dashboard with real-time stats |
+| **Visuals** | CLI-only or no interface | Modern React-based dashboard with models explorer & playground |
 
 ---
 
 ## ✨ Features
 
-### 🔑 Key Management
+### 🔑 Key & Database Management
 | Feature | Description |
 |---|---|
-| **AES-256-GCM Encryption** | All upstream provider API keys are encrypted at rest using envelope encryption. |
-| **Unified Token** | Uses a custom `omnikey-` prefixed key to authenticate your local clients. |
-| **Mock Keys Support** | Allows testing and sandbox query paths using mock keys. |
+| **AES-256-GCM Encryption** | Stored provider API credentials are encrypted at rest using local envelope encryption. |
+| **Twin Unified Keys** | Offers both `omnikey-` (OpenAI format) and `omnikey-g-` (Gemini format) master keys. |
+| **Duplicate Protection** | Automatically checks for and blocks duplicate API keys during manual input or CSV imports. |
 | **Database Mode Switcher** | Toggles dynamically between Local-First SQLite and Cloud MongoDB contexts from the client login screen (saved in localStorage). |
 
-### 🚀 Dynamic Routing & Failover
+### 🚀 Dynamic Routing & Fallback
 | Feature | Description |
 |---|---|
 | **Virtual "auto" Model** | Requests to `auto` automatically route to the highest priority active provider. |
@@ -79,14 +83,13 @@ Behind the scenes, OmniKey AI handles secure key storage (encrypted at rest usin
 ### 📊 Real-Time Dashboard & Admin Console
 | Feature | Description |
 |---|---|
-| **Model Catalog** | Complete list of 60+ models, their states, and active status. |
+| **Models Catalog Explorer** | Complete page listing 100+ models with sorting, search, column configurators, availability checks, and item count summaries. |
 | **Usage Gauges** | Clean visuals illustrating token budgets and daily/monthly stats. |
-| **Settings Panel** | Live drag-and-drop fallback chain ordering and configuration. |
-| **Developer Corner** | Premium sandbox featuring request inputs, auto-compiling JavaScript snippet templates (SSE / JSON), and visual streaming output console. |
+| **Playground & Sandbox** | Premium playground with format toggle (OpenAI vs. Gemini) alongside Dev Corner JS compiler and terminal console. |
 | **Admin Console** | Secure page (`/admin`) presenting stats on total users, active key distribution, and overall savings (in Rupees ₹). |
 | **Model Routing Controls** | Enable or disable individual models globally in real-time from the models panel. |
 | **Audit Logs & Security** | View live proxy request trails with mapped developer emails, flush log history, and securely rotate admin credentials (secured with HMAC-SHA256). |
-| **Responsive Theme Switcher** | Responsive layout supporting persistent light and dark modes across the app. |
+| **UI Polish & Themes** | Persistent support for light/dark mode theme toggles and a header shortcut button to quickly toggle database contexts. Uses custom themed Confirmation Modals instead of native alerts. |
 
 ---
 
@@ -95,12 +98,14 @@ Behind the scenes, OmniKey AI handles secure key storage (encrypted at rest usin
 ```mermaid
 graph TD
     subgraph ClientApp["Clients (SDKs, IDEs, Web apps)"]
-        CL["OpenAI SDK / Continue.dev / Cursor"]
+        CL_OA["OpenAI SDK Client / Cursor / Continue"]
+        CL_G["Gemini SDK Client / REST Client"]
     end
 
     subgraph Proxy["OmniKey AI Proxy Node"]
-        API["Express Server\n/v1/chat/completions"]
-        SEC["Security Layer\nAES-256-GCM Auth Check"]
+        API_OA["Express /v1/chat/completions"]
+        API_G["Express /v1beta/models/:model"]
+        SEC["Security Layer\nTwin API Key Auth Check"]
         DB["SQLite Database\nKeys · Logs · Configurations"]
         ROUT["Routing Engine\nFallback Pipeline & Priorities"]
     end
@@ -115,10 +120,13 @@ graph TD
         OTH["Others (Mistral, NVIDIA, etc.)"]
     end
 
-    CL -->|Bearer omnikey-key| API
-    API --> SEC
+    CL_OA -->|Bearer omnikey-key| API_OA
+    CL_G -->|?key=omnikey-g-key| API_G
+    API_OA --> SEC
+    API_G --> SEC
     SEC --> DB
-    API --> ROUT
+    API_OA --> ROUT
+    API_G --> ROUT
     ROUT --> GEM
     ROUT --> GROQ
     ROUT --> CERE
@@ -132,29 +140,35 @@ graph TD
 <summary>ASCII fallback (click to expand)</summary>
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                    Clients (OpenAI SDK / IDEs)               │
-│                                │                             │
-│                                ▼ Bearer omnikey-key          │
-├──────────────────────────────────────────────────────────────┤
-│                     OmniKey AI Proxy                         │
-│                                                              │
-│  ┌──────────────────────┐      ┌──────────────────────────┐  │
-│  │   Express API        │◄────►│   Security & Auth        │  │
-│  │   /v1/chat/completions│     │   AES-256-GCM            │  │
-│  └──────────┬───────────┘      └────────────┬─────────────┘  │
-│             │                               │                │
-│             ▼                               ▼                │
-│  ┌──────────────────────┐      ┌──────────────────────────┐  │
-│  │   Routing Engine     │◄────►│   SQLite DB              │  │
-│  │   Fallback Pipeline  │      │   Keys, Logs, Stats      │  │
-│  └──────────┬───────────┘      └──────────────────────────┘  │
-└─────────────┼────────────────────────────────────────────────┘
-              │
-              ├──► Google Gemini
-              ├──► Groq / Cerebras / SambaNova
-              ├──► OpenRouter / Cohere
-              └──► Others (Cloudflare, Mistral, NVIDIA...)
+┌────────────────────────────────────────────────────────────────────────┐
+│                        Clients (SDKs / IDEs)                           │
+│              │                                        │                │
+│              ▼ Bearer omnikey-key                     ▼ ?key=omnikey-g-│
+├────────────────────────────────────────────────────────────────────────┤
+│                       OmniKey AI Proxy                                 │
+│                                                                        │
+│  ┌───────────────────────────┐        ┌─────────────────────────────┐  │
+│  │   Express /v1 Endpoint    │◄──────►│    Security & Auth          │  │
+│  │   Completions Router      │        │    AES-256-GCM validation   │  │
+│  └───────────┬───────────────┘        └──────────────┬──────────────┘  │
+│              │                                       │                 │
+│              ▼                                       ▼                 │
+│  ┌───────────────────────────┐        ┌─────────────────────────────┐  │
+│  │   Express /v1beta Ingress │◄──────►│    SQLite/MongoDB database  │  │
+│  │   Gemini Compat Router    │        │    Keys, Logs, Stats        │  │
+│  └───────────┬───────────────┘        └──────────────┬──────────────┘  │
+│              │                                                         │
+│              ▼                                                         │
+│  ┌───────────────────────────┐                                         │
+│  │   Routing Engine          │                                         │
+│  │   Fallback Pipeline       │                                         │
+│  └───────────┬───────────────┘                                         │
+└──────────────┼─────────────────────────────────────────────────────────┘
+               │
+               ├──► Google Gemini
+               ├──► Groq / Cerebras / SambaNova
+               ├──► OpenRouter / Cohere
+               └──► Others (Cloudflare, Mistral, NVIDIA...)
 ```
 
 </details>
@@ -165,33 +179,40 @@ graph TD
 
 ```mermaid
 flowchart TD
-    A["Client Chat Request"] --> B["Verify Unified Key\n(Bearer omnikey-...)"]
-    B -->|Valid| C{"Specific Model\nRequested?"}
-    B -->|Invalid| Err["401 Unauthorized"]
-    C -->|Yes| D["Find Active Provider\nSupporting Model"]
-    C -->|No / 'auto'| E["Select Top Provider\nfrom Fallback Chain"]
-    D --> F["Check Token Budget\n& Quota Limits"]
-    E --> F
-    F -->|Available| G["Execute API Call\nto Provider"]
-    F -->|Exhausted| H["Attempt Next Provider\nin Fallback Chain"]
-    G -->|200 OK| I["Log Usage Metrics\n& Return Output"]
-    G -->|429 / 5xx| H
-    H -->|Has Alternatives| F
-    H -->|No Alternatives| J["429/500 Error response"]
+    A["Client API Request"] --> B{"Check Ingress Endpoint"}
+    B -->|/v1/...| C1["Verify OpenAI Key\n(Bearer omnikey-...)"]
+    B -->|/v1beta/...| C2["Verify Gemini Key\n(?key=omnikey-g-...)"]
+    C1 -->|Valid| D{"Specific Model\nRequested?"}
+    C2 -->|Valid| D
+    C1 -->|Invalid| Err["401 Unauthorized"]
+    C2 -->|Invalid| Err
+    D -->|Yes| E["Find Active Provider\nSupporting Model"]
+    D -->|No / 'auto'| F["Select Top Provider\nfrom Fallback Chain"]
+    E --> G["Check Token Budget\n& Quota Limits"]
+    F --> G
+    G -->|Available| H["Execute API Call\nto Provider"]
+    G -->|Exhausted| I["Attempt Next Provider\nin Fallback Chain"]
+    H -->|200 OK| J["Log Usage Metrics\n& Return Output"]
+    H -->|429 / 5xx| I
+    I -->|Has Alternatives| G
+    I -->|No Alternatives| K["429/500 Error response"]
 ```
 
 <details>
 <summary>ASCII fallback (click to expand)</summary>
 
 ```
-Client Chat Request
+Client API Request
      │
      ▼
-Verify Unified Key (Bearer omnikey-...)
+Identify Endpoint Shape (/v1 OpenAI vs /v1beta Gemini)
      │
-     ├─► [Invalid] ──► 401 Unauthorized
      ▼
-     [Valid]
+Validate Associated Key (omnikey- in Header OR omnikey-g- in Query)
+     │
+     ├─► [Invalid Credentials] ──► 401 Unauthorized
+     ▼
+     [Valid Credentials]
      │
      ▼
 Identify Target Model (Specific or "auto")
@@ -204,14 +225,14 @@ Select Best Available Provider (using Fallback Chain priorities)
      [Quota Available]
      │
      ▼
-Submit Request to Upstream Provider
+Submit Request to Upstream Provider (Translated payload layout)
      │
      ├─► [429 / 5xx Error] ────► Try next provider in fallback pipeline
      ▼
      [200 Success Response]
      │
      ▼
-Log Token Usage to SQLite database & return JSON to client
+Translate response layout, log token usage, & return JSON to client
 ```
 
 </details>

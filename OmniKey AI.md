@@ -141,6 +141,25 @@ The request is routed to Gemini using the default model.
 
 ---
 
+## Full Pathway #4 — Gemini Ingress API Request
+
+### Step 1: Gemini Request Dispatched
+A query is sent to `http://localhost:3001/v1beta/models/gemini-2.5-flash:generateContent?key=omnikey-g-12345...`.
+
+### Step 2: Query Parameter Authentication
+The Gemini proxy middleware extracts the `key` query parameter (`omnikey-g-12345...`) and verifies it against the configured database session context.
+
+### Step 3: Payload Translation (Ingress)
+The middleware takes the Gemini request schema (`contents`, `systemInstruction`, `generationConfig`) and maps it into a normalized array of `ChatMessage` objects.
+
+### Step 4: Routing & Execution
+The proxy selects the target model config (`gemini-2.5-flash`), verifies token limits, decrypts the Google API key, and calls the Google API.
+
+### Step 5: Response Translation (Egress)
+The Google API return payload is translated back into the standard Gemini response JSON candidate layout (matching the schema the Gemini SDK expects) and returned to the client. Token counts are parsed and saved to the database.
+
+---
+
 ## Example 1 — Querying Google Gemini
 
 **API Target:** `gemini-2.5-flash` or `gemini-2.5-pro`
@@ -216,11 +235,13 @@ To prevent API keys from getting banned or throwing persistent rate limit errors
 ## UI Guide — Dashboard & Models
 
 The React client dashboard has a responsive visual layout:
-* **Models Catalog**: Lists all 60+ supported models across 12 providers.
+* **Models Page**: Complete interactive page featuring columns configuration, name search, sorting, total model counts, and availability check indicators.
 * **Health Check Status**: Dials showing API latency, key states, and exact execution timing timestamps.
 * **Budget Tracking Bars**: Live progress indicators of token quotas.
-* **Developer Corner**: Live compiler templates generating Node/JS client request templates (SSE or standard HTTP blocks) alongside a sandbox execution console.
+* **Playground**: Integrated API Format toggle allowing testing using either standard OpenAI format or Gemini JSON format in real-time.
+* **Developer Corner**: Sandboxed terminal featuring format toggling, auto-compiling JS client code snippet templates for both OpenAI and Gemini, and rendering stream console blocks.
 * **Responsive Theme Switcher**: Toggle persistently between light and dark modes from the page header.
+* **Switch to Local**: A shortcut button next to the database status label to instantly toggle between local database mode and cloud mode.
 
 ---
 
@@ -239,7 +260,8 @@ The Administrative interface can be reached by appending `/admin` to your dashbo
 
 ## UI Guide — Keys & Encryption
 
-* **Master Key Generation**: The server displays your master unified `omnikey-...` API key on startup.
+* **Master Key Generation**: The server displays both your master unified OpenAI `omnikey-...` key and unified Gemini `omnikey-g-...` key on the keys page.
+* **Upstream Protection**: Stored keys are checked against duplication before additions or CSV uploads are accepted.
 * **AES-256-GCM Storage**: When you input a key, it is encrypted symmetrically with your `ENCRYPTION_KEY` using a unique initialization vector.
 * **Database Mode Selection**: Toggle between Local-First SQLite Mode and Cloud MongoDB Atlas Mode directly from the client interface (saved persistently in browser local storage). Persistent fallback credentials (`admin` / `admin`) auto-seed MongoDB collections or local database setups on startup.
 
@@ -254,10 +276,12 @@ OmniKey AI operates with two database adapter contexts dynamically toggled on a 
 - `fallback_config`: Priority ranking maps.
 - `catalog`: Provider model target directory.
 - `usage_logs`: Token totals, request logs, and latency stats.
+- `system_settings`: Master OpenAI unified key and Gemini unified key.
 
-### 2. Cloud MongoDB Atlas Context (Multi-Tenant Mode)
+### 2. Cloud MongoDB Context (Multi-Tenant Mode)
 - Uses mongoose schemas to support concurrent multi-client sessions.
-- Automatically handles token mappings. Multi-tenant API token patterns starting with `omnikey-` will automatically authenticate and query collections against MongoDB.
+- `UserSettings` schema contains `unifiedApiKey` and `unifiedGeminiApiKey` parameters.
+- Multi-tenant API token patterns starting with `omnikey-` will automatically authenticate and query collections against MongoDB.
 
 ---
 

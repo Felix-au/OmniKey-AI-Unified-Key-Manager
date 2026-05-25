@@ -19,21 +19,24 @@
 
 ## Authentication
 
-All client requests to the proxy server must include the `Authorization` header containing your master unified API key.
+Client requests to the proxy server are authenticated using one of two master unified keys:
 
-### Master Key Format
-Unified keys are generated automatically when database migrations run. They follow the format:
-```text
-omnikey-[32-byte-hex-string]
+### 1. OpenAI-Compatible Format
+* **Key Prefix**: `omnikey-[32-byte-hex-string]`
+* **Method**: Pass in the `Authorization` header.
+```http
+Authorization: Bearer omnikey-your-unified-openai-key-here
 ```
 
-### Authorization Header
-```http
-Authorization: Bearer omnikey-your-unified-key-here
+### 2. Gemini-Compatible Format
+* **Key Prefix**: `omnikey-g-[32-byte-hex-string]`
+* **Method**: Pass as the `key` query-string parameter.
+```text
+http://localhost:3001/v1beta/models/...:generateContent?key=omnikey-g-your-unified-gemini-key-here
 ```
 
 > [!WARNING]
-> Requests without a valid `Authorization` header, or containing an incorrect key, will receive a `401 Unauthorized` response.
+> Requests without a valid API key, or containing an incorrect token, will receive a `401 Unauthorized` response.
 
 ---
 
@@ -43,6 +46,10 @@ Authorization: Bearer omnikey-your-unified-key-here
 |---|---|---|---|
 | **POST** | `/v1/chat/completions` | Create a chat completion (OpenAI compatible) | Client |
 | **GET** | `/v1/models` | List all supported models (OpenAI compatible) | Client |
+| **POST** | `/v1beta/models/:model:generateContent` | Generate a Gemini-compatible completion | Client |
+| **POST** | `/v1beta/models/:model:streamGenerateContent` | Stream a Gemini-compatible completion | Client |
+| **GET** | `/v1beta/models` | List all supported models (Gemini format) | Client |
+| **GET** | `/v1beta/models/:model` | Retrieve model info details (Gemini format) | Client |
 | **GET** | `/api/cron-health` | Public uptime keep-alive check for cloud hosting | Public |
 | **GET** | `/api/config` | Backend capability discovery configurations | Public |
 | **GET** | `/api/keys` | Retrieve statuses and profiles of upstream keys | Dashboard |
@@ -209,6 +216,88 @@ Returns list of all models currently active in your configuration.
 
 ---
 
+## Gemini-Compatible Request/Response Format
+
+**Endpoint:** `POST /v1beta/models/:model:generateContent?key=omnikey-g-your-unified-gemini-key-here`
+
+### Request Body (JSON)
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `contents` | Array | Yes | Array of content objects representing message turns. |
+| `generationConfig` | Object | No | Configuration settings for model parameters (e.g. `temperature`, `maxOutputTokens`). |
+| `systemInstruction` | Object | No | System instruction to guide model responses. |
+
+### Contents Turn Structure
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `role` | String | Yes | Author role: `"user"` or `"model"`. |
+| `parts` | Array | Yes | List of part objects. Each part must contain a `"text"` property. |
+
+### Example Gemini Request Payload
+
+```json
+{
+  "contents": [
+    {
+      "role": "user",
+      "parts": [{"text": "Write a python function to compute fibonacci."}]
+    }
+  ],
+  "generationConfig": {
+    "temperature": 0.7,
+    "maxOutputTokens": 150
+  },
+  "systemInstruction": {
+    "parts": [{"text": "You are a helpful programming assistant."}]
+  }
+}
+```
+
+### Success Response (`200 OK`)
+
+Returns the normalized Gemini response structure:
+
+```json
+{
+  "candidates": [
+    {
+      "content": {
+        "role": "model",
+        "parts": [
+          {
+            "text": "Here is the fibonacci function:\n\n```python\ndef fib(n):\n    return n if n <= 1 else fib(n-1) + fib(n-2)\n```"
+          }
+        ]
+      },
+      "finishReason": "STOP"
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 25,
+    "candidatesTokenCount": 42,
+    "totalTokenCount": 67
+  }
+}
+```
+
+---
+
+## Gemini Streaming Completions
+
+**Endpoint:** `POST /v1beta/models/:model:streamGenerateContent?key=omnikey-g-your-unified-gemini-key-here`
+
+If requesting streaming, the response is delivered as a Server-Sent Events (SSE) stream of JSON candidate objects or a comma-separated array stream. Example SSE data chunk:
+
+```text
+data: {"candidates":[{"content":{"role":"model","parts":[{"text":"Hello"}]},"finishReason":null}],"usageMetadata":{"promptTokenCount":25,"candidatesTokenCount":5,"totalTokenCount":30}}
+
+data: {"candidates":[{"content":{"role":"model","parts":[{"text":"!"}]},"finishReason":"STOP"}],"usageMetadata":{"promptTokenCount":25,"candidatesTokenCount":6,"totalTokenCount":31}}
+```
+
+---
+
 ## Dashboard Management APIs
 
 These local endpoints are used by the React frontend to update key databases and configurations:
@@ -350,7 +439,7 @@ Wipes audit log directory. Requires Bearer Admin Token.
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  apiKey: 'omnikey-your-unified-key-here',
+  apiKey: 'omnikey-your-unified-openai-key-here',
   baseURL: 'http://localhost:3001/v1'
 });
 
@@ -362,14 +451,46 @@ const chatCompletion = await openai.chat.completions.create({
 console.log(chatCompletion.choices[0].message.content);
 ```
 
-### cURL
+### Node.js (Google Gen AI SDK)
+```javascript
+import { GoogleGenAI } from '@google/genai';
+
+const ai = new GoogleGenAI({
+  apiKey: 'omnikey-g-your-unified-gemini-key-here',
+  // Configure endpoint to point to the local proxy
+  baseUrl: 'http://localhost:3001'
+});
+
+const response = await ai.models.generateContent({
+  model: 'gemini-2.5-flash',
+  contents: 'Explain APIs like I am five.',
+});
+
+console.log(response.text);
+```
+
+### cURL (OpenAI Compatible)
 ```bash
 curl http://localhost:3001/v1/chat/completions \
-  -H "Authorization: Bearer omnikey-your-unified-key-here" \
+  -H "Authorization: Bearer omnikey-your-unified-openai-key-here" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "auto",
     "messages": [{"role": "user", "content": "Hello world!"}]
+  }'
+```
+
+### cURL (Gemini Compatible)
+```bash
+curl -X POST "http://localhost:3001/v1beta/models/gemini-2.5-flash:generateContent?key=omnikey-g-your-unified-gemini-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contents": [
+      {
+        "role": "user",
+        "parts": [{"text": "Hello world!"}]
+      }
+    ]
   }'
 ```
 
