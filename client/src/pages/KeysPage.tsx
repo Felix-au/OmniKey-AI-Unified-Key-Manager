@@ -61,72 +61,144 @@ interface HealthData {
 
 function UnifiedKeySection() {
   const queryClient = useQueryClient()
-  const [showKey, setShowKey] = useState(false)
-  const [copied, setCopied] = useState(false)
+  const [showOpenAi, setShowOpenAi] = useState(false)
+  const [showGemini, setShowGemini] = useState(false)
+  const [copiedOpenAi, setCopiedOpenAi] = useState(false)
+  const [copiedGemini, setCopiedGemini] = useState(false)
 
-  const { data } = useQuery<{ apiKey: string }>({
+  const { data } = useQuery<{ apiKey: string; geminiApiKey: string }>({
     queryKey: ['unified-key'],
     queryFn: () => apiFetch('/api/settings/api-key'),
   })
 
-  const regenerate = useMutation({
-    mutationFn: () => apiFetch('/api/settings/api-key/regenerate', { method: 'POST' }),
+  const regenerateOpenAi = useMutation({
+    mutationFn: () => apiFetch('/api/settings/api-key/regenerate', {
+      method: 'POST',
+      body: JSON.stringify({ format: 'openai' })
+    }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['unified-key'] }),
+  })
+
+  const regenerateGemini = useMutation({
+    mutationFn: () => apiFetch('/api/settings/api-key/regenerate', {
+      method: 'POST',
+      body: JSON.stringify({ format: 'gemini' })
+    }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['unified-key'] }),
   })
 
   const apiKey = data?.apiKey ?? ''
-  const masked = apiKey ? apiKey.slice(0, 13) + '•'.repeat(32) : '…'
-  const baseUrl = import.meta.env.DEV
+  const geminiApiKey = data?.geminiApiKey ?? ''
+
+  const maskedOpenAi = apiKey ? apiKey.slice(0, 13) + '•'.repeat(32) : '…'
+  const maskedGemini = geminiApiKey ? geminiApiKey.slice(0, 15) + '•'.repeat(32) : '…'
+
+  const openAiBaseUrl = import.meta.env.DEV
     ? `http://${window.location.hostname}:${__SERVER_PORT__}/v1`
     : `${window.location.origin}/v1`
 
-  function copy() {
+  const geminiBaseUrl = import.meta.env.DEV
+    ? `http://${window.location.hostname}:${__SERVER_PORT__}/v1beta`
+    : `${window.location.origin}/v1beta`
+
+  function copyOpenAi() {
     navigator.clipboard.writeText(apiKey)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
+    setCopiedOpenAi(true)
+    setTimeout(() => setCopiedOpenAi(false), 1500)
+  }
+
+  function copyGemini() {
+    navigator.clipboard.writeText(geminiApiKey)
+    setCopiedGemini(true)
+    setTimeout(() => setCopiedGemini(false), 1500)
   }
 
   return (
-    <section className="rounded-lg border bg-card p-5">
-      <div className="flex items-start justify-between gap-4 mb-3">
-        <div>
-          <h2 className="text-sm font-medium">Your unified API key</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Use this as your OpenAI <code className="font-mono">api_key</code>; it authenticates requests to this proxy.
-          </p>
+    <div className="grid gap-6 md:grid-cols-2">
+      {/* OpenAI format key section */}
+      <section className="rounded-lg border bg-card p-5">
+        <div className="flex items-start justify-between gap-4 mb-3">
+          <div>
+            <h2 className="text-sm font-medium">Unified API Key (OpenAI Format)</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Use this as your OpenAI <code className="font-mono">api_key</code>; it routes chat completion requests.
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => regenerateOpenAi.mutate()}
+            disabled={regenerateOpenAi.isPending}
+          >
+            Regenerate
+          </Button>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => regenerate.mutate()}
-          disabled={regenerate.isPending}
-        >
-          Regenerate
-        </Button>
-      </div>
 
-      <div className="flex items-center gap-2">
-        <Input
-          type="text"
-          value={showKey ? apiKey : masked}
-          readOnly
-          className="flex-1 font-mono text-xs bg-muted/40 select-all cursor-text"
-        />
-        <Button variant="outline" size="sm" onClick={() => setShowKey(!showKey)}>
-          {showKey ? 'Hide' : 'Show'}
-        </Button>
-        <Button variant="outline" size="sm" onClick={copy}>
-          {copied ? 'Copied' : 'Copy'}
-        </Button>
-      </div>
+        <div className="flex items-center gap-2">
+          <Input
+            type="text"
+            value={showOpenAi ? apiKey : maskedOpenAi}
+            readOnly
+            className="flex-1 font-mono text-xs bg-muted/40 select-all cursor-text"
+          />
+          <Button variant="outline" size="sm" onClick={() => setShowOpenAi(!showOpenAi)}>
+            {showOpenAi ? 'Hide' : 'Show'}
+          </Button>
+          <Button variant="outline" size="sm" onClick={copyOpenAi}>
+            {copiedOpenAi ? 'Copied' : 'Copy'}
+          </Button>
+        </div>
 
-      <div className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-xs">
-        <span className="text-muted-foreground">Base URL</span>
-        <code className="font-mono">{baseUrl}</code>
-        <span className="text-muted-foreground">Endpoint</span>
-        <code className="font-mono">/v1/chat/completions</code>
-      </div>
-    </section>
+        <div className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-xs">
+          <span className="text-muted-foreground">Base URL</span>
+          <code className="font-mono">{openAiBaseUrl}</code>
+          <span className="text-muted-foreground">Endpoint</span>
+          <code className="font-mono">/v1/chat/completions</code>
+        </div>
+      </section>
+
+      {/* Gemini format key section */}
+      <section className="rounded-lg border bg-card p-5">
+        <div className="flex items-start justify-between gap-4 mb-3">
+          <div>
+            <h2 className="text-sm font-medium">Unified API Key (Gemini Format)</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Use this for the Gemini SDK/REST API; it translates requests/responses in and out.
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => regenerateGemini.mutate()}
+            disabled={regenerateGemini.isPending}
+          >
+            Regenerate
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Input
+            type="text"
+            value={showGemini ? geminiApiKey : maskedGemini}
+            readOnly
+            className="flex-1 font-mono text-xs bg-muted/40 select-all cursor-text"
+          />
+          <Button variant="outline" size="sm" onClick={() => setShowGemini(!showGemini)}>
+            {showGemini ? 'Hide' : 'Show'}
+          </Button>
+          <Button variant="outline" size="sm" onClick={copyGemini}>
+            {copiedGemini ? 'Copied' : 'Copy'}
+          </Button>
+        </div>
+
+        <div className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-xs">
+          <span className="text-muted-foreground">Base URL</span>
+          <code className="font-mono">{geminiBaseUrl}</code>
+          <span className="text-muted-foreground">Endpoint</span>
+          <code className="font-mono">/v1beta/models/:model:generateContent</code>
+        </div>
+      </section>
+    </div>
   )
 }
 
