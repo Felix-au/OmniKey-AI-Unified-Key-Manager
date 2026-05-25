@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { Button } from '@/components/ui/button'
 import { AuthProvider, useAuth } from '@/lib/AuthContext'
 import LoginPage from '@/pages/LoginPage'
 import KeysPage from '@/pages/KeysPage'
@@ -16,31 +15,76 @@ import ModelsPage from '@/pages/ModelsPage'
 import ComparePage from '@/pages/ComparePage'
 import DebatePage from '@/pages/DebatePage'
 
-
 const queryClient = new QueryClient()
 
-function NavItem({ to, children }: { to: string; children: React.ReactNode }) {
-  return (
-    <NavLink
-      to={to}
-      className={({ isActive }) =>
-        `relative text-sm px-1 py-4 transition-colors ${
-          isActive
-            ? 'text-foreground after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-foreground'
-            : 'text-muted-foreground hover:text-foreground'
-        }`
-      }
-    >
-      {children}
-    </NavLink>
-  )
-}
+// ── Icons ────────────────────────────────────────────────────────────────────
+const IconChat = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+  </svg>
+)
+const IconArena = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+  </svg>
+)
+const IconDebate = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/>
+  </svg>
+)
+const IconKeys = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/>
+  </svg>
+)
+const IconFallback = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>
+  </svg>
+)
+const IconModels = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/>
+  </svg>
+)
+const IconAnalytics = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+  </svg>
+)
+const IconDev = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+  </svg>
+)
+const IconAdmin = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+  </svg>
+)
+const IconChevron = ({ collapsed }: { collapsed: boolean }) => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+    style={{ transform: collapsed ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+    <polyline points="15 18 9 12 15 6"/>
+  </svg>
+)
+const IconSun = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.07-14.07 1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2m-4.93-7.07-1.41 1.41M6.34 17.66l-1.41 1.41"/>
+  </svg>
+)
+const IconMoon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+  </svg>
+)
 
-function DarkModeToggle() {
+// ── Dark Mode Toggle ──────────────────────────────────────────────────────────
+function DarkModeToggle({ collapsed }: { collapsed: boolean }) {
   const [dark, setDark] = useState(() =>
     typeof window !== 'undefined' && document.documentElement.classList.contains('dark')
   )
-
   useEffect(() => {
     const stored = localStorage.getItem('theme')
     if (stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -48,140 +92,185 @@ function DarkModeToggle() {
       setDark(true)
     }
   }, [])
-
   function toggle() {
     const next = !dark
     setDark(next)
     document.documentElement.classList.toggle('dark', next)
     localStorage.setItem('theme', next ? 'dark' : 'light')
   }
-
   return (
-    <Button variant="ghost" size="sm" onClick={toggle} aria-label="Toggle theme">
-      {dark ? (
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
-      ) : (
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
-      )}
-    </Button>
+    <button
+      onClick={toggle}
+      title="Toggle theme"
+      className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors"
+    >
+      <span className="shrink-0">{dark ? <IconSun /> : <IconMoon />}</span>
+      {!collapsed && <span>{dark ? 'Light Mode' : 'Dark Mode'}</span>}
+    </button>
   )
 }
 
-function Brand() {
+// ── Sidebar Nav Item ──────────────────────────────────────────────────────────
+function SideNavItem({ to, icon, label, collapsed }: { to: string; icon: React.ReactNode; label: string; collapsed: boolean }) {
   return (
-    <div className="flex items-center gap-2.5">
-      <img src={logoUrl} alt="OmniKey AI Logo" className="h-6 w-auto object-contain" />
-      <span className="font-semibold tracking-tight text-sm">OmniKey AI</span>
-    </div>
+    <NavLink
+      to={to}
+      title={collapsed ? label : undefined}
+      className={({ isActive }) =>
+        `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+          isActive
+            ? 'bg-accent text-foreground font-medium'
+            : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
+        }`
+      }
+    >
+      <span className="shrink-0">{icon}</span>
+      {!collapsed && <span className="truncate">{label}</span>}
+    </NavLink>
   )
 }
 
+// ── Section Label ─────────────────────────────────────────────────────────────
+function SectionLabel({ label, collapsed }: { label: string; collapsed: boolean }) {
+  if (collapsed) return <div className="my-2 border-t border-border/50" />
+  return <p className="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">{label}</p>
+}
+
+// ── Dashboard Layout ──────────────────────────────────────────────────────────
 function DashboardLayout() {
   const { user, loading, localDbEnabled, cloudDbAvailable, logout, setDatabaseMode } = useAuth()
+  const [collapsed, setCollapsed] = useState(false)
   const [showSwitchModal, setShowSwitchModal] = useState(false)
 
   if (loading) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-950">
         <svg className="animate-spin h-8 w-8 text-white mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
         </svg>
         <span className="text-xs text-slate-400 font-medium">Establishing secure auth gateway...</span>
       </div>
     )
   }
 
-  // Secure Auth Lock: Load premium login cards if in multi-tenant cloud mode and logged out
-  if (!localDbEnabled && !user) {
-    return <LoginPage />
-  }
+  if (!localDbEnabled && !user) return <LoginPage />
+
+  const sidebarW = collapsed ? 'w-[56px]' : 'w-[220px]'
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur border-b">
-        <div className="max-w-6xl mx-auto px-6 flex items-center">
-          <Brand />
-          <nav className="flex items-center gap-6 ml-10">
-            <NavItem to="/playground">Playground</NavItem>
-            <NavItem to="/compare">Arena</NavItem>
-            <NavItem to="/debate">Debate</NavItem>
-            <NavItem to="/keys">Keys</NavItem>
-            <NavItem to="/fallback">Fallback</NavItem>
-            <NavItem to="/analytics">Analytics</NavItem>
-            <NavItem to="/models">Models</NavItem>
-            <NavItem to="/dev-corner">Dev Corner</NavItem>
-          </nav>
-          <div className="ml-auto py-2 flex items-center gap-4">
-            {localDbEnabled && cloudDbAvailable && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setDatabaseMode('cloud')}
-                className="text-xs font-semibold text-violet-600 dark:text-violet-400 border-violet-500/20 hover:border-violet-500/40 bg-violet-500/5 hover:bg-violet-500/10 rounded-xl h-8 px-3"
-              >
-                Switch to Cloud Mode
-              </Button>
-            )}
-            {localDbEnabled && !cloudDbAvailable && (
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1">
-                Local-Only Mode
-              </span>
-            )}
-            {!localDbEnabled && (
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider bg-emerald-500/5 border border-emerald-500/10 rounded-xl px-2.5 py-1">
-                  Cloud Connected
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowSwitchModal(true)}
-                  className="text-xs font-semibold text-violet-600 dark:text-violet-400 border-violet-500/20 hover:border-violet-500/40 bg-violet-500/5 hover:bg-violet-500/10 rounded-xl h-8 px-3"
-                >
-                  Switch to Local
-                </Button>
-              </div>
-            )}
-            <DarkModeToggle />
-            {!localDbEnabled && user && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={logout}
-                className="text-xs font-semibold text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl"
-              >
-                Sign Out
-              </Button>
-            )}
-          </div>
+    <div className="min-h-screen bg-background flex">
+      {/* ── Sidebar ── */}
+      <aside className={`${sidebarW} shrink-0 flex flex-col border-r border-border bg-background/95 backdrop-blur sticky top-0 h-screen overflow-hidden transition-all duration-200 z-40`}>
+        {/* Brand + collapse toggle */}
+        <div className="flex items-center h-14 px-3 border-b border-border gap-2 shrink-0">
+          <img src={logoUrl} alt="OmniKey AI" className="h-6 w-6 object-contain shrink-0" />
+          {!collapsed && <span className="font-semibold text-sm tracking-tight truncate">OmniKey AI</span>}
+          <button
+            onClick={() => setCollapsed(c => !c)}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="ml-auto shrink-0 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors"
+          >
+            <IconChevron collapsed={collapsed} />
+          </button>
         </div>
-      </header>
-      <main className="max-w-6xl mx-auto px-6 py-8">
-        <Routes>
-          <Route path="/" element={<Navigate to="/playground" replace />} />
-          <Route path="/playground" element={<PlaygroundPage />} />
-          <Route path="/compare" element={<ComparePage />} />
-          <Route path="/debate" element={<DebatePage />} />
-          <Route path="/keys" element={<KeysPage />} />
-          <Route path="/fallback" element={<FallbackPage />} />
-          <Route path="/analytics" element={<AnalyticsPage />} />
-          <Route path="/models" element={<ModelsPage />} />
-          <Route path="/dev-corner" element={<DevCornerPage />} />
-          <Route path="/test" element={<Navigate to="/playground" replace />} />
-          <Route path="/health" element={<Navigate to="/keys" replace />} />
-        </Routes>
-      </main>
+
+        {/* Nav links */}
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-2 space-y-0.5">
+          <SectionLabel label="Chat" collapsed={collapsed} />
+          <SideNavItem to="/playground" icon={<IconChat />} label="Chat" collapsed={collapsed} />
+          <SideNavItem to="/compare"   icon={<IconArena />}  label="Arena"  collapsed={collapsed} />
+          <SideNavItem to="/debate"    icon={<IconDebate />} label="Debate" collapsed={collapsed} />
+
+          <SectionLabel label="Manage" collapsed={collapsed} />
+          <SideNavItem to="/models"    icon={<IconModels />}   label="Models"    collapsed={collapsed} />
+          <SideNavItem to="/keys"      icon={<IconKeys />}     label="Keys"      collapsed={collapsed} />
+          <SideNavItem to="/fallback"  icon={<IconFallback />} label="Fallback"  collapsed={collapsed} />
+          <SideNavItem to="/analytics" icon={<IconAnalytics />}label="Analytics" collapsed={collapsed} />
+
+          <SectionLabel label="Developer" collapsed={collapsed} />
+          <SideNavItem to="/dev-corner" icon={<IconDev />}   label="Dev Corner" collapsed={collapsed} />
+          <a
+            href="/admin"
+            title={collapsed ? 'Admin Console' : undefined}
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors"
+          >
+            <span className="shrink-0"><IconAdmin /></span>
+            {!collapsed && <span className="truncate">Admin Console</span>}
+          </a>
+        </nav>
+
+        {/* Bottom controls */}
+        <div className="px-2 py-3 border-t border-border space-y-1 shrink-0">
+          {/* DB mode badge */}
+          {!collapsed && (
+            <>
+              {localDbEnabled && cloudDbAvailable && (
+                <button
+                  onClick={() => setDatabaseMode('cloud')}
+                  className="w-full text-left text-[10px] font-semibold text-violet-500 uppercase tracking-wider bg-violet-500/5 border border-violet-500/10 rounded-lg px-3 py-1.5 hover:bg-violet-500/10 transition-colors"
+                >
+                  Switch to Cloud
+                </button>
+              )}
+              {localDbEnabled && !cloudDbAvailable && (
+                <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-1.5">
+                  Local-Only Mode
+                </span>
+              )}
+              {!localDbEnabled && (
+                <div className="space-y-1">
+                  <span className="block text-[10px] font-bold text-emerald-500 uppercase tracking-wider bg-emerald-500/5 border border-emerald-500/10 rounded-lg px-3 py-1.5">
+                    Cloud Connected
+                  </span>
+                  <button
+                    onClick={() => setShowSwitchModal(true)}
+                    className="w-full text-left text-[10px] font-semibold text-violet-500 uppercase tracking-wider bg-violet-500/5 border border-violet-500/10 rounded-lg px-3 py-1.5 hover:bg-violet-500/10 transition-colors"
+                  >
+                    Switch to Local
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+          <DarkModeToggle collapsed={collapsed} />
+          {!localDbEnabled && user && !collapsed && (
+            <button
+              onClick={logout}
+              className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-red-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+            >
+              Sign Out
+            </button>
+          )}
+        </div>
+      </aside>
+
+      {/* ── Main content ── */}
+      <div className="flex-1 min-w-0 overflow-auto">
+        <main className="max-w-6xl mx-auto px-6 py-8">
+          <Routes>
+            <Route path="/"           element={<Navigate to="/playground" replace />} />
+            <Route path="/playground" element={<PlaygroundPage />} />
+            <Route path="/compare"    element={<ComparePage />} />
+            <Route path="/debate"     element={<DebatePage />} />
+            <Route path="/keys"       element={<KeysPage />} />
+            <Route path="/fallback"   element={<FallbackPage />} />
+            <Route path="/analytics"  element={<AnalyticsPage />} />
+            <Route path="/models"     element={<ModelsPage />} />
+            <Route path="/dev-corner" element={<DevCornerPage />} />
+            <Route path="/test"       element={<Navigate to="/playground" replace />} />
+            <Route path="/health"     element={<Navigate to="/keys" replace />} />
+          </Routes>
+        </main>
+      </div>
+
       <ConfirmationModal
         isOpen={showSwitchModal}
         title="Switch to Local-First Mode?"
         description="Only switch to local-first mode if you have run the project locally on your device; otherwise, it would not work."
         confirmLabel="Switch"
         cancelLabel="Cancel"
-        onConfirm={() => {
-          setShowSwitchModal(false)
-          setDatabaseMode('local')
-        }}
+        onConfirm={() => { setShowSwitchModal(false); setDatabaseMode('local') }}
         onCancel={() => setShowSwitchModal(false)}
       />
     </div>
@@ -195,7 +284,7 @@ function App() {
         <BrowserRouter basename={import.meta.env.BASE_URL}>
           <Routes>
             <Route path="/admin" element={<AdminPage />} />
-            <Route path="/*" element={<DashboardLayout />} />
+            <Route path="/*"     element={<DashboardLayout />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>
