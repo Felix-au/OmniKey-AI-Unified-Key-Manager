@@ -51,7 +51,6 @@ const auroraCSS = `
 // ── Ocean wave background ─────────────────────────────────────────────────────
 function OceanBackground({ dark }: { dark: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -59,149 +58,96 @@ function OceanBackground({ dark }: { dark: boolean }) {
     if (!ctx) return
     let animId: number
     let phase = 0
-
+    let t = 0
+    const mouse = { x: 0.5, y: 0.5 }
+    const onMouse = (e: MouseEvent) => {
+      mouse.x = e.clientX / window.innerWidth
+      mouse.y = e.clientY / window.innerHeight
+    }
+    window.addEventListener('mousemove', onMouse)
     const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight }
     resize()
     window.addEventListener('resize', resize)
-
-    // ── Wave definitions (random initial phases) ─────────────────────────────
-    const seed = () => Math.random()
-    type Wave = {
-      baseAmp: number; amp: number; dAmp: number
-      freq: number; dFreq: number
-      speed: number; dSpeed: number
-      phase: number; yBase: number
-      rgb: [number,number,number]; alpha: number
-      glowRgb: [number,number,number]
-    }
-    const mkWaves = (): Wave[] => dark ? [
-      { baseAmp:85, amp:85, dAmp:0, freq:0.0042, dFreq:0, speed:0.006, dSpeed:0, phase:seed()*6.28, yBase:0.36, rgb:[10,18,60],   alpha:0.92, glowRgb:[99,102,241]  },
-      { baseAmp:70, amp:70, dAmp:0, freq:0.0065, dFreq:0, speed:0.010, dSpeed:0, phase:seed()*6.28, yBase:0.47, rgb:[20,35,100],  alpha:0.78, glowRgb:[59,130,246]  },
-      { baseAmp:60, amp:60, dAmp:0, freq:0.0075, dFreq:0, speed:0.014, dSpeed:0, phase:seed()*6.28, yBase:0.56, rgb:[29,56,130],  alpha:0.62, glowRgb:[96,165,250]  },
-      { baseAmp:50, amp:50, dAmp:0, freq:0.0095, dFreq:0, speed:0.019, dSpeed:0, phase:seed()*6.28, yBase:0.65, rgb:[37,99,235],  alpha:0.45, glowRgb:[147,197,253] },
-      { baseAmp:38, amp:38, dAmp:0, freq:0.0120, dFreq:0, speed:0.026, dSpeed:0, phase:seed()*6.28, yBase:0.73, rgb:[99,102,241], alpha:0.32, glowRgb:[196,181,253] },
-    ] : [
-      { baseAmp:85, amp:85, dAmp:0, freq:0.0042, dFreq:0, speed:0.006, dSpeed:0, phase:seed()*6.28, yBase:0.36, rgb:[186,230,253],alpha:0.88, glowRgb:[125,211,252] },
-      { baseAmp:70, amp:70, dAmp:0, freq:0.0065, dFreq:0, speed:0.010, dSpeed:0, phase:seed()*6.28, yBase:0.47, rgb:[125,211,252],alpha:0.72, glowRgb:[56,189,248]  },
-      { baseAmp:60, amp:60, dAmp:0, freq:0.0075, dFreq:0, speed:0.014, dSpeed:0, phase:seed()*6.28, yBase:0.56, rgb:[56,189,248], alpha:0.56, glowRgb:[14,165,233]  },
-      { baseAmp:50, amp:50, dAmp:0, freq:0.0095, dFreq:0, speed:0.019, dSpeed:0, phase:seed()*6.28, yBase:0.65, rgb:[14,165,233], alpha:0.40, glowRgb:[2,132,199]   },
-      { baseAmp:38, amp:38, dAmp:0, freq:0.0120, dFreq:0, speed:0.026, dSpeed:0, phase:seed()*6.28, yBase:0.73, rgb:[2,132,199],  alpha:0.28, glowRgb:[3,105,161]   },
+    // Wave layers: noiseA=random amp range, noiseF/noiseS=slow beat freqs
+    const darkWaves = [
+      { amp:80, freq:0.0045, speed:0.008, yBase:0.42, color:'rgba(15,23,71,0.9)',    noiseA:22, noiseF:0.00031, noiseS:0.00019 },
+      { amp:65, freq:0.007,  speed:0.013, yBase:0.52, color:'rgba(23,37,110,0.75)',  noiseA:18, noiseF:0.00042, noiseS:0.00024 },
+      { amp:55, freq:0.006,  speed:0.018, yBase:0.60, color:'rgba(30,58,138,0.65)',  noiseA:14, noiseF:0.00038, noiseS:0.00031 },
+      { amp:45, freq:0.009,  speed:0.024, yBase:0.68, color:'rgba(37,99,235,0.40)',  noiseA:12, noiseF:0.00055, noiseS:0.00027 },
+      { amp:35, freq:0.011,  speed:0.032, yBase:0.76, color:'rgba(99,102,241,0.30)', noiseA:10, noiseF:0.00061, noiseS:0.00035 },
     ]
-    const waves = mkWaves()
-
-    // ── Sparkle particles ────────────────────────────────────────────────────
-    type Sparkle = { x: number; y: number; life: number; maxLife: number; r: number }
-    const sparkles: Sparkle[] = []
-    const spawnSparkle = (x: number, y: number) => {
-      if (sparkles.length > 60) return
-      sparkles.push({ x, y, life: 0, maxLife: 40 + Math.random() * 30, r: 1 + Math.random() * 2 })
-    }
-
-    // ── Draw loop ────────────────────────────────────────────────────────────
+    const lightWaves = [
+      { amp:80, freq:0.0045, speed:0.008, yBase:0.42, color:'rgba(186,230,253,0.85)', noiseA:22, noiseF:0.00031, noiseS:0.00019 },
+      { amp:65, freq:0.007,  speed:0.013, yBase:0.52, color:'rgba(125,211,252,0.70)', noiseA:18, noiseF:0.00042, noiseS:0.00024 },
+      { amp:55, freq:0.006,  speed:0.018, yBase:0.60, color:'rgba(56,189,248,0.55)',  noiseA:14, noiseF:0.00038, noiseS:0.00031 },
+      { amp:45, freq:0.009,  speed:0.024, yBase:0.68, color:'rgba(14,165,233,0.40)',  noiseA:12, noiseF:0.00055, noiseS:0.00027 },
+      { amp:35, freq:0.011,  speed:0.032, yBase:0.76, color:'rgba(2,132,199,0.30)',   noiseA:10, noiseF:0.00061, noiseS:0.00035 },
+    ]
+    const waves = dark ? darkWaves : lightWaves
+    // 45 particles with per-particle random params
+    const particles = Array.from({ length: 45 }, () => ({
+      x: Math.random(), y: 0.3 + Math.random() * 0.7,
+      r: 1.2 + Math.random() * 2.8,
+      speed: 0.00008 + Math.random() * 0.00014,
+      wobble: Math.random() * Math.PI * 2,
+      wobbleSpeed: 0.008 + Math.random() * 0.012,
+      alpha: 0.15 + Math.random() * 0.55,
+      phase: Math.random() * Math.PI * 2,
+      twinkleSpeed: 0.02 + Math.random() * 0.04,
+    }))
     const draw = () => {
       const W = canvas.width, H = canvas.height
-      // Sky gradient
       const grad = ctx.createLinearGradient(0, 0, 0, H)
       if (dark) {
-        grad.addColorStop(0, '#010b19'); grad.addColorStop(0.55, '#020e22'); grad.addColorStop(1, '#0b1a36')
+        grad.addColorStop(0, '#020817'); grad.addColorStop(0.5, '#030d1e'); grad.addColorStop(1, '#0a1628')
       } else {
-        grad.addColorStop(0, '#eaf6ff'); grad.addColorStop(0.55, '#c8eaff'); grad.addColorStop(1, '#85d0f5')
+        grad.addColorStop(0, '#e0f4ff'); grad.addColorStop(0.5, '#bae8ff'); grad.addColorStop(1, '#7dd3fc')
       }
-      ctx.fillStyle = grad
-      ctx.fillRect(0, 0, W, H)
-
-      // Draw each wave
-      waves.forEach((w, wi) => {
-        // Slowly drift amp / freq / speed for variety
-        w.dAmp   += (Math.random() - 0.5) * 0.3;   w.dAmp   *= 0.95
-        w.dFreq  += (Math.random() - 0.5) * 0.000003; w.dFreq  *= 0.95
-        w.dSpeed += (Math.random() - 0.5) * 0.0002; w.dSpeed *= 0.95
-        w.amp   = Math.max(20, Math.min(120, w.baseAmp + w.dAmp))
-        w.freq  = Math.max(0.002, Math.min(0.018, w.freq + w.dFreq))
-        w.speed = Math.max(0.003, Math.min(0.04, w.speed + w.dSpeed))
-
-        const t = phase * w.speed + w.phase
-        const amp = w.amp
-
-        // Build wave points
-        const pts: {x:number,y:number}[] = []
-        for (let x = 0; x <= W + 2; x += 3) {
-          const y = w.yBase * H
-            + Math.sin(x * w.freq + t) * amp
-            + Math.sin(x * w.freq * 1.9 + t * 1.5 + wi) * amp * 0.28
-            + Math.sin(x * w.freq * 0.55 + t * 0.65) * amp * 0.18
-          pts.push({ x, y })
+      ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H)
+      const myShift = (mouse.y - 0.5) * 0.018 * H
+      waves.forEach(({ amp, freq, speed, yBase, color, noiseA, noiseF, noiseS }, wi) => {
+        const p = phase * speed + wi * 0.6
+        // Two slow-beat sines = organic random amplitude per wave
+        const ampNoise = noiseA * (Math.sin(t * noiseF + wi * 1.7) * 0.6 + Math.sin(t * noiseS * 1.3 + wi * 2.9) * 0.4)
+        const eAmp = amp + ampNoise
+        ctx.beginPath(); ctx.moveTo(0, H)
+        for (let x = 0; x <= W + 2; x += 2) {
+          const y = yBase * H + myShift
+            + Math.sin(x * freq + p + mouse.x * 0.3) * eAmp
+            + Math.sin(x * freq * 1.7 + p * 1.3) * eAmp * 0.35
+          ctx.lineTo(x, y)
         }
-
-        // Fill wave body
-        ctx.beginPath()
-        ctx.moveTo(0, H)
-        pts.forEach(p => ctx.lineTo(p.x, p.y))
-        ctx.lineTo(W, H)
-        ctx.closePath()
-        ctx.fillStyle = `rgba(${w.rgb.join(',')},${w.alpha})`
-        ctx.fill()
-
-        // Glow crest line
-        const glowAlpha = dark ? 0.85 : 0.55
-        const glowWidth = dark ? 2.5 : 1.8
-        const blurAmt   = dark ? 14 : 8
-        const glowGrad  = ctx.createLinearGradient(0, 0, W, 0)
-        glowGrad.addColorStop(0,   'transparent')
-        glowGrad.addColorStop(0.2, `rgba(${w.glowRgb.join(',')},${glowAlpha * 0.4})`)
-        glowGrad.addColorStop(0.5, `rgba(${w.glowRgb.join(',')},${glowAlpha})`)
-        glowGrad.addColorStop(0.8, `rgba(${w.glowRgb.join(',')},${glowAlpha * 0.4})`)
-        glowGrad.addColorStop(1,   'transparent')
-        ctx.save()
-        ctx.shadowBlur  = blurAmt
-        ctx.shadowColor = `rgba(${w.glowRgb.join(',')},0.9)`
-        ctx.strokeStyle = glowGrad
-        ctx.lineWidth   = glowWidth
-        ctx.beginPath()
-        pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y))
-        ctx.stroke()
-        // Second thinner highlight for shimmer
-        ctx.shadowBlur  = blurAmt * 1.8
-        ctx.lineWidth   = glowWidth * 0.5
-        ctx.stroke()
-        ctx.restore()
-
-        // Spawn sparkles on wave crests
-        if (wi >= 2 && Math.random() < 0.12) {
-          const si = Math.floor(Math.random() * pts.length)
-          spawnSparkle(pts[si].x, pts[si].y - 3)
+        ctx.lineTo(W, H); ctx.closePath()
+        ctx.fillStyle = color; ctx.fill()
+      })
+      particles.forEach(pt => {
+        pt.y -= pt.speed; pt.wobble += pt.wobbleSpeed; pt.phase += pt.twinkleSpeed
+        if (pt.y < -0.05) { pt.y = 1.05; pt.x = Math.random() }
+        // Subtle cursor pull
+        pt.x += (mouse.x - pt.x) * 0.0006
+        pt.y += (mouse.y - pt.y) * 0.0004
+        const px = pt.x * W + Math.sin(pt.wobble) * 6
+        const py = pt.y * H
+        const a = pt.alpha * (0.5 + 0.5 * Math.sin(pt.phase))
+        if (dark) {
+          const g = ctx.createRadialGradient(px, py, 0, px, py, pt.r * 3.5)
+          g.addColorStop(0, `rgba(200,240,255,${a})`); g.addColorStop(0.4, `rgba(147,210,255,${a*0.5})`); g.addColorStop(1, 'rgba(99,180,255,0)')
+          ctx.beginPath(); ctx.arc(px, py, pt.r * 3.5, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill()
+          ctx.beginPath(); ctx.arc(px, py, pt.r * 0.6, 0, Math.PI * 2); ctx.fillStyle = `rgba(230,248,255,${Math.min(a*1.4,0.9)})`; ctx.fill()
+        } else {
+          const g = ctx.createRadialGradient(px, py, 0, px, py, pt.r * 3.5)
+          g.addColorStop(0, `rgba(15,30,80,${a*0.7})`); g.addColorStop(0.4, `rgba(30,58,138,${a*0.35})`); g.addColorStop(1, 'rgba(30,58,138,0)')
+          ctx.beginPath(); ctx.arc(px, py, pt.r * 3.5, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill()
+          ctx.beginPath(); ctx.arc(px, py, pt.r * 0.5, 0, Math.PI * 2); ctx.fillStyle = `rgba(10,20,60,${Math.min(a*1.2,0.6)})`; ctx.fill()
         }
       })
-
-      // Draw & age sparkles
-      for (let i = sparkles.length - 1; i >= 0; i--) {
-        const s = sparkles[i]
-        s.life++
-        if (s.life >= s.maxLife) { sparkles.splice(i, 1); continue }
-        const progress = s.life / s.maxLife
-        const alpha = Math.sin(progress * Math.PI)
-        ctx.save()
-        ctx.shadowBlur  = dark ? 10 : 18
-        ctx.shadowColor = dark ? '#93c5fd' : '#0f172a'
-        ctx.fillStyle   = dark
-          ? `rgba(147,197,253,${alpha * 0.9})`
-          : `rgba(15,23,42,${alpha * 0.95})`
-        ctx.beginPath()
-        ctx.arc(s.x, s.y - progress * 12, s.r * (1 - progress * 0.5), 0, Math.PI * 2)
-        ctx.fill()
-        ctx.restore()
-      }
-
-      phase += 0.8
+      phase += 0.6; t++
       animId = requestAnimationFrame(draw)
     }
     draw()
-    return () => {
-      cancelAnimationFrame(animId)
-      window.removeEventListener('resize', resize)
-    }
+    return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize); window.removeEventListener('mousemove', onMouse) }
   }, [dark])
-  return <canvas ref={canvasRef} style={{ position: 'fixed', inset: 0, zIndex: -1, pointerEvents: 'none', width: '100%', height: '100%' }} />
+  return <canvas ref={canvasRef} style={{ position:'fixed', inset:0, zIndex:-1, pointerEvents:'none', width:'100%', height:'100%' }} />
 }
 
 // ── Animated chat hook ───────────────────────────────────────────────────────
