@@ -62,3 +62,6 @@ coverage/
 # Personal deployment/local scripts (contain keys/credentials — kept local)
 deploy-pi.sh
 update-hermes.sh
+
+# Scratchpad / temporary files
+scratch/
