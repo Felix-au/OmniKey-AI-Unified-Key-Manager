@@ -47,6 +47,9 @@ const auroraCSS = `
 .chain-row.drag-hint{transform:translateX(4px);background:rgba(139,92,246,0.06);}
 .model-tag{transition:all 0.25s ease;}
 .animate-drop-in{animation:dropIn 0.35s ease both;}
+@keyframes statPop{0%{transform:scale(1)}50%{transform:scale(1.12)}100%{transform:scale(1)}}
+.stat-num{display:inline-block;transition:color 0.2s;cursor:default;}
+.stat-num:hover{animation:statPop 0.4s ease;color:rgb(139,92,246);}
 `
 
 // ── Animated chat hook ───────────────────────────────────────────────────────
@@ -158,6 +161,42 @@ function useFallbackOrder() {
   return { order, dragging }
 }
 
+// ── Debate config cursor animation ───────────────────────────────────────────────
+const debateConfigFields = ['opening','rounds','judging','infavor','against','judge'] as const
+type DebateField = typeof debateConfigFields[number]
+const judgeModels = ['gpt-4o-mini','gemini-2.0-flash','llama-3.3-70b','mistral-large']
+const favorModels = ['gemini-2.5-flash','claude-3-5-sonnet','qwen-2.5-72b','deepseek-r1']
+const againstModels = ['llama-3.3-70b','mistral-large','gpt-4o-mini','nvidia/nemotron-70b']
+function useDebateConfig() {
+  const [activeField, setActiveField] = useState<DebateField|null>(null)
+  const [rounds, setRounds] = useState(3)
+  const [judging, setJudging] = useState('Every Round')
+  const [infavor, setInfavor] = useState('gemini-2.5-flash')
+  const [against, setAgainst] = useState('llama-3.3-70b')
+  const [judge, setJudge] = useState('gpt-4o-mini')
+  useEffect(() => {
+    const seq: [DebateField, number, ()=>void][] = [
+      ['rounds', 800, () => setRounds(r => r < 6 ? r + 1 : 2)],
+      ['judging', 1600, () => setJudging(j => j === 'Every Round' ? 'At the End' : 'Every Round')],
+      ['infavor', 2600, () => setInfavor(favorModels[Math.floor(Math.random()*favorModels.length)])],
+      ['against', 3700, () => setAgainst(againstModels[Math.floor(Math.random()*againstModels.length)])],
+      ['judge', 4800, () => setJudge(judgeModels[Math.floor(Math.random()*judgeModels.length)])],
+    ]
+    const cycle = () => {
+      setActiveField(null)
+      const tos: ReturnType<typeof setTimeout>[] = []
+      seq.forEach(([field, delay, action]) => {
+        tos.push(setTimeout(() => { setActiveField(field); action() }, delay))
+        tos.push(setTimeout(() => setActiveField(null), delay + 600))
+      })
+      tos.push(setTimeout(cycle, 7000))
+    }
+    const t = setTimeout(cycle, 1000)
+    return () => clearTimeout(t)
+  }, [])
+  return { activeField, rounds, judging, infavor, against, judge }
+}
+
 // ── Count-up hook ─────────────────────────────────────────────────────────────
 function useCountUp(target: number, duration = 1200) {
   const [val, setVal] = useState(0)
@@ -180,6 +219,14 @@ function useCountUp(target: number, duration = 1200) {
   }, [target, duration])
   return { val, ref }
 }
+
+// \u2500\u2500 GitHub icon \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+const GitHubIcon = ({ size = 16 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/>
+  </svg>
+)
+
 
 function useDark() {
   const [dark, setDark] = useState(() =>
@@ -289,9 +336,10 @@ export default function LandingPage() {
   const arenaVisible = useArenaVisible()
   const arenaSelection = useArenaSelection()
   const fallbackOrder = useFallbackOrder()
+  const debateCfg = useDebateConfig()
   const heroRef = useRef<HTMLElement>(null)
   const stat1 = useCountUp(100)
-  const stat2 = useCountUp(1000)
+  const stat2 = useCountUp(1)
   const stat3 = useCountUp(12)
 
   return (
@@ -354,8 +402,9 @@ export default function LandingPage() {
           <a
             href="https://github.com/Felix-au/OmniKey-AI-Unified-Key-Manager"
             target="_blank" rel="noreferrer"
-            className="cta-btn border border-border bg-card hover:bg-accent/60 text-foreground font-semibold px-8 py-3.5 rounded-2xl text-base"
+            className="cta-btn border border-border bg-card hover:bg-accent/60 text-foreground font-semibold px-8 py-3.5 rounded-2xl text-base flex items-center gap-2"
           >
+            <GitHubIcon size={18} />
             View on GitHub
           </a>
         </div>
@@ -373,11 +422,11 @@ export default function LandingPage() {
       {/* STATS */}
       <div className="max-w-4xl mx-auto px-6 mb-8">
         <div className="grid grid-cols-3 divide-x divide-border rounded-2xl border border-border bg-card/60 backdrop-blur">
-          {[{ ref: stat1.ref, val: stat1.val, suffix: '+', label: 'Models Available' },
-            { ref: stat2.ref, val: stat2.val, suffix: 'B+', label: 'Free Tokens / Month' },
-            { ref: stat3.ref, val: stat3.val, suffix: '', label: 'Free Providers' }].map(({ ref, val, suffix, label }) => (
+          {[{ ref: stat1.ref, val: `${stat1.val}+`, label: 'Models Available' },
+            { ref: stat2.ref, val: `${stat2.val}B+`, label: 'Free Tokens / Month' },
+            { ref: stat3.ref, val: `${stat3.val}`, label: 'Free Providers' }].map(({ ref, val, label }) => (
             <div key={label} ref={ref} className="py-6 text-center stat-animate">
-              <div className="text-3xl font-extrabold text-foreground">{val}{suffix}</div>
+              <div className="text-3xl font-extrabold text-foreground stat-num">{val}</div>
               <div className="text-xs text-muted-foreground mt-1">{label}</div>
             </div>
           ))}
@@ -474,40 +523,53 @@ export default function LandingPage() {
         </div>
         <MockCard>
           <div className="grid md:grid-cols-[280px_1fr]">
-            {/* Config panel */}
-            <div className="border-r border-border p-5 space-y-4 bg-muted/20 dark:bg-white/[0.02]">
-              <div className="space-y-1">
-                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Topic</div>
-                <div className="text-xs bg-background border border-border rounded-xl px-3 py-2 text-foreground">Should AI replace human creativity?</div>
-              </div>
-              <div className="space-y-1">
-                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Opening Player</div>
-                <div className="text-xs bg-background border border-border rounded-xl px-3 py-2 text-foreground flex justify-between"><span>In Favor</span><span className="text-muted-foreground">▾</span></div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="border-r border-border p-5 space-y-4 bg-muted/20 dark:bg-white/[0.02] relative">
+                {/* Animated cursor ball */}
+                <div className={`absolute top-2 right-2 w-3 h-3 rounded-full border-2 border-border shadow transition-all duration-500 ${
+                  debateCfg.activeField ? 'bg-foreground scale-110 opacity-100' : 'bg-muted opacity-40 scale-75'
+                }`} />
                 <div className="space-y-1">
-                  <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Rounds</div>
-                  <div className="text-xs bg-background border border-border rounded-xl px-3 py-2 text-foreground">3</div>
+                  <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Topic</div>
+                  <div className="text-xs bg-background border border-border rounded-xl px-3 py-2 text-foreground">Should AI replace human creativity?</div>
                 </div>
                 <div className="space-y-1">
-                  <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Judging</div>
-                  <div className="text-xs bg-background border border-border rounded-xl px-3 py-2 text-foreground flex justify-between"><span>Every Round</span><span className="text-muted-foreground">▾</span></div>
+                  <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Opening Player</div>
+                  <div className="text-xs bg-background border border-border rounded-xl px-3 py-2 text-foreground flex justify-between"><span>In Favor</span><span className="text-muted-foreground">▾</span></div>
                 </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Rounds</div>
+                    <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground transition-all duration-300 ${
+                      debateCfg.activeField === 'rounds' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
+                    }`}>{debateCfg.rounds}</div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Judging</div>
+                    <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${
+                      debateCfg.activeField === 'judging' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
+                    }`}><span>{debateCfg.judging}</span><span className="text-muted-foreground">▾</span></div>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-[10px] font-semibold text-emerald-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"/>In Favor</div>
+                  <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${
+                    debateCfg.activeField === 'infavor' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
+                  }`}><span className="truncate">{debateCfg.infavor}</span><span className="text-muted-foreground ml-1">▾</span></div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-[10px] font-semibold text-rose-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block"/>Against</div>
+                  <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${
+                    debateCfg.activeField === 'against' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
+                  }`}><span className="truncate">{debateCfg.against}</span><span className="text-muted-foreground ml-1">▾</span></div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-[10px] font-semibold text-amber-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block"/>Judge</div>
+                  <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${
+                    debateCfg.activeField === 'judge' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
+                  }`}><span className="truncate">{debateCfg.judge}</span><span className="text-muted-foreground ml-1">▾</span></div>
+                </div>
+                <div className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-xs font-semibold rounded-xl px-4 py-2.5 text-center cursor-default">Start Debate Arena</div>
               </div>
-              <div className="space-y-1">
-                <div className="text-[10px] font-semibold text-emerald-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"/>In Favor</div>
-                <div className="text-xs bg-background border border-border rounded-xl px-3 py-2 text-foreground flex justify-between"><span>gemini-2.5-flash</span><span className="text-muted-foreground">▾</span></div>
-              </div>
-              <div className="space-y-1">
-                <div className="text-[10px] font-semibold text-rose-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block"/>Against</div>
-                <div className="text-xs bg-background border border-border rounded-xl px-3 py-2 text-foreground flex justify-between"><span>llama-3.3-70b</span><span className="text-muted-foreground">▾</span></div>
-              </div>
-              <div className="space-y-1">
-                <div className="text-[10px] font-semibold text-amber-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block"/>Judge</div>
-                <div className="text-xs bg-background border border-border rounded-xl px-3 py-2 text-foreground flex justify-between"><span>gpt-4o-mini</span><span className="text-muted-foreground">▾</span></div>
-              </div>
-              <div className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-xs font-semibold rounded-xl px-4 py-2.5 text-center cursor-default">Start Debate Arena</div>
-            </div>
             {/* Transcript */}
             <div className="p-5 space-y-3">
               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Round 1 of 3</div>
@@ -545,8 +607,10 @@ export default function LandingPage() {
               const isCerebras = p.name === 'Cerebras'
               const showError = isGroq && (routingPhase === 'error' || routingPhase === 'rerouting' || routingPhase === 'done')
               const isRerouted = isCerebras && (routingPhase === 'rerouting' || routingPhase === 'done')
+              const isDragging = fallbackOrder.dragging === i
               return (
-                <div key={i} className={`px-4 py-3.5 flex items-center gap-3 transition-colors duration-700 ${isRerouted ? 'bg-emerald-500/5' : ''}`}>
+                <div key={i} className={`chain-row px-4 py-3.5 flex items-center gap-3 transition-colors duration-700 ${isDragging ? 'drag-hint' : ''} ${isRerouted ? 'bg-emerald-500/5' : ''}`}>
+                  <span className="text-muted-foreground select-none text-sm">⠿</span>
                   <span className="text-xs text-muted-foreground w-4">{i + 1}</span>
                   <span className={`w-2 h-2 rounded-full shrink-0 transition-colors duration-500 ${
                     isRerouted ? 'bg-emerald-500 animate-pulse' :
@@ -555,9 +619,10 @@ export default function LandingPage() {
                     'bg-slate-400'
                   }`} />
                   <span className="text-xs font-medium text-foreground flex-1">{p.name}</span>
-                  {showError && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 animate-fade-up">429 Rate Limited</span>}
+                  {isDragging && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-500 animate-fade-up">Moving ↑</span>}
+                  {showError && !isDragging && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 animate-fade-up">429</span>}
                   {isRerouted && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 animate-fade-up">↑ Active</span>}
-                  {p.status === 'active' && !showError && <span className="text-[10px] text-emerald-500 font-semibold">{p.latency} avg</span>}
+                  {p.status === 'active' && !showError && !isDragging && <span className="text-[10px] text-emerald-500 font-semibold">{p.latency} avg</span>}
                 </div>
               )
             })}
@@ -618,8 +683,9 @@ export default function LandingPage() {
             <span className="font-semibold text-foreground">OmniKey AI</span>
           </div>
           <span>Built for developers who want a billion free LLM tokens.</span>
-          <a href="https://github.com/Felix-au/OmniKey-AI-Unified-Key-Manager" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">
-            GitHub →
+          <a href="https://github.com/Felix-au/OmniKey-AI-Unified-Key-Manager" target="_blank" rel="noreferrer" className="cta-btn hover:text-foreground transition-colors flex items-center gap-1.5">
+            <GitHubIcon size={15} />
+            GitHub
           </a>
         </div>
       </footer>
