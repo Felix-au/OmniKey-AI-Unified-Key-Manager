@@ -34,6 +34,19 @@ const auroraCSS = `
 .typing-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:currentColor;animation:typingDot 1.2s infinite;}
 .typing-dot:nth-child(2){animation-delay:0.2s;}
 .typing-dot:nth-child(3){animation-delay:0.4s;}
+@keyframes countUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shimmer{0%{background-position:200% center}100%{background-position:-200% center}}
+@keyframes dropIn{0%{opacity:0;transform:translateY(-6px) scale(0.97)}100%{opacity:1;transform:translateY(0) scale(1)}}
+.stat-animate{animation:countUp 0.6s ease both;}
+.provider-pill{transition:all 0.18s ease;cursor:default;}
+.provider-pill:hover{transform:translateY(-2px) scale(1.05);box-shadow:0 4px 16px rgba(139,92,246,0.18);border-color:rgba(139,92,246,0.4);color:var(--foreground);}
+.cta-btn{transition:all 0.15s ease;}
+.cta-btn:hover{transform:translateY(-1px) scale(1.02);}
+.cta-btn:active{transform:scale(0.97);}
+.chain-row{transition:all 0.35s ease;}
+.chain-row.drag-hint{transform:translateX(4px);background:rgba(139,92,246,0.06);}
+.model-tag{transition:all 0.25s ease;}
+.animate-drop-in{animation:dropIn 0.35s ease both;}
 `
 
 // ── Animated chat hook ───────────────────────────────────────────────────────
@@ -101,6 +114,71 @@ function useArenaVisible() {
     return () => clearTimeout(t)
   }, [])
   return visible
+}
+
+// ── Arena model selection cycling ────────────────────────────────────────────
+const modelOptions = ['gemini-2.5-flash','llama-3.3-70b','mistral-large','qwen-2.5-72b','gpt-4o-mini','deepseek-r1','claude-3-5-sonnet','nvidia/llama-3.1-nemotron-70b']
+function useArenaSelection() {
+  const [models, setModels] = useState(['gemini-2.5-flash','llama-3.3-70b','mistral-large','qwen-2.5-72b'])
+  const [selecting, setSelecting] = useState<number|null>(null)
+  useEffect(() => {
+    const cycle = () => {
+      const slot = Math.floor(Math.random() * 4)
+      setSelecting(slot)
+      setTimeout(() => {
+        setModels(prev => { const n=[...prev]; n[slot]=modelOptions[Math.floor(Math.random()*modelOptions.length)]; return n })
+        setSelecting(null)
+      }, 900)
+      setTimeout(cycle, 4500 + Math.random() * 2000)
+    }
+    const t = setTimeout(cycle, 2500)
+    return () => clearTimeout(t)
+  }, [])
+  return { models, selecting }
+}
+
+// ── Fallback order animation ──────────────────────────────────────────────────
+const allProviders = ['Google Gemini','Groq','Cerebras','SambaNova','Mistral','OpenRouter']
+function useFallbackOrder() {
+  const [order, setOrder] = useState([0,1,2,3])
+  const [dragging, setDragging] = useState<number|null>(null)
+  useEffect(() => {
+    const cycle = () => {
+      const slot = Math.floor(Math.random()*3)+1
+      setDragging(slot)
+      setTimeout(() => {
+        setOrder(prev => { const n=[...prev]; const tmp=n[slot]; n[slot]=n[slot-1]; n[slot-1]=tmp; return n })
+        setDragging(null)
+      }, 800)
+      setTimeout(cycle, 4000)
+    }
+    const t = setTimeout(cycle, 3000)
+    return () => clearTimeout(t)
+  }, [])
+  return { order, dragging }
+}
+
+// ── Count-up hook ─────────────────────────────────────────────────────────────
+function useCountUp(target: number, duration = 1200) {
+  const [val, setVal] = useState(0)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = ref.current; if (!el) return
+    const obs = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return
+      obs.disconnect()
+      const start = performance.now()
+      const tick = (now: number) => {
+        const p = Math.min((now - start) / duration, 1)
+        setVal(Math.round(p * target))
+        if (p < 1) requestAnimationFrame(tick)
+      }
+      requestAnimationFrame(tick)
+    }, { threshold: 0.5 })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [target, duration])
+  return { val, ref }
 }
 
 function useDark() {
@@ -209,7 +287,12 @@ export default function LandingPage() {
   const debateVisible = useAnimatedDebate()
   const routingPhase = useAnimatedRouting()
   const arenaVisible = useArenaVisible()
+  const arenaSelection = useArenaSelection()
+  const fallbackOrder = useFallbackOrder()
   const heroRef = useRef<HTMLElement>(null)
+  const stat1 = useCountUp(100)
+  const stat2 = useCountUp(1000)
+  const stat3 = useCountUp(12)
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -235,9 +318,9 @@ export default function LandingPage() {
             </button>
             <button
               onClick={() => navigate('/playground')}
-              className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all"
+              className="cta-btn bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-md shadow-violet-500/20"
             >
-              Open Dashboard →
+              Get Started →
             </button>
           </div>
         </div>
@@ -264,14 +347,14 @@ export default function LandingPage() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
           <button
             onClick={() => navigate('/playground')}
-            className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-bold px-8 py-3.5 rounded-2xl text-base transition-all shadow-lg shadow-violet-500/20"
+            className="cta-btn bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold px-8 py-3.5 rounded-2xl text-base shadow-lg shadow-violet-500/20"
           >
-            Open Dashboard →
+            Get Started Free →
           </button>
           <a
             href="https://github.com/Felix-au/OmniKey-AI-Unified-Key-Manager"
             target="_blank" rel="noreferrer"
-            className="border border-border bg-card hover:bg-accent/60 text-foreground font-semibold px-8 py-3.5 rounded-2xl text-base transition-all"
+            className="cta-btn border border-border bg-card hover:bg-accent/60 text-foreground font-semibold px-8 py-3.5 rounded-2xl text-base"
           >
             View on GitHub
           </a>
@@ -279,7 +362,7 @@ export default function LandingPage() {
         {/* Provider pills */}
         <div className="flex flex-wrap justify-center gap-2 max-w-2xl mx-auto">
           {providers.map(p => (
-            <span key={p} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-border bg-card/60 text-muted-foreground">
+            <span key={p} className="provider-pill flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-border bg-card/60 text-muted-foreground">
               <span className={`w-2 h-2 rounded-full ${providerColors[p]}`} />
               {p}
             </span>
@@ -290,9 +373,11 @@ export default function LandingPage() {
       {/* STATS */}
       <div className="max-w-4xl mx-auto px-6 mb-8">
         <div className="grid grid-cols-3 divide-x divide-border rounded-2xl border border-border bg-card/60 backdrop-blur">
-          {[['100+', 'Models Available'], ['1B+', 'Free Tokens / Month'], ['12', 'Free Providers']].map(([val, label]) => (
-            <div key={label} className="py-6 text-center">
-              <div className="text-3xl font-extrabold text-foreground">{val}</div>
+          {[{ ref: stat1.ref, val: stat1.val, suffix: '+', label: 'Models Available' },
+            { ref: stat2.ref, val: stat2.val, suffix: 'B+', label: 'Free Tokens / Month' },
+            { ref: stat3.ref, val: stat3.val, suffix: '', label: 'Free Providers' }].map(({ ref, val, suffix, label }) => (
+            <div key={label} ref={ref} className="py-6 text-center stat-animate">
+              <div className="text-3xl font-extrabold text-foreground">{val}{suffix}</div>
               <div className="text-xs text-muted-foreground mt-1">{label}</div>
             </div>
           ))}
@@ -344,11 +429,27 @@ export default function LandingPage() {
             <div className="bg-muted/40 dark:bg-white/5 px-4 py-3 border-b border-border">
               <span className="text-xs font-semibold text-muted-foreground">Prompt: "Explain quantum entanglement simply."</span>
             </div>
+            {/* Model selectors row */}
+            <div className="grid grid-cols-4 divide-x divide-border border-b border-border">
+              {arenaSelection.models.map((m, i) => {
+                const colors=['text-blue-400','text-orange-400','text-purple-400','text-emerald-400']
+                const isSelecting = arenaSelection.selecting === i
+                return (
+                  <div key={i} className={`px-2 py-2 text-[10px] font-semibold flex items-center gap-1 ${colors[i]} ${isSelecting ? 'bg-violet-500/10' : ''} transition-colors duration-300`}>
+                    {isSelecting ? (
+                      <><span className="typing-dot"/><span className="typing-dot"/><span className="typing-dot"/></>
+                    ) : (
+                      <span className="model-tag truncate animate-drop-in">{m}</span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
             <div className="grid grid-cols-2 gap-0 divide-x divide-y divide-border">
               {arenaPanels.map((p, i) => (
-                <div key={i} className={`p-3 transition-all duration-500 ${i < arenaVisible ? 'opacity-100' : 'opacity-0'}`}>
+                <div key={i} className={`p-3 transition-all duration-500 ${i < arenaVisible ? 'opacity-100' : 'opacity-0 translate-y-2'}`}>
                   <div className={`text-[10px] font-semibold mb-2 ${p.color} flex items-center justify-between`}>
-                    <span>{p.model}</span>
+                    <span>{arenaSelection.models[i] ?? p.model}</span>
                     <span className="text-muted-foreground font-normal">{i < arenaVisible ? p.latency : '...'}</span>
                   </div>
                   <p className="text-xs text-foreground/80 leading-relaxed whitespace-pre-line">{p.text}</p>
@@ -470,6 +571,42 @@ export default function LandingPage() {
                '✓ Request auto-routed to Cerebras after Groq 429'}
             </div>
           </MockCard>
+        </div>
+      </Section>
+
+      {/* ── SECTION: Fallback Config ── */}
+      <Section alt>
+        <div className="grid md:grid-cols-2 gap-12 items-center">
+          <MockCard className="divide-y divide-border">
+            <div className="px-4 py-3 bg-muted/40 dark:bg-white/5 text-xs font-semibold text-muted-foreground flex items-center justify-between">
+              <span>Configure Priority Order</span>
+              <span className="text-[10px] text-violet-500 font-semibold">Drag to reorder</span>
+            </div>
+            {fallbackOrder.order.map((provIdx, rowIdx) => {
+              const isDragging = fallbackOrder.dragging === rowIdx
+              return (
+                <div key={provIdx} className={`chain-row px-4 py-3.5 flex items-center gap-3 ${isDragging ? 'drag-hint' : ''}`}>
+                  <span className="text-muted-foreground cursor-grab text-sm select-none">⠿</span>
+                  <span className="text-xs text-muted-foreground w-4">{rowIdx + 1}</span>
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${
+                    rowIdx === 0 ? 'bg-emerald-500' : 'bg-slate-400'
+                  }`} />
+                  <span className="text-xs font-medium text-foreground flex-1 animate-drop-in">{allProviders[provIdx]}</span>
+                  {rowIdx === 0 && <span className="text-[10px] bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full font-semibold">Primary</span>}
+                  {isDragging && <span className="text-[10px] bg-violet-500/10 text-violet-500 px-2 py-0.5 rounded-full font-semibold animate-fade-up">Moving ↑</span>}
+                </div>
+              )
+            })}
+            <div className="px-4 py-3 bg-muted/10 flex gap-2 items-center">
+              <div className="cta-btn text-[10px] font-semibold px-3 py-1.5 rounded-xl bg-violet-600 text-white cursor-default">Save Order</div>
+              <span className="text-[10px] text-muted-foreground">Changes apply instantly to all routing</span>
+            </div>
+          </MockCard>
+          <div>
+            <Pill label="Fallback Config" color="amber" />
+            <SectionHeading>You Control the Priority.</SectionHeading>
+            <SectionSub>Drag providers into your preferred order. OmniKey tries them top-to-bottom on every request, automatically skipping any that are rate-limited or unavailable.</SectionSub>
+          </div>
         </div>
       </Section>
 
