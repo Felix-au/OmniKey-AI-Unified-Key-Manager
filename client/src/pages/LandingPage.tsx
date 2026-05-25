@@ -154,16 +154,21 @@ function OceanBackground({ dark }: { dark: boolean }) {
           ctx.beginPath(); ctx.arc(px, py, pt.r * 3.5, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill()
           ctx.beginPath(); ctx.arc(px, py, pt.r * 0.6, 0, Math.PI * 2); ctx.fillStyle = `rgba(230,248,255,${Math.min(a * 1.4, 0.9)})`; ctx.fill()
         } else {
-          // Black-light glow: large dark halo + bright navy core
-          const glowR = pt.r * 6
+          // Bright metallic red star glow
+          const glowR = pt.r * 7
           const g = ctx.createRadialGradient(px, py, 0, px, py, glowR)
-          g.addColorStop(0, `rgba(5,10,40,${Math.min(a * 0.9, 0.75)})`)
-          g.addColorStop(0.3, `rgba(10,20,80,${a * 0.55})`)
-          g.addColorStop(0.65, `rgba(20,40,120,${a * 0.25})`)
-          g.addColorStop(1, 'rgba(30,58,138,0)')
+          g.addColorStop(0,    `rgba(255,255,220,${Math.min(a * 1.1, 0.9)})`)  // white-hot center
+          g.addColorStop(0.15, `rgba(255,80,40,${Math.min(a * 1.0, 0.85)})`)   // bright orange-red
+          g.addColorStop(0.4,  `rgba(220,20,20,${a * 0.65})`)                  // crimson
+          g.addColorStop(0.7,  `rgba(160,0,0,${a * 0.3})`)                     // deep red
+          g.addColorStop(1,    'rgba(100,0,0,0)')
           ctx.beginPath(); ctx.arc(px, py, glowR, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill()
-          // Bright hard core
-          ctx.beginPath(); ctx.arc(px, py, pt.r * 0.55, 0, Math.PI * 2); ctx.fillStyle = `rgba(2,8,30,${Math.min(a * 1.6, 0.85)})`; ctx.fill()
+          // Bright red core
+          const coreG = ctx.createRadialGradient(px, py, 0, px, py, pt.r * 0.9)
+          coreG.addColorStop(0, `rgba(255,240,200,${Math.min(a * 1.5, 1)})`)   // hot white tip
+          coreG.addColorStop(0.5, `rgba(255,60,40,${Math.min(a * 1.3, 0.95)})`)
+          coreG.addColorStop(1, `rgba(200,0,0,${Math.min(a * 1.1, 0.8)})`)
+          ctx.beginPath(); ctx.arc(px, py, pt.r * 0.9, 0, Math.PI * 2); ctx.fillStyle = coreG; ctx.fill()
         }
       })
       phase += 0.6; t++
