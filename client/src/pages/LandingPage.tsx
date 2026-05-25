@@ -54,68 +54,76 @@ function OceanBackground({ dark }: { dark: boolean }) {
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
+    const ctx = canvas.getContext('2d')!
     let animId: number
-    let phase = 0
+    let t = 0
+
     const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight }
     resize()
     window.addEventListener('resize', resize)
-    // Wave layers: {amp, freq, speed, yBase, color}
-    const darkWaves = [
-      { amp: 80,  freq: 0.0045, speed: 0.008, yBase: 0.42, color: 'rgba(15,23,71,0.9)'   },
-      { amp: 65,  freq: 0.007,  speed: 0.013, yBase: 0.52, color: 'rgba(23,37,110,0.75)'  },
-      { amp: 55,  freq: 0.006,  speed: 0.018, yBase: 0.60, color: 'rgba(30,58,138,0.65)'  },
-      { amp: 45,  freq: 0.009,  speed: 0.024, yBase: 0.68, color: 'rgba(37,99,235,0.40)'  },
-      { amp: 35,  freq: 0.011,  speed: 0.032, yBase: 0.76, color: 'rgba(99,102,241,0.30)' },
+
+    // Each blob: orbit center (ox,oy), orbit radii (rx,ry), frequencies (fx,fy),
+    // phase offset, glow radius factor, RGBA
+    const darkBlobs = [
+      { ox:.50, oy:.40, rx:.38, ry:.30, fx:.00038, fy:.00029, ph:0.00, r:.70, c:[139,92,246,  0.55] },
+      { ox:.50, oy:.55, rx:.42, ry:.36, fx:.00025, fy:.00041, ph:1.30, r:.65, c:[99,102,241,  0.50] },
+      { ox:.50, oy:.45, rx:.28, ry:.42, fx:.00055, fy:.00021, ph:2.50, r:.60, c:[59,130,246,  0.45] },
+      { ox:.50, oy:.50, rx:.22, ry:.28, fx:.00031, fy:.00048, ph:0.75, r:.55, c:[168,85,247,  0.40] },
+      { ox:.50, oy:.48, rx:.46, ry:.22, fx:.00017, fy:.00062, ph:3.20, r:.75, c:[6,182,212,   0.30] },
+      { ox:.50, oy:.52, rx:.33, ry:.38, fx:.00044, fy:.00033, ph:4.10, r:.50, c:[79,70,229,   0.35] },
     ]
-    const lightWaves = [
-      { amp: 80,  freq: 0.0045, speed: 0.008, yBase: 0.42, color: 'rgba(186,230,253,0.85)' },
-      { amp: 65,  freq: 0.007,  speed: 0.013, yBase: 0.52, color: 'rgba(125,211,252,0.70)' },
-      { amp: 55,  freq: 0.006,  speed: 0.018, yBase: 0.60, color: 'rgba(56,189,248,0.55)'  },
-      { amp: 45,  freq: 0.009,  speed: 0.024, yBase: 0.68, color: 'rgba(14,165,233,0.40)'  },
-      { amp: 35,  freq: 0.011,  speed: 0.032, yBase: 0.76, color: 'rgba(2,132,199,0.30)'   },
+    const lightBlobs = [
+      { ox:.50, oy:.40, rx:.38, ry:.30, fx:.00038, fy:.00029, ph:0.00, r:.70, c:[139,92,246,  0.28] },
+      { ox:.50, oy:.55, rx:.42, ry:.36, fx:.00025, fy:.00041, ph:1.30, r:.65, c:[99,102,241,  0.25] },
+      { ox:.50, oy:.45, rx:.28, ry:.42, fx:.00055, fy:.00021, ph:2.50, r:.60, c:[236,72,153,  0.22] },
+      { ox:.50, oy:.50, rx:.22, ry:.28, fx:.00031, fy:.00048, ph:0.75, r:.55, c:[251,191,36,  0.20] },
+      { ox:.50, oy:.48, rx:.46, ry:.22, fx:.00017, fy:.00062, ph:3.20, r:.75, c:[6,182,212,   0.20] },
+      { ox:.50, oy:.52, rx:.33, ry:.38, fx:.00044, fy:.00033, ph:4.10, r:.50, c:[167,139,250, 0.22] },
     ]
-    const waves = dark ? darkWaves : lightWaves
+    const blobs = dark ? darkBlobs : lightBlobs
+
     const draw = () => {
       const W = canvas.width, H = canvas.height
-      // Sky/base gradient
-      const grad = ctx.createLinearGradient(0, 0, 0, H)
+      const diag = Math.sqrt(W * W + H * H)
+
+      // Deep background
+      const bg = ctx.createRadialGradient(W*.5, H*.4, 0, W*.5, H*.5, diag*.7)
       if (dark) {
-        grad.addColorStop(0, '#020817')
-        grad.addColorStop(0.5, '#030d1e')
-        grad.addColorStop(1, '#0a1628')
+        bg.addColorStop(0,   '#0f0520')
+        bg.addColorStop(0.5, '#020817')
+        bg.addColorStop(1,   '#000308')
       } else {
-        grad.addColorStop(0, '#e0f4ff')
-        grad.addColorStop(0.5, '#bae8ff')
-        grad.addColorStop(1, '#7dd3fc')
+        bg.addColorStop(0,   '#fdfaff')
+        bg.addColorStop(0.5, '#f0f4ff')
+        bg.addColorStop(1,   '#e0eeff')
       }
-      ctx.fillStyle = grad
+      ctx.fillStyle = bg
       ctx.fillRect(0, 0, W, H)
-      // Draw each wave layer back-to-front
-      waves.forEach(({ amp, freq, speed, yBase, color }, wi) => {
-        const p = phase * speed + wi * 0.6
-        ctx.beginPath()
-        ctx.moveTo(0, H)
-        for (let x = 0; x <= W + 2; x += 2) {
-          const y = yBase * H
-            + Math.sin(x * freq + p) * amp
-            + Math.sin(x * freq * 1.7 + p * 1.3) * amp * 0.35
-          ctx.lineTo(x, y)
-        }
-        ctx.lineTo(W, H)
-        ctx.closePath()
-        ctx.fillStyle = color
-        ctx.fill()
+
+      // Layered nebula blobs — each orbits independently
+      blobs.forEach(b => {
+        const cx = W * (b.ox + b.rx * Math.sin(t * b.fx + b.ph))
+        const cy = H * (b.oy + b.ry * Math.cos(t * b.fy + b.ph * 0.71))
+        const rad = diag * b.r
+        const [r, g, bl, a] = b.c
+        const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad)
+        grd.addColorStop(0,   `rgba(${r},${g},${bl},${a})`)
+        grd.addColorStop(0.35,`rgba(${r},${g},${bl},${a * 0.55})`)
+        grd.addColorStop(0.7, `rgba(${r},${g},${bl},${a * 0.15})`)
+        grd.addColorStop(1,   `rgba(${r},${g},${bl},0)`)
+        ctx.fillStyle = grd
+        ctx.fillRect(0, 0, W, H)
       })
-      phase += 0.6
+
+      t++
       animId = requestAnimationFrame(draw)
     }
     draw()
     return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize) }
   }, [dark])
-  return <canvas ref={canvasRef} style={{ position:'fixed', inset:0, zIndex:-1, pointerEvents:'none', width:'100%', height:'100%' }} />
+  return <canvas ref={canvasRef} style={{ position:'fixed', inset:0, zIndex:-1, pointerEvents:'none' }} />
 }
+
 
 // ── Animated chat hook ───────────────────────────────────────────────────────
 function useAnimatedChat() {
