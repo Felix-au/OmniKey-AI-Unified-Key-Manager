@@ -316,6 +316,11 @@ export default function ComparePage() {
                             <div className="flex items-center gap-1.5 mt-2 flex-wrap text-[10px] opacity-80 tabular-nums font-medium text-muted-foreground border-t border-muted-foreground/10 pt-1.5">
                               {msg.meta.platform && <span className="uppercase text-violet-500 font-semibold">{msg.meta.platform}</span>}
                               {msg.meta.model && <span className="font-mono text-[9px] truncate max-w-[100px] bg-secondary px-1 py-0.5 rounded">{msg.meta.model}</span>}
+                              {msg.meta.keyUsed && (
+                                <span className="font-medium bg-blue-500/10 text-blue-500 dark:text-blue-400 px-1 py-0.5 rounded text-[9px]">
+                                  Key: {msg.meta.keyUsed}
+                                </span>
+                              )}
                               {msg.meta.latency != null && <span className="text-emerald-500">{msg.meta.latency} ms</span>}
                               {msg.meta.fallbackAttempts != null && msg.meta.fallbackAttempts > 0 && (
                                 <span className="text-amber-500">FB: {msg.meta.fallbackAttempts}</span>
