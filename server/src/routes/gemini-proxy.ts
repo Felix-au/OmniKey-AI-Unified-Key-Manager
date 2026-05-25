@@ -206,9 +206,10 @@ geminiProxyRouter.get('/models', async (req: Request, res: Response, next) => {
 });
 
 // Gemini-compatible Single Model Detail API
-geminiProxyRouter.get('/models/:model([^:]+)', async (req: Request, res: Response, next) => {
+geminiProxyRouter.get('/models/:model', async (req: Request, res: Response, next) => {
   try {
-    let modelId = req.params.model as string;
+    const modelParam = req.params.model as string;
+    let modelId = modelParam.split(':')[0];
     if (modelId.startsWith('models/')) {
       modelId = modelId.replace(/^models\//, '');
     }
@@ -242,7 +243,7 @@ geminiProxyRouter.get('/models/:model([^:]+)', async (req: Request, res: Respons
 });
 
 // Gemini-compatible generateContent / streamGenerateContent Route
-geminiProxyRouter.post('/models/:model([^:]+):*', async (req: Request, res: Response) => {
+geminiProxyRouter.post('/models/:model', async (req: Request, res: Response) => {
   const start = Date.now();
   let userId = 'local-dev-user-uid';
   
@@ -330,7 +331,12 @@ geminiProxyRouter.post('/models/:model([^:]+):*', async (req: Request, res: Resp
     }
 
     const { messages, temperature, max_tokens, top_p } = parsed;
-    const isStream = req.path.includes(':streamGenerateContent');
+    
+    const modelParam = req.params.model as string;
+    const parts = modelParam.split(':');
+    let modelId = parts[0];
+    const method = parts[1] || 'generateContent';
+    const isStream = method === 'streamGenerateContent';
 
     const estimatedInputTokens = messages.reduce((sum, m) => {
       const text = contentToString(m.content);
@@ -338,7 +344,6 @@ geminiProxyRouter.post('/models/:model([^:]+):*', async (req: Request, res: Resp
     }, 0);
     const estimatedTotal = estimatedInputTokens + (max_tokens ?? 1000);
 
-    let modelId = req.params.model as string;
     if (modelId && modelId.startsWith('models/')) {
       modelId = modelId.replace(/^models\//, '');
     }
