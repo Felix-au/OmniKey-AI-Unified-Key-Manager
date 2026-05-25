@@ -1,0 +1,638 @@
+[
+  {
+    "model": "cerebras/gpt-oss-120b",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "cerebras/llama3.1-8b",
+    "local db": "disabled",
+    "cloud db": "disabled",
+    "result": "Disabled"
+  },
+  {
+    "model": "cerebras/qwen-3-235b-a22b-instruct-2507",
+    "local db": "disabled",
+    "cloud db": "disabled",
+    "result": "Disabled"
+  },
+  {
+    "model": "cerebras/zai-glm-4.7",
+    "local db": "disabled",
+    "cloud db": "disabled",
+    "result": "Disabled"
+  },
+  {
+    "model": "cloudflare/@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "cloudflare/@cf/google/gemma-4-26b-a4b-it",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "cloudflare/@cf/ibm-granite/granite-4.0-h-micro",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "cloudflare/@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "cloudflare/@cf/meta/llama-4-scout-17b-16e-instruct",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "cloudflare/@cf/moonshotai/kimi-k2.6",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "cloudflare/@cf/nvidia/nemotron-3-120b-a12b",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "cloudflare/@cf/openai/gpt-oss-120b",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "cloudflare/@cf/qwen/qwen3-30b-a3b-fp8",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "cloudflare/@cf/zai-org/glm-4.7-flash",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "cohere/command-a-03-2025",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "cohere/command-a-reasoning-08-2025",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "cohere/command-r-08-2024",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "cohere/command-r-plus-08-2024",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "github/gpt-4o",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "github/openai/gpt-4.1",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "google/gemini-2.5-flash",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "google/gemini-2.5-flash-lite",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "google/gemini-2.5-pro",
+    "local db": "disabled",
+    "cloud db": "disabled",
+    "result": "Disabled"
+  },
+  {
+    "model": "google/gemini-3-flash-preview",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "google/gemini-3.1-flash-lite-preview",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "google/gemini-3.1-pro-preview",
+    "local db": "disabled",
+    "cloud db": "disabled",
+    "result": "Disabled"
+  },
+  {
+    "model": "google/gemini-3.5-flash",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "groq/groq/compound",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "groq/groq/compound-mini",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "groq/llama-3.1-8b-instant",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "groq/llama-3.3-70b-versatile",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "groq/meta-llama/llama-4-scout-17b-16e-instruct",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "groq/openai/gpt-oss-120b",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "groq/openai/gpt-oss-20b",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "groq/openai/gpt-oss-safeguard-20b",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "groq/qwen/qwen3-32b",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "huggingface/deepseek-ai/DeepSeek-V4-Flash",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "huggingface/moonshotai/Kimi-K2.6",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "huggingface/Qwen/Qwen3-Coder-Next",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "kilo/nvidia/nemotron-3-super-120b-a12b:free",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "llm7/codestral-latest",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "llm7/GLM-4.6V-Flash",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "llm7/gpt-oss-20b",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "llm7/meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "llm7/ministral-8b-2512",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "mistral/codestral-latest",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "mistral/devstral-latest",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "mistral/magistral-medium-latest",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "mistral/ministral-8b-latest",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "mistral/mistral-large-latest",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "mistral/mistral-medium-latest",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "mistral/mistral-small-latest",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "nvidia/deepseek-ai/deepseek-v4-flash",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "nvidia/deepseek-ai/deepseek-v4-pro",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "nvidia/google/gemma-4-31b-it",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "nvidia/meta/llama-3.1-70b-instruct",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "nvidia/meta/llama-3.3-70b-instruct",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "nvidia/meta/llama-4-maverick-17b-128e-instruct",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "nvidia/minimaxai/minimax-m2.7",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "nvidia/mistralai/mistral-large-3-675b-instruct-2512",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "nvidia/moonshotai/kimi-k2.6",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "nvidia/nvidia/nemotron-3-nano-30b-a3b",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "nvidia/nvidia/nemotron-3-super-120b-a12b",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "nvidia/qwen/qwen3-coder-480b-a35b-instruct",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "nvidia/z-ai/glm-5.1",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "ollama/cogito-2.1:671b",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "ollama/deepseek-v3.2",
+    "local db": "disabled",
+    "cloud db": "disabled",
+    "result": "Disabled"
+  },
+  {
+    "model": "ollama/devstral-2:123b",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "ollama/gemma4:31b",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "ollama/glm-4.7",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "ollama/gpt-oss:120b",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "ollama/gpt-oss:20b",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "ollama/kimi-k2-thinking",
+    "local db": "disabled",
+    "cloud db": "disabled",
+    "result": "Disabled"
+  },
+  {
+    "model": "ollama/mistral-large-3:675b",
+    "local db": "disabled",
+    "cloud db": "disabled",
+    "result": "Disabled"
+  },
+  {
+    "model": "ollama/qwen3-coder-next",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "ollama/qwen3-coder:480b",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "openrouter/arcee-ai/trinity-large-thinking:free",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "openrouter/baidu/cobuddy:free",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "openrouter/google/gemma-4-26b-a4b-it:free",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "openrouter/google/gemma-4-31b-it:free",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "openrouter/liquid/lfm-2.5-1.2b-instruct:free",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "openrouter/liquid/lfm-2.5-1.2b-thinking:free",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "openrouter/meta-llama/llama-3.3-70b-instruct:free",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "openrouter/minimax/minimax-m2.5:free",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "openrouter/nousresearch/hermes-3-llama-3.1-405b:free",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "openrouter/nvidia/nemotron-3-nano-30b-a3b:free",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "openrouter/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "openrouter/nvidia/nemotron-nano-9b-v2:free",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "openrouter/openai/gpt-oss-120b:free",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "openrouter/openai/gpt-oss-20b:free",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "openrouter/openrouter/owl-alpha",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "openrouter/poolside/laguna-m.1:free",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "openrouter/poolside/laguna-xs.2:free",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "openrouter/qwen/qwen3-coder:free",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "openrouter/qwen/qwen3-next-80b-a3b-instruct:free",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "openrouter/z-ai/glm-4.5-air:free",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "pollinations/openai-fast",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "sambanova/DeepSeek-V3.1",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "sambanova/DeepSeek-V3.2",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "sambanova/gemma-3-12b-it",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "sambanova/gpt-oss-120b",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "sambanova/Llama-4-Maverick-17B-128E-Instruct",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "sambanova/Meta-Llama-3.3-70B-Instruct",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "Available"
+  },
+  {
+    "model": "zhipu/glm-4.5-flash",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  },
+  {
+    "model": "zhipu/glm-4.7-flash",
+    "local db": "enabled",
+    "cloud db": "enabled",
+    "result": "No Api"
+  }
+]

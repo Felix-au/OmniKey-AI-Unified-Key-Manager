@@ -1,0 +1,15 @@
+{
+  "name": "omnikey-ai-models-diagnosis",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "diagnosis.js",
+  "scripts": {
+    "start": "node diagnosis.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.4.1",
+    "dotenv": "^17.4.2",
+    "mongoose": "^9.6.2",
+    "xlsx": "^0.18.5"
+  }
+}
