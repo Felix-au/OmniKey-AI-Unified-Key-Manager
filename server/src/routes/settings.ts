@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import type { Response } from 'express';
 import crypto from 'crypto';
-import { getUnifiedApiKey, regenerateUnifiedKey } from '../db/index.js';
+import { getUnifiedApiKey, regenerateUnifiedKey, getUnifiedGeminiApiKey, regenerateUnifiedGeminiKey } from '../db/index.js';
 import { requireDashboardAuth, AuthenticatedRequest } from '../middleware/auth.js';
 import { isLocalDbEnabled } from '../db/context.js';
 import { UserSettings } from '../models/UserSettings.js';
@@ -15,7 +15,10 @@ settingsRouter.use(requireDashboardAuth);
 settingsRouter.get('/api-key', async (req: AuthenticatedRequest, res: Response, next) => {
   try {
     if (isLocalDbEnabled()) {
-      return res.json({ apiKey: getUnifiedApiKey() });
+      return res.json({
+        apiKey: getUnifiedApiKey(),
+        geminiApiKey: getUnifiedGeminiApiKey()
+      });
     } else {
       let userSettings = await UserSettings.findOne({ userId: req.userId });
       if (!userSettings) {
@@ -23,10 +26,17 @@ settingsRouter.get('/api-key', async (req: AuthenticatedRequest, res: Response, 
         userSettings = await UserSettings.create({
           userId: req.userId!,
           email: req.userEmail || 'user@example.com',
-          unifiedApiKey: `omnikey-${crypto.randomBytes(24).toString('hex')}`
+          unifiedApiKey: `omnikey-${crypto.randomBytes(24).toString('hex')}`,
+          unifiedGeminiApiKey: `omnikey-g-${crypto.randomBytes(24).toString('hex')}`
         });
+      } else if (!userSettings.unifiedGeminiApiKey) {
+        userSettings.unifiedGeminiApiKey = `omnikey-g-${crypto.randomBytes(24).toString('hex')}`;
+        await userSettings.save();
       }
-      return res.json({ apiKey: userSettings.unifiedApiKey });
+      return res.json({
+        apiKey: userSettings.unifiedApiKey,
+        geminiApiKey: userSettings.unifiedGeminiApiKey
+      });
     }
   } catch (err) {
     next(err);
@@ -36,20 +46,51 @@ settingsRouter.get('/api-key', async (req: AuthenticatedRequest, res: Response, 
 // Regenerate the unified API key
 settingsRouter.post('/api-key/regenerate', async (req: AuthenticatedRequest, res: Response, next) => {
   try {
-    if (isLocalDbEnabled()) {
-      const newKey = regenerateUnifiedKey();
-      return res.json({ apiKey: newKey });
+    const { format } = req.body || {}; // 'openai' (default) or 'gemini'
+    if (format === 'gemini') {
+      if (isLocalDbEnabled()) {
+        const newKey = regenerateUnifiedGeminiKey();
+        return res.json({
+          apiKey: getUnifiedApiKey(),
+          geminiApiKey: newKey
+        });
+      } else {
+        const newKey = `omnikey-g-${crypto.randomBytes(24).toString('hex')}`;
+        const userSettings = await UserSettings.findOneAndUpdate(
+          { userId: req.userId },
+          { 
+            unifiedGeminiApiKey: newKey,
+            email: req.userEmail || 'user@example.com'
+          },
+          { new: true, upsert: true }
+        );
+        return res.json({
+          apiKey: userSettings.unifiedApiKey,
+          geminiApiKey: userSettings.unifiedGeminiApiKey
+        });
+      }
     } else {
-      const newKey = `omnikey-${crypto.randomBytes(24).toString('hex')}`;
-      const userSettings = await UserSettings.findOneAndUpdate(
-        { userId: req.userId },
-        { 
-          unifiedApiKey: newKey,
-          email: req.userEmail || 'user@example.com'
-        },
-        { new: true, upsert: true }
-      );
-      return res.json({ apiKey: userSettings.unifiedApiKey });
+      if (isLocalDbEnabled()) {
+        const newKey = regenerateUnifiedKey();
+        return res.json({
+          apiKey: newKey,
+          geminiApiKey: getUnifiedGeminiApiKey()
+        });
+      } else {
+        const newKey = `omnikey-${crypto.randomBytes(24).toString('hex')}`;
+        const userSettings = await UserSettings.findOneAndUpdate(
+          { userId: req.userId },
+          { 
+            unifiedApiKey: newKey,
+            email: req.userEmail || 'user@example.com'
+          },
+          { new: true, upsert: true }
+        );
+        return res.json({
+          apiKey: userSettings.unifiedApiKey,
+          geminiApiKey: userSettings.unifiedGeminiApiKey
+        });
+      }
     }
   } catch (err) {
     next(err);
