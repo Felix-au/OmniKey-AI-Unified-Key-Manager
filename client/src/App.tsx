@@ -14,6 +14,7 @@ import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 import ModelsPage from '@/pages/ModelsPage'
 import ComparePage from '@/pages/ComparePage'
 import DebatePage from '@/pages/DebatePage'
+import LandingPage from '@/pages/LandingPage'
 
 const queryClient = new QueryClient()
 
@@ -286,6 +287,7 @@ function App() {
       <AuthProvider>
         <BrowserRouter basename={import.meta.env.BASE_URL}>
           <Routes>
+            <Route path="/"       element={<LandingPage />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/*"     element={<DashboardLayout />} />
           </Routes>
