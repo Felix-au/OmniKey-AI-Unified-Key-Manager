@@ -49,80 +49,110 @@ const auroraCSS = `
 `
 
 // ── Ocean wave background ─────────────────────────────────────────────────────
-function OceanBackground({ dark }: { dark: boolean }) {
+function GalacticBackground({ dark }: { dark: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const ctx = canvas.getContext('2d')!
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
     let animId: number
     let t = 0
-
     const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight }
     resize()
     window.addEventListener('resize', resize)
-
-    // Each blob: orbit center (ox,oy), orbit radii (rx,ry), frequencies (fx,fy),
-    // phase offset, glow radius factor, RGBA
-    const darkBlobs = [
-      { ox:.50, oy:.40, rx:.38, ry:.30, fx:.00038, fy:.00029, ph:0.00, r:.70, c:[139,92,246,  0.55] },
-      { ox:.50, oy:.55, rx:.42, ry:.36, fx:.00025, fy:.00041, ph:1.30, r:.65, c:[99,102,241,  0.50] },
-      { ox:.50, oy:.45, rx:.28, ry:.42, fx:.00055, fy:.00021, ph:2.50, r:.60, c:[59,130,246,  0.45] },
-      { ox:.50, oy:.50, rx:.22, ry:.28, fx:.00031, fy:.00048, ph:0.75, r:.55, c:[168,85,247,  0.40] },
-      { ox:.50, oy:.48, rx:.46, ry:.22, fx:.00017, fy:.00062, ph:3.20, r:.75, c:[6,182,212,   0.30] },
-      { ox:.50, oy:.52, rx:.33, ry:.38, fx:.00044, fy:.00033, ph:4.10, r:.50, c:[79,70,229,   0.35] },
+    // Star field for dark mode
+    const stars = Array.from({ length: 200 }, () => ({
+      x: Math.random(), y: Math.random(),
+      r: Math.random() * 1.3 + 0.15,
+      tw: Math.random() * Math.PI * 2,
+      sp: 0.012 + Math.random() * 0.04,
+    }))
+    // Galactic ribbon streams: f1/f2 control x sweep, g1/g2 control y oscillation
+    const DS = [
+      { f1:1.2,f2:2.3,g1:0.9,g2:1.7,sp:0.28,ph:0.0,rgb:'139,92,246',w:2.5 },
+      { f1:0.8,f2:1.5,g1:1.3,g2:2.1,sp:0.20,ph:1.1,rgb:'99,102,241',w:3.5 },
+      { f1:1.7,f2:0.6,g1:0.7,g2:1.4,sp:0.35,ph:2.2,rgb:'56,189,248',w:1.8 },
+      { f1:0.5,f2:2.8,g1:1.6,g2:0.8,sp:0.18,ph:3.3,rgb:'168,85,247',w:4.0 },
+      { f1:2.1,f2:1.1,g1:2.4,g2:0.5,sp:0.42,ph:4.4,rgb:'34,211,238',w:1.5 },
+      { f1:1.4,f2:3.2,g1:0.6,g2:2.9,sp:0.22,ph:5.5,rgb:'167,139,250',w:2.0 },
+      { f1:0.9,f2:1.8,g1:1.1,g2:3.3,sp:0.31,ph:0.7,rgb:'59,130,246',w:2.8 },
     ]
-    const lightBlobs = [
-      { ox:.50, oy:.40, rx:.38, ry:.30, fx:.00038, fy:.00029, ph:0.00, r:.70, c:[139,92,246,  0.28] },
-      { ox:.50, oy:.55, rx:.42, ry:.36, fx:.00025, fy:.00041, ph:1.30, r:.65, c:[99,102,241,  0.25] },
-      { ox:.50, oy:.45, rx:.28, ry:.42, fx:.00055, fy:.00021, ph:2.50, r:.60, c:[236,72,153,  0.22] },
-      { ox:.50, oy:.50, rx:.22, ry:.28, fx:.00031, fy:.00048, ph:0.75, r:.55, c:[251,191,36,  0.20] },
-      { ox:.50, oy:.48, rx:.46, ry:.22, fx:.00017, fy:.00062, ph:3.20, r:.75, c:[6,182,212,   0.20] },
-      { ox:.50, oy:.52, rx:.33, ry:.38, fx:.00044, fy:.00033, ph:4.10, r:.50, c:[167,139,250, 0.22] },
+    const LS = [
+      { f1:1.2,f2:2.3,g1:0.9,g2:1.7,sp:0.28,ph:0.0,rgb:'139,92,246',w:2.5 },
+      { f1:0.8,f2:1.5,g1:1.3,g2:2.1,sp:0.20,ph:1.1,rgb:'99,102,241',w:3.5 },
+      { f1:1.7,f2:0.6,g1:0.7,g2:1.4,sp:0.35,ph:2.2,rgb:'14,165,233',w:1.8 },
+      { f1:0.5,f2:2.8,g1:1.6,g2:0.8,sp:0.18,ph:3.3,rgb:'168,85,247',w:4.0 },
+      { f1:2.1,f2:1.1,g1:2.4,g2:0.5,sp:0.42,ph:4.4,rgb:'236,72,153',w:1.5 },
+      { f1:1.4,f2:3.2,g1:0.6,g2:2.9,sp:0.22,ph:5.5,rgb:'124,58,237',w:2.0 },
+      { f1:0.9,f2:1.8,g1:1.1,g2:3.3,sp:0.31,ph:0.7,rgb:'59,130,246',w:2.8 },
     ]
-    const blobs = dark ? darkBlobs : lightBlobs
-
+    const streams = dark ? DS : LS
+    type S = typeof DS[0]
+    const ribbon = (s: S, opacity: number, lw: number) => {
+      const W = canvas.width, H = canvas.height
+      ctx.beginPath()
+      for (let i = 0; i <= 90; i++) {
+        const u = i / 90
+        const px = (u + 0.5 * Math.sin(u * Math.PI * s.f2 + t * s.sp * 0.7 + s.ph)) * W
+        const py = (0.5
+          + 0.38 * Math.sin(u * Math.PI * s.f1 + t * s.sp + s.ph)
+          + 0.18 * Math.sin(u * Math.PI * s.g1 + t * s.sp * 1.4 + s.ph * 1.3)
+          + 0.08 * Math.sin(u * Math.PI * s.g2 + t * s.sp * 0.6 + s.ph * 0.7)
+        ) * H
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py)
+      }
+      ctx.strokeStyle = `rgba(${s.rgb},${opacity})`
+      ctx.lineWidth = lw
+      ctx.shadowColor = `rgba(${s.rgb},1)`
+      ctx.shadowBlur = dark ? 24 : 16
+      ctx.stroke()
+      ctx.shadowBlur = 0
+    }
     const draw = () => {
       const W = canvas.width, H = canvas.height
-      const diag = Math.sqrt(W * W + H * H)
-
-      // Deep background
-      const bg = ctx.createRadialGradient(W*.5, H*.4, 0, W*.5, H*.5, diag*.7)
+      ctx.globalCompositeOperation = 'source-over'
+      // Radial base gradient
+      const bg = ctx.createRadialGradient(W * 0.5, H * 0.38, 0, W * 0.5, H * 0.5, Math.max(W, H) * 0.85)
       if (dark) {
-        bg.addColorStop(0,   '#0f0520')
-        bg.addColorStop(0.5, '#020817')
-        bg.addColorStop(1,   '#000308')
+        bg.addColorStop(0, '#0f0a20')
+        bg.addColorStop(0.55, '#070412')
+        bg.addColorStop(1, '#020208')
       } else {
-        bg.addColorStop(0,   '#fdfaff')
-        bg.addColorStop(0.5, '#f0f4ff')
-        bg.addColorStop(1,   '#e0eeff')
+        bg.addColorStop(0, '#f8f4ff')
+        bg.addColorStop(0.55, '#ede6ff')
+        bg.addColorStop(1, '#ddd0ff')
       }
       ctx.fillStyle = bg
       ctx.fillRect(0, 0, W, H)
-
-      // Layered nebula blobs — each orbits independently
-      blobs.forEach(b => {
-        const cx = W * (b.ox + b.rx * Math.sin(t * b.fx + b.ph))
-        const cy = H * (b.oy + b.ry * Math.cos(t * b.fy + b.ph * 0.71))
-        const rad = diag * b.r
-        const [r, g, bl, a] = b.c
-        const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad)
-        grd.addColorStop(0,   `rgba(${r},${g},${bl},${a})`)
-        grd.addColorStop(0.35,`rgba(${r},${g},${bl},${a * 0.55})`)
-        grd.addColorStop(0.7, `rgba(${r},${g},${bl},${a * 0.15})`)
-        grd.addColorStop(1,   `rgba(${r},${g},${bl},0)`)
-        ctx.fillStyle = grd
-        ctx.fillRect(0, 0, W, H)
-      })
-
-      t++
+      // Stars
+      if (dark) {
+        ctx.globalCompositeOperation = 'lighter'
+        stars.forEach(s => {
+          const a = 0.35 + 0.65 * Math.abs(Math.sin(t * s.sp + s.tw))
+          ctx.beginPath()
+          ctx.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2)
+          ctx.fillStyle = `rgba(255,255,255,${a * 0.65})`
+          ctx.fill()
+        })
+      }
+      // Ribbons — 3-pass bloom
+      ctx.globalCompositeOperation = 'lighter'
+      ctx.lineCap = 'round'
+      ctx.lineJoin = 'round'
+      streams.forEach(s => ribbon(s, dark ? 0.035 : 0.02, s.w * 16))  // outer bloom
+      streams.forEach(s => ribbon(s, dark ? 0.09 : 0.05,  s.w * 5))   // mid glow
+      streams.forEach(s => ribbon(s, dark ? 0.55 : 0.32,  s.w))       // core line
+      ctx.globalCompositeOperation = 'source-over'
+      t += 0.016
       animId = requestAnimationFrame(draw)
     }
     draw()
     return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize) }
   }, [dark])
-  return <canvas ref={canvasRef} style={{ position:'fixed', inset:0, zIndex:-1, pointerEvents:'none' }} />
+  return <canvas ref={canvasRef} style={{ position: 'fixed', inset: 0, zIndex: -1, pointerEvents: 'none', width: '100%', height: '100%' }} />
 }
+
 
 
 // ── Animated chat hook ───────────────────────────────────────────────────────
@@ -151,7 +181,7 @@ function useAnimatedDebate() {
   useEffect(() => {
     const cycle = () => {
       setVisible(0)
-      ;[1200, 3500, 6200].forEach((d, i) => setTimeout(() => setVisible(i + 1), d))
+        ;[1200, 3500, 6200].forEach((d, i) => setTimeout(() => setVisible(i + 1), d))
       setTimeout(cycle, 10000)
     }
     const t = setTimeout(cycle, 600)
@@ -162,7 +192,7 @@ function useAnimatedDebate() {
 
 // ── Animated routing hook ────────────────────────────────────────────────────
 function useAnimatedRouting() {
-  const [phase, setPhase] = useState<'idle'|'error'|'rerouting'|'done'>('idle')
+  const [phase, setPhase] = useState<'idle' | 'error' | 'rerouting' | 'done'>('idle')
   useEffect(() => {
     const cycle = () => {
       setPhase('idle')
@@ -183,7 +213,7 @@ function useArenaVisible() {
   useEffect(() => {
     const cycle = () => {
       setVisible(0)
-      ;[300, 700, 1200, 1800].forEach((d, i) => setTimeout(() => setVisible(i + 1), d))
+        ;[300, 700, 1200, 1800].forEach((d, i) => setTimeout(() => setVisible(i + 1), d))
       setTimeout(cycle, 6000)
     }
     const t = setTimeout(cycle, 200)
@@ -193,16 +223,16 @@ function useArenaVisible() {
 }
 
 // ── Arena model selection cycling ────────────────────────────────────────────
-const modelOptions = ['gemini-2.5-flash','llama-3.3-70b','mistral-large','qwen-2.5-72b','gpt-4o-mini','deepseek-r1','claude-3-5-sonnet','nvidia/llama-3.1-nemotron-70b']
+const modelOptions = ['gemini-2.5-flash', 'llama-3.3-70b', 'mistral-large', 'qwen-2.5-72b', 'gpt-4o-mini', 'deepseek-r1', 'claude-3-5-sonnet', 'nvidia/llama-3.1-nemotron-70b']
 function useArenaSelection() {
-  const [models, setModels] = useState(['gemini-2.5-flash','llama-3.3-70b','mistral-large','qwen-2.5-72b'])
-  const [selecting, setSelecting] = useState<number|null>(null)
+  const [models, setModels] = useState(['gemini-2.5-flash', 'llama-3.3-70b', 'mistral-large', 'qwen-2.5-72b'])
+  const [selecting, setSelecting] = useState<number | null>(null)
   useEffect(() => {
     const cycle = () => {
       const slot = Math.floor(Math.random() * 4)
       setSelecting(slot)
       setTimeout(() => {
-        setModels(prev => { const n=[...prev]; n[slot]=modelOptions[Math.floor(Math.random()*modelOptions.length)]; return n })
+        setModels(prev => { const n = [...prev]; n[slot] = modelOptions[Math.floor(Math.random() * modelOptions.length)]; return n })
         setSelecting(null)
       }, 900)
       setTimeout(cycle, 4500 + Math.random() * 2000)
@@ -214,16 +244,16 @@ function useArenaSelection() {
 }
 
 // ── Fallback order animation ──────────────────────────────────────────────────
-const allProviders = ['Google Gemini','Groq','Cerebras','SambaNova','Mistral','OpenRouter']
+const allProviders = ['Google Gemini', 'Groq', 'Cerebras', 'SambaNova', 'Mistral', 'OpenRouter']
 function useFallbackOrder() {
-  const [order, setOrder] = useState([0,1,2,3])
-  const [dragging, setDragging] = useState<number|null>(null)
+  const [order, setOrder] = useState([0, 1, 2, 3])
+  const [dragging, setDragging] = useState<number | null>(null)
   useEffect(() => {
     const cycle = () => {
-      const slot = Math.floor(Math.random()*3)+1
+      const slot = Math.floor(Math.random() * 3) + 1
       setDragging(slot)
       setTimeout(() => {
-        setOrder(prev => { const n=[...prev]; const tmp=n[slot]; n[slot]=n[slot-1]; n[slot-1]=tmp; return n })
+        setOrder(prev => { const n = [...prev]; const tmp = n[slot]; n[slot] = n[slot - 1]; n[slot - 1] = tmp; return n })
         setDragging(null)
       }, 800)
       setTimeout(cycle, 4000)
@@ -235,25 +265,25 @@ function useFallbackOrder() {
 }
 
 // ── Debate config cursor animation ───────────────────────────────────────────────
-const debateConfigFields = ['opening','rounds','judging','infavor','against','judge'] as const
+const debateConfigFields = ['opening', 'rounds', 'judging', 'infavor', 'against', 'judge'] as const
 type DebateField = typeof debateConfigFields[number]
-const judgeModels = ['gpt-4o-mini','gemini-2.0-flash','llama-3.3-70b','mistral-large']
-const favorModels = ['gemini-2.5-flash','claude-3-5-sonnet','qwen-2.5-72b','deepseek-r1']
-const againstModels = ['llama-3.3-70b','mistral-large','gpt-4o-mini','nvidia/nemotron-70b']
+const judgeModels = ['gpt-4o-mini', 'gemini-2.0-flash', 'llama-3.3-70b', 'mistral-large']
+const favorModels = ['gemini-2.5-flash', 'claude-3-5-sonnet', 'qwen-2.5-72b', 'deepseek-r1']
+const againstModels = ['llama-3.3-70b', 'mistral-large', 'gpt-4o-mini', 'nvidia/nemotron-70b']
 function useDebateConfig() {
-  const [activeField, setActiveField] = useState<DebateField|null>(null)
+  const [activeField, setActiveField] = useState<DebateField | null>(null)
   const [rounds, setRounds] = useState(3)
   const [judging, setJudging] = useState('Every Round')
   const [infavor, setInfavor] = useState('gemini-2.5-flash')
   const [against, setAgainst] = useState('llama-3.3-70b')
   const [judge, setJudge] = useState('gpt-4o-mini')
   useEffect(() => {
-    const seq: [DebateField, number, ()=>void][] = [
+    const seq: [DebateField, number, () => void][] = [
       ['rounds', 800, () => setRounds(r => r < 6 ? r + 1 : 2)],
       ['judging', 1600, () => setJudging(j => j === 'Every Round' ? 'At the End' : 'Every Round')],
-      ['infavor', 2600, () => setInfavor(favorModels[Math.floor(Math.random()*favorModels.length)])],
-      ['against', 3700, () => setAgainst(againstModels[Math.floor(Math.random()*againstModels.length)])],
-      ['judge', 4800, () => setJudge(judgeModels[Math.floor(Math.random()*judgeModels.length)])],
+      ['infavor', 2600, () => setInfavor(favorModels[Math.floor(Math.random() * favorModels.length)])],
+      ['against', 3700, () => setAgainst(againstModels[Math.floor(Math.random() * againstModels.length)])],
+      ['judge', 4800, () => setJudge(judgeModels[Math.floor(Math.random() * judgeModels.length)])],
     ]
     const cycle = () => {
       setActiveField(null)
@@ -296,7 +326,7 @@ function useCountUp(target: number, duration = 1200) {
 // \u2500\u2500 GitHub icon \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 const GitHubIcon = ({ size = 16 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/>
+    <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z" />
   </svg>
 )
 
@@ -396,8 +426,8 @@ function MockCard({ children, className = '' }: { children: React.ReactNode; cla
 }
 
 // ── Sun/Moon SVG icons ────────────────────────────────────────────────────────
-const SunIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.07-14.07 1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2m-4.93-7.07-1.41 1.41M6.34 17.66l-1.41 1.41"/></svg>)
-const MoonIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>)
+const SunIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2m-7.07-14.07 1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2m-4.93-7.07-1.41 1.41M6.34 17.66l-1.41 1.41" /></svg>)
+const MoonIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" /></svg>)
 
 // ── Landing Page ──────────────────────────────────────────────────────────────
 export default function LandingPage() {
@@ -418,7 +448,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen text-foreground relative">
       <style>{auroraCSS}</style>
-      <OceanBackground dark={dark} />
+      <GalacticBackground dark={dark} />
 
       {/* NAV */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur border-b border-border">
@@ -491,8 +521,8 @@ export default function LandingPage() {
       <div className="max-w-4xl mx-auto px-6 mb-8">
         <div className="grid grid-cols-3 divide-x divide-border rounded-2xl border border-border bg-card/60 backdrop-blur">
           {[{ ref: stat1.ref, val: `${stat1.val}+`, label: 'Models Available' },
-            { ref: stat2.ref, val: stat2.val >= 1000 ? '1B+' : `${stat2.val}M+`, label: 'Free Tokens / Month' },
-            { ref: stat3.ref, val: `${stat3.val}`, label: 'Free Providers' }].map(({ ref, val, label }) => (
+          { ref: stat2.ref, val: stat2.val >= 1000 ? '1B+' : `${stat2.val}M+`, label: 'Free Tokens / Month' },
+          { ref: stat3.ref, val: `${stat3.val}`, label: 'Free Providers' }].map(({ ref, val, label }) => (
             <div key={label} ref={ref} className="py-6 text-center stat-animate">
               <div className="text-3xl font-extrabold text-foreground stat-num">{val}</div>
               <div className="text-xs text-muted-foreground mt-1">{label}</div>
@@ -526,7 +556,7 @@ export default function LandingPage() {
               {chat.typing && (
                 <div className="flex justify-start animate-fade-up">
                   <div className="bg-muted/60 border border-border rounded-xl px-3 py-2 flex gap-1 items-center text-muted-foreground">
-                    <span className="typing-dot"/><span className="typing-dot"/><span className="typing-dot"/>
+                    <span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" />
                   </div>
                 </div>
               )}
@@ -549,12 +579,12 @@ export default function LandingPage() {
             {/* Model selectors row */}
             <div className="grid grid-cols-4 divide-x divide-border border-b border-border">
               {arenaSelection.models.map((m, i) => {
-                const colors=['text-blue-400','text-orange-400','text-purple-400','text-emerald-400']
+                const colors = ['text-blue-400', 'text-orange-400', 'text-purple-400', 'text-emerald-400']
                 const isSelecting = arenaSelection.selecting === i
                 return (
                   <div key={i} className={`px-2 py-2 text-[10px] font-semibold flex items-center gap-1 ${colors[i]} ${isSelecting ? 'bg-violet-500/10' : ''} transition-colors duration-300`}>
                     {isSelecting ? (
-                      <><span className="typing-dot"/><span className="typing-dot"/><span className="typing-dot"/></>
+                      <><span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" /></>
                     ) : (
                       <span className="model-tag truncate animate-drop-in">{m}</span>
                     )}
@@ -591,68 +621,61 @@ export default function LandingPage() {
         </div>
         <MockCard>
           <div className="grid md:grid-cols-[280px_1fr]">
-              <div className="border-r border-border p-5 space-y-4 bg-muted/20 dark:bg-white/[0.02] relative">
-                {/* Animated cursor ball */}
-                <div className={`absolute top-2 right-2 w-3 h-3 rounded-full border-2 border-border shadow transition-all duration-500 ${
-                  debateCfg.activeField ? 'bg-foreground scale-110 opacity-100' : 'bg-muted opacity-40 scale-75'
+            <div className="border-r border-border p-5 space-y-4 bg-muted/20 dark:bg-white/[0.02] relative">
+              {/* Animated cursor ball */}
+              <div className={`absolute top-2 right-2 w-3 h-3 rounded-full border-2 border-border shadow transition-all duration-500 ${debateCfg.activeField ? 'bg-foreground scale-110 opacity-100' : 'bg-muted opacity-40 scale-75'
                 }`} />
-                <div className="space-y-1">
-                  <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Topic</div>
-                  <div className="text-xs bg-background border border-border rounded-xl px-3 py-2 text-foreground">Should AI replace human creativity?</div>
-                </div>
-                <div className="space-y-1">
-                  <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Opening Player</div>
-                  <div className="text-xs bg-background border border-border rounded-xl px-3 py-2 text-foreground flex justify-between"><span>In Favor</span><span className="text-muted-foreground">▾</span></div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Rounds</div>
-                    <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground transition-all duration-300 ${
-                      debateCfg.activeField === 'rounds' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
-                    }`}>{debateCfg.rounds}</div>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Judging</div>
-                    <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${
-                      debateCfg.activeField === 'judging' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
-                    }`}><span>{debateCfg.judging}</span><span className="text-muted-foreground">▾</span></div>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <div className="text-[10px] font-semibold text-emerald-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"/>In Favor</div>
-                  <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${
-                    debateCfg.activeField === 'infavor' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
-                  }`}><span className="truncate">{debateCfg.infavor}</span><span className="text-muted-foreground ml-1">▾</span></div>
-                </div>
-                <div className="space-y-1">
-                  <div className="text-[10px] font-semibold text-rose-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block"/>Against</div>
-                  <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${
-                    debateCfg.activeField === 'against' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
-                  }`}><span className="truncate">{debateCfg.against}</span><span className="text-muted-foreground ml-1">▾</span></div>
-                </div>
-                <div className="space-y-1">
-                  <div className="text-[10px] font-semibold text-amber-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block"/>Judge</div>
-                  <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${
-                    debateCfg.activeField === 'judge' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
-                  }`}><span className="truncate">{debateCfg.judge}</span><span className="text-muted-foreground ml-1">▾</span></div>
-                </div>
-                <div className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-xs font-semibold rounded-xl px-4 py-2.5 text-center cursor-default">Start Debate Arena</div>
+              <div className="space-y-1">
+                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Topic</div>
+                <div className="text-xs bg-background border border-border rounded-xl px-3 py-2 text-foreground">Should AI replace human creativity?</div>
               </div>
+              <div className="space-y-1">
+                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Opening Player</div>
+                <div className="text-xs bg-background border border-border rounded-xl px-3 py-2 text-foreground flex justify-between"><span>In Favor</span><span className="text-muted-foreground">▾</span></div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Rounds</div>
+                  <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground transition-all duration-300 ${debateCfg.activeField === 'rounds' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
+                    }`}>{debateCfg.rounds}</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Judging</div>
+                  <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${debateCfg.activeField === 'judging' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
+                    }`}><span>{debateCfg.judging}</span><span className="text-muted-foreground">▾</span></div>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-[10px] font-semibold text-emerald-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />In Favor</div>
+                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${debateCfg.activeField === 'infavor' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
+                  }`}><span className="truncate">{debateCfg.infavor}</span><span className="text-muted-foreground ml-1">▾</span></div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-[10px] font-semibold text-rose-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block" />Against</div>
+                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${debateCfg.activeField === 'against' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
+                  }`}><span className="truncate">{debateCfg.against}</span><span className="text-muted-foreground ml-1">▾</span></div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-[10px] font-semibold text-amber-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />Judge</div>
+                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${debateCfg.activeField === 'judge' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
+                  }`}><span className="truncate">{debateCfg.judge}</span><span className="text-muted-foreground ml-1">▾</span></div>
+              </div>
+              <div className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-xs font-semibold rounded-xl px-4 py-2.5 text-center cursor-default">Start Debate Arena</div>
+            </div>
             {/* Transcript */}
             <div className="p-5 space-y-3">
               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Round 1 of 3</div>
               {debateMsgs.map((m, i) => i < debateVisible ? (
-                <div key={i} className={`rounded-xl border px-4 py-3 text-xs leading-relaxed animate-fade-up ${
-                  m.role === 'infavor' ? 'border-emerald-500/30 bg-emerald-500/5' :
-                  m.role === 'against' ? 'border-rose-500/30 bg-rose-500/5' :
-                  'border-amber-500/30 bg-amber-500/5'
-                }`}>
+                <div key={i} className={`rounded-xl border px-4 py-3 text-xs leading-relaxed animate-fade-up ${m.role === 'infavor' ? 'border-emerald-500/30 bg-emerald-500/5' :
+                    m.role === 'against' ? 'border-rose-500/30 bg-rose-500/5' :
+                      'border-amber-500/30 bg-amber-500/5'
+                  }`}>
                   <div className={`text-[10px] font-semibold mb-1 ${m.role === 'infavor' ? 'text-emerald-500' : m.role === 'against' ? 'text-rose-500' : 'text-amber-500'}`}>{m.label}</div>
                   {m.text}
                 </div>
               ) : i === debateVisible ? (
                 <div key={i} className="flex gap-1 px-4 py-3 text-muted-foreground animate-fade-up">
-                  <span className="typing-dot"/><span className="typing-dot"/><span className="typing-dot"/>
+                  <span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" />
                 </div>
               ) : null)}
             </div>
@@ -680,12 +703,11 @@ export default function LandingPage() {
                 <div key={i} className={`chain-row px-4 py-3.5 flex items-center gap-3 transition-colors duration-700 ${isDragging ? 'drag-hint' : ''} ${isRerouted ? 'bg-emerald-500/5' : ''}`}>
                   <span className="text-muted-foreground select-none text-sm">⠿</span>
                   <span className="text-xs text-muted-foreground w-4">{i + 1}</span>
-                  <span className={`w-2 h-2 rounded-full shrink-0 transition-colors duration-500 ${
-                    isRerouted ? 'bg-emerald-500 animate-pulse' :
-                    showError ? 'bg-red-500' :
-                    p.status === 'active' ? 'bg-emerald-500 animate-pulse' :
-                    'bg-slate-400'
-                  }`} />
+                  <span className={`w-2 h-2 rounded-full shrink-0 transition-colors duration-500 ${isRerouted ? 'bg-emerald-500 animate-pulse' :
+                      showError ? 'bg-red-500' :
+                        p.status === 'active' ? 'bg-emerald-500 animate-pulse' :
+                          'bg-slate-400'
+                    }`} />
                   <span className="text-xs font-medium text-foreground flex-1">{p.name}</span>
                   {isDragging && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-500 animate-fade-up">Moving ↑</span>}
                   {showError && !isDragging && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 animate-fade-up">429</span>}
@@ -694,14 +716,13 @@ export default function LandingPage() {
                 </div>
               )
             })}
-            <div className={`px-4 py-3 text-[10px] transition-all duration-700 ${
-              routingPhase === 'rerouting' || routingPhase === 'done'
+            <div className={`px-4 py-3 text-[10px] transition-all duration-700 ${routingPhase === 'rerouting' || routingPhase === 'done'
                 ? 'text-emerald-500 bg-emerald-500/5'
                 : 'text-muted-foreground bg-muted/20'
-            }`}>
+              }`}>
               {routingPhase === 'idle' ? '● Monitoring provider health...' :
-               routingPhase === 'error' ? '⚠ Groq returned 429 — initiating failover...' :
-               '✓ Request auto-routed to Cerebras after Groq 429'}
+                routingPhase === 'error' ? '⚠ Groq returned 429 — initiating failover...' :
+                  '✓ Request auto-routed to Cerebras after Groq 429'}
             </div>
           </MockCard>
         </div>
@@ -721,9 +742,8 @@ export default function LandingPage() {
                 <div key={provIdx} className={`chain-row px-4 py-3.5 flex items-center gap-3 ${isDragging ? 'drag-hint' : ''}`}>
                   <span className="text-muted-foreground cursor-grab text-sm select-none">⠿</span>
                   <span className="text-xs text-muted-foreground w-4">{rowIdx + 1}</span>
-                  <span className={`w-2 h-2 rounded-full shrink-0 ${
-                    rowIdx === 0 ? 'bg-emerald-500' : 'bg-slate-400'
-                  }`} />
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${rowIdx === 0 ? 'bg-emerald-500' : 'bg-slate-400'
+                    }`} />
                   <span className="text-xs font-medium text-foreground flex-1 animate-drop-in">{allProviders[provIdx]}</span>
                   {rowIdx === 0 && <span className="text-[10px] bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full font-semibold">Primary</span>}
                   {isDragging && <span className="text-[10px] bg-violet-500/10 text-violet-500 px-2 py-0.5 rounded-full font-semibold animate-fade-up">Moving ↑</span>}
