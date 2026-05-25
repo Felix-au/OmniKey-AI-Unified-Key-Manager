@@ -360,6 +360,25 @@ Read the entire debate history. Provide a detailed critique, declare a final win
                   />
                 </div>
 
+                {/* Opening Player — full row */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Opening Player</Label>
+                  <Select
+                    value={opens}
+                    onValueChange={(v) => { if (v === 'infavor' || v === 'against') setOpens(v) }}
+                    disabled={isDebating}
+                  >
+                    <SelectTrigger className="h-8 text-xs rounded-xl w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="infavor">In Favor</SelectItem>
+                      <SelectItem value="against">Against</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Rounds + Judging Mode — half row each */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold">Rounds ({rounds})</Label>
@@ -375,38 +394,21 @@ Read the entire debate history. Provide a detailed critique, declare a final win
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Opening Player</Label>
+                    <Label className="text-xs font-semibold">Judging Mode</Label>
                     <Select
-                      value={opens}
-                      onValueChange={(v) => { if (v === 'infavor' || v === 'against') setOpens(v) }}
+                      value={judgingInterval}
+                      onValueChange={(v) => { if (v === 'every_round' || v === 'at_end') setJudgingInterval(v) }}
                       disabled={isDebating}
                     >
                       <SelectTrigger className="h-8 text-xs rounded-xl">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="infavor">In Favor</SelectItem>
-                        <SelectItem value="against">Against</SelectItem>
+                        <SelectItem value="every_round">Every Round</SelectItem>
+                        <SelectItem value="at_end">At the End</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Judging Mode</Label>
-                  <Select
-                    value={judgingInterval}
-                    onValueChange={(v) => { if (v === 'every_round' || v === 'at_end') setJudgingInterval(v) }}
-                    disabled={isDebating}
-                  >
-                    <SelectTrigger className="h-8 text-xs rounded-xl">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="every_round">Judge Every Round</SelectItem>
-                      <SelectItem value="at_end">Judge Only at the End</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
               </div>
             </div>
@@ -414,7 +416,8 @@ Read the entire debate history. Provide a detailed critique, declare a final win
             <div className="border-t border-muted/50 pt-4 space-y-3">
               <h3 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground/80 mb-1">Participants</h3>
               
-              <div className="space-y-3">
+              {/* In Favor + Against — half row each */}
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -422,7 +425,7 @@ Read the entire debate history. Provide a detailed critique, declare a final win
                   </Label>
                   <Select value={infavorModel} onValueChange={(v) => { if (v) setInfavorModel(v) }} disabled={isDebating}>
                     <SelectTrigger className="h-8 text-xs rounded-xl">
-                      <SelectValue placeholder="Select In Favor Model" />
+                      <SelectValue placeholder="In Favor Model" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="auto">Auto (Smart Routing)</SelectItem>
@@ -440,7 +443,7 @@ Read the entire debate history. Provide a detailed critique, declare a final win
                   </Label>
                   <Select value={againstModel} onValueChange={(v) => { if (v) setAgainstModel(v) }} disabled={isDebating}>
                     <SelectTrigger className="h-8 text-xs rounded-xl">
-                      <SelectValue placeholder="Select Against Model" />
+                      <SelectValue placeholder="Against Model" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="auto">Auto (Smart Routing)</SelectItem>
@@ -450,24 +453,25 @@ Read the entire debate history. Provide a detailed critique, declare a final win
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
 
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                    Moderator: Judge Model
-                  </Label>
-                  <Select value={judgeModel} onValueChange={(v) => { if (v) setJudgeModel(v) }} disabled={isDebating}>
-                    <SelectTrigger className="h-8 text-xs rounded-xl">
-                      <SelectValue placeholder="Select Judge Model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="auto">Auto (Smart Routing)</SelectItem>
-                      {availableModels.map(m => (
-                        <SelectItem key={m.modelDbId} value={m.modelId}>{m.displayName}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              {/* Judge — full row */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                  Moderator: Judge Model
+                </Label>
+                <Select value={judgeModel} onValueChange={(v) => { if (v) setJudgeModel(v) }} disabled={isDebating}>
+                  <SelectTrigger className="h-8 text-xs rounded-xl w-full">
+                    <SelectValue placeholder="Select Judge Model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">Auto (Smart Routing)</SelectItem>
+                    {availableModels.map(m => (
+                      <SelectItem key={m.modelDbId} value={m.modelId}>{m.displayName}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
