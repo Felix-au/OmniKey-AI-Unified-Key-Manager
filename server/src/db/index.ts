@@ -52,6 +52,7 @@ export function initDb(dbPath?: string): Database.Database {
   migrateModelsV13(db);
   migrateModelsV14(db);
   ensureUnifiedKey(db);
+  ensureUnifiedGeminiKey(db);
   seedAdmin(db);
 
   // Sync global disabled status to fallback_config once
@@ -1280,9 +1281,24 @@ function ensureUnifiedKey(db: Database.Database) {
   }
 }
 
+function ensureUnifiedGeminiKey(db: Database.Database) {
+  const existing = db.prepare("SELECT value FROM settings WHERE key = 'unified_gemini_api_key'").get() as { value: string } | undefined;
+  if (!existing) {
+    const key = `omnikey-g-${crypto.randomBytes(24).toString('hex')}`;
+    db.prepare("INSERT INTO settings (key, value) VALUES ('unified_gemini_api_key', ?)").run(key);
+    console.log(`\n  Your unified Gemini API key: ${key}\n`);
+  }
+}
+
 export function getUnifiedApiKey(): string {
   const db = getDb();
   const row = db.prepare("SELECT value FROM settings WHERE key = 'unified_api_key'").get() as { value: string };
+  return row.value;
+}
+
+export function getUnifiedGeminiApiKey(): string {
+  const db = getDb();
+  const row = db.prepare("SELECT value FROM settings WHERE key = 'unified_gemini_api_key'").get() as { value: string };
   return row.value;
 }
 
@@ -1290,5 +1306,12 @@ export function regenerateUnifiedKey(): string {
   const db = getDb();
   const key = `omnikey-${crypto.randomBytes(24).toString('hex')}`;
   db.prepare("UPDATE settings SET value = ? WHERE key = 'unified_api_key'").run(key);
+  return key;
+}
+
+export function regenerateUnifiedGeminiKey(): string {
+  const db = getDb();
+  const key = `omnikey-g-${crypto.randomBytes(24).toString('hex')}`;
+  db.prepare("UPDATE settings SET value = ? WHERE key = 'unified_gemini_api_key'").run(key);
   return key;
 }
