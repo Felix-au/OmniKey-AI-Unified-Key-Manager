@@ -89,7 +89,7 @@ function OceanBackground({ dark }: { dark: boolean }) {
     ]
     const waves = dark ? darkWaves : lightWaves
     // 45 particles with per-particle random params
-    const particles = Array.from({ length: dark ? 45 : 50 }, () => ({
+    const particles = Array.from({ length: dark ? 45 : 55 }, () => ({
       x: Math.random(), y: 0.3 + Math.random() * 0.7,
       r: 1.2 + Math.random() * 2.8,
       speed: 0.00008 + Math.random() * 0.00014,
@@ -156,9 +156,9 @@ function OceanBackground({ dark }: { dark: boolean }) {
         } else {
           // Silver glow + black core
           const g = ctx.createRadialGradient(px, py, 0, px, py, pt.r * 3.5)
-          g.addColorStop(0,   `rgba(220,220,230,${a})`)
+          g.addColorStop(0, `rgba(220,220,230,${a})`)
           g.addColorStop(0.4, `rgba(160,165,175,${a * 0.5})`)
-          g.addColorStop(1,   'rgba(100,105,115,0)')
+          g.addColorStop(1, 'rgba(100,105,115,0)')
           ctx.beginPath(); ctx.arc(px, py, pt.r * 3.5, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill()
           // Black core
           ctx.beginPath(); ctx.arc(px, py, pt.r * 0.6, 0, Math.PI * 2); ctx.fillStyle = `rgba(5,5,8,${Math.min(a * 1.4, 0.95)})`; ctx.fill()
@@ -268,7 +268,6 @@ function useArenaSelection() {
 }
 
 // ── Fallback order animation ──────────────────────────────────────────────────
-const allProviders = ['Google Gemini', 'Groq', 'Cerebras', 'SambaNova', 'Mistral', 'OpenRouter']
 function useFallbackOrder() {
   const [order, setOrder] = useState([0, 1, 2, 3])
   const [dragging, setDragging] = useState<number | null>(null)
