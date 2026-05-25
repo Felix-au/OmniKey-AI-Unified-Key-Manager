@@ -45,7 +45,7 @@ export function ConfirmationModal({
       />
       
       {/* Content wrapper */}
-      <div className="relative z-50 w-full max-w-md rounded-lg border bg-card p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200 dark:bg-zinc-900 dark:border-zinc-800">
+      <div className="relative z-50 w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200">
         <h3 className="text-lg font-semibold leading-none tracking-tight text-foreground mb-2">
           {title}
         </h3>
