@@ -49,111 +49,196 @@ const auroraCSS = `
 `
 
 // ── Ocean wave background ─────────────────────────────────────────────────────
-function GalacticBackground({ dark }: { dark: boolean }) {
+function OceanBackground({ dark }: { dark: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const mouseRef  = useRef({ x: 0.5, y: 0.5, tx: 0.5, ty: 0.5 })
+  const scrollRef = useRef({ vel: 0, last: 0 })
+
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
     let animId: number
-    let t = 0
+    let phase = 0
+
+    // ── Event listeners ──────────────────────────────────────────────────────
+    const onMouseMove = (e: MouseEvent) => {
+      mouseRef.current.tx = e.clientX / window.innerWidth
+      mouseRef.current.ty = e.clientY / window.innerHeight
+    }
+    const onScroll = () => {
+      const dy = window.scrollY - scrollRef.current.last
+      scrollRef.current.vel = Math.max(-1, Math.min(1, dy * 0.06))
+      scrollRef.current.last = window.scrollY
+    }
     const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight }
     resize()
     window.addEventListener('resize', resize)
-    // Star field for dark mode
-    const stars = Array.from({ length: 200 }, () => ({
-      x: Math.random(), y: Math.random(),
-      r: Math.random() * 1.3 + 0.15,
-      tw: Math.random() * Math.PI * 2,
-      sp: 0.012 + Math.random() * 0.04,
-    }))
-    // Galactic ribbon streams: f1/f2 control x sweep, g1/g2 control y oscillation
-    const DS = [
-      { f1:1.2,f2:2.3,g1:0.9,g2:1.7,sp:0.28,ph:0.0,rgb:'139,92,246',w:2.5 },
-      { f1:0.8,f2:1.5,g1:1.3,g2:2.1,sp:0.20,ph:1.1,rgb:'99,102,241',w:3.5 },
-      { f1:1.7,f2:0.6,g1:0.7,g2:1.4,sp:0.35,ph:2.2,rgb:'56,189,248',w:1.8 },
-      { f1:0.5,f2:2.8,g1:1.6,g2:0.8,sp:0.18,ph:3.3,rgb:'168,85,247',w:4.0 },
-      { f1:2.1,f2:1.1,g1:2.4,g2:0.5,sp:0.42,ph:4.4,rgb:'34,211,238',w:1.5 },
-      { f1:1.4,f2:3.2,g1:0.6,g2:2.9,sp:0.22,ph:5.5,rgb:'167,139,250',w:2.0 },
-      { f1:0.9,f2:1.8,g1:1.1,g2:3.3,sp:0.31,ph:0.7,rgb:'59,130,246',w:2.8 },
-    ]
-    const LS = [
-      { f1:1.2,f2:2.3,g1:0.9,g2:1.7,sp:0.28,ph:0.0,rgb:'139,92,246',w:2.5 },
-      { f1:0.8,f2:1.5,g1:1.3,g2:2.1,sp:0.20,ph:1.1,rgb:'99,102,241',w:3.5 },
-      { f1:1.7,f2:0.6,g1:0.7,g2:1.4,sp:0.35,ph:2.2,rgb:'14,165,233',w:1.8 },
-      { f1:0.5,f2:2.8,g1:1.6,g2:0.8,sp:0.18,ph:3.3,rgb:'168,85,247',w:4.0 },
-      { f1:2.1,f2:1.1,g1:2.4,g2:0.5,sp:0.42,ph:4.4,rgb:'236,72,153',w:1.5 },
-      { f1:1.4,f2:3.2,g1:0.6,g2:2.9,sp:0.22,ph:5.5,rgb:'124,58,237',w:2.0 },
-      { f1:0.9,f2:1.8,g1:1.1,g2:3.3,sp:0.31,ph:0.7,rgb:'59,130,246',w:2.8 },
-    ]
-    const streams = dark ? DS : LS
-    type S = typeof DS[0]
-    const ribbon = (s: S, opacity: number, lw: number) => {
-      const W = canvas.width, H = canvas.height
-      ctx.beginPath()
-      for (let i = 0; i <= 90; i++) {
-        const u = i / 90
-        const px = (u + 0.5 * Math.sin(u * Math.PI * s.f2 + t * s.sp * 0.7 + s.ph)) * W
-        const py = (0.5
-          + 0.38 * Math.sin(u * Math.PI * s.f1 + t * s.sp + s.ph)
-          + 0.18 * Math.sin(u * Math.PI * s.g1 + t * s.sp * 1.4 + s.ph * 1.3)
-          + 0.08 * Math.sin(u * Math.PI * s.g2 + t * s.sp * 0.6 + s.ph * 0.7)
-        ) * H
-        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py)
-      }
-      ctx.strokeStyle = `rgba(${s.rgb},${opacity})`
-      ctx.lineWidth = lw
-      ctx.shadowColor = `rgba(${s.rgb},1)`
-      ctx.shadowBlur = dark ? 24 : 16
-      ctx.stroke()
-      ctx.shadowBlur = 0
+    window.addEventListener('mousemove', onMouseMove, { passive: true })
+    window.addEventListener('scroll', onScroll, { passive: true })
+
+    // ── Wave definitions (random initial phases) ─────────────────────────────
+    const seed = () => Math.random()
+    type Wave = {
+      baseAmp: number; amp: number; dAmp: number
+      freq: number; dFreq: number
+      speed: number; dSpeed: number
+      phase: number; yBase: number
+      rgb: [number,number,number]; alpha: number
+      glowRgb: [number,number,number]
     }
+    const mkWaves = (): Wave[] => dark ? [
+      { baseAmp:85, amp:85, dAmp:0, freq:0.0042, dFreq:0, speed:0.006, dSpeed:0, phase:seed()*6.28, yBase:0.36, rgb:[10,18,60],   alpha:0.92, glowRgb:[99,102,241]  },
+      { baseAmp:70, amp:70, dAmp:0, freq:0.0065, dFreq:0, speed:0.010, dSpeed:0, phase:seed()*6.28, yBase:0.47, rgb:[20,35,100],  alpha:0.78, glowRgb:[59,130,246]  },
+      { baseAmp:60, amp:60, dAmp:0, freq:0.0075, dFreq:0, speed:0.014, dSpeed:0, phase:seed()*6.28, yBase:0.56, rgb:[29,56,130],  alpha:0.62, glowRgb:[96,165,250]  },
+      { baseAmp:50, amp:50, dAmp:0, freq:0.0095, dFreq:0, speed:0.019, dSpeed:0, phase:seed()*6.28, yBase:0.65, rgb:[37,99,235],  alpha:0.45, glowRgb:[147,197,253] },
+      { baseAmp:38, amp:38, dAmp:0, freq:0.0120, dFreq:0, speed:0.026, dSpeed:0, phase:seed()*6.28, yBase:0.73, rgb:[99,102,241], alpha:0.32, glowRgb:[196,181,253] },
+    ] : [
+      { baseAmp:85, amp:85, dAmp:0, freq:0.0042, dFreq:0, speed:0.006, dSpeed:0, phase:seed()*6.28, yBase:0.36, rgb:[186,230,253],alpha:0.88, glowRgb:[125,211,252] },
+      { baseAmp:70, amp:70, dAmp:0, freq:0.0065, dFreq:0, speed:0.010, dSpeed:0, phase:seed()*6.28, yBase:0.47, rgb:[125,211,252],alpha:0.72, glowRgb:[56,189,248]  },
+      { baseAmp:60, amp:60, dAmp:0, freq:0.0075, dFreq:0, speed:0.014, dSpeed:0, phase:seed()*6.28, yBase:0.56, rgb:[56,189,248], alpha:0.56, glowRgb:[14,165,233]  },
+      { baseAmp:50, amp:50, dAmp:0, freq:0.0095, dFreq:0, speed:0.019, dSpeed:0, phase:seed()*6.28, yBase:0.65, rgb:[14,165,233], alpha:0.40, glowRgb:[2,132,199]   },
+      { baseAmp:38, amp:38, dAmp:0, freq:0.0120, dFreq:0, speed:0.026, dSpeed:0, phase:seed()*6.28, yBase:0.73, rgb:[2,132,199],  alpha:0.28, glowRgb:[3,105,161]   },
+    ]
+    const waves = mkWaves()
+
+    // ── Sparkle particles ────────────────────────────────────────────────────
+    type Sparkle = { x: number; y: number; life: number; maxLife: number; r: number }
+    const sparkles: Sparkle[] = []
+    const spawnSparkle = (x: number, y: number) => {
+      if (sparkles.length > 60) return
+      sparkles.push({ x, y, life: 0, maxLife: 40 + Math.random() * 30, r: 1 + Math.random() * 2 })
+    }
+
+    // ── Draw loop ────────────────────────────────────────────────────────────
     const draw = () => {
       const W = canvas.width, H = canvas.height
-      ctx.globalCompositeOperation = 'source-over'
-      // Radial base gradient
-      const bg = ctx.createRadialGradient(W * 0.5, H * 0.38, 0, W * 0.5, H * 0.5, Math.max(W, H) * 0.85)
+      const m  = mouseRef.current
+      const sv = scrollRef.current
+
+      // Smooth mouse tracking
+      m.x += (m.tx - m.x) * 0.06
+      m.y += (m.ty - m.y) * 0.06
+      // Decay scroll velocity
+      sv.vel *= 0.92
+
+      // Sky gradient
+      const grad = ctx.createLinearGradient(0, 0, 0, H)
       if (dark) {
-        bg.addColorStop(0, '#0f0a20')
-        bg.addColorStop(0.55, '#070412')
-        bg.addColorStop(1, '#020208')
+        grad.addColorStop(0, '#010b19'); grad.addColorStop(0.55, '#020e22'); grad.addColorStop(1, '#0b1a36')
       } else {
-        bg.addColorStop(0, '#f8f4ff')
-        bg.addColorStop(0.55, '#ede6ff')
-        bg.addColorStop(1, '#ddd0ff')
+        grad.addColorStop(0, '#eaf6ff'); grad.addColorStop(0.55, '#c8eaff'); grad.addColorStop(1, '#85d0f5')
       }
-      ctx.fillStyle = bg
+      ctx.fillStyle = grad
       ctx.fillRect(0, 0, W, H)
-      // Stars
-      if (dark) {
-        ctx.globalCompositeOperation = 'lighter'
-        stars.forEach(s => {
-          const a = 0.35 + 0.65 * Math.abs(Math.sin(t * s.sp + s.tw))
-          ctx.beginPath()
-          ctx.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2)
-          ctx.fillStyle = `rgba(255,255,255,${a * 0.65})`
-          ctx.fill()
-        })
+
+      // Draw each wave
+      waves.forEach((w, wi) => {
+        // Slowly drift amp / freq / speed for variety
+        w.dAmp   += (Math.random() - 0.5) * 0.3;   w.dAmp   *= 0.95
+        w.dFreq  += (Math.random() - 0.5) * 0.000003; w.dFreq  *= 0.95
+        w.dSpeed += (Math.random() - 0.5) * 0.0002; w.dSpeed *= 0.95
+        w.amp   = Math.max(20, Math.min(120, w.baseAmp + w.dAmp))
+        w.freq  = Math.max(0.002, Math.min(0.018, w.freq + w.dFreq))
+        w.speed = Math.max(0.003, Math.min(0.04, w.speed + w.dSpeed))
+
+        const t = phase * w.speed + w.phase
+        // Mouse influence: cursor Y stretches amplitude, cursor X drifts phase
+        const mouseAmpMod   = 1 + (m.y - 0.5) * 0.8
+        const mousePhaseOff = (m.x - 0.5) * 2.2
+        // Scroll turbulence
+        const scrollMod = 1 + Math.abs(sv.vel) * 3.5
+        const amp = w.amp * mouseAmpMod * scrollMod
+
+        // Build wave points
+        const pts: {x:number,y:number}[] = []
+        for (let x = 0; x <= W + 2; x += 3) {
+          const nx = x / W
+          // Gaussian ripple at cursor X, depth based on cursor Y
+          const dx = nx - m.x
+          const ripple = Math.exp(-dx * dx * 10) * (m.y - 0.5) * amp * 1.6
+          const scrollWobble = sv.vel * 28 * Math.sin(x * 0.007 + t * 1.2)
+          const y = w.yBase * H
+            + Math.sin(x * w.freq + t + mousePhaseOff) * amp
+            + Math.sin(x * w.freq * 1.9 + t * 1.5 + wi) * amp * 0.28
+            + Math.sin(x * w.freq * 0.55 + t * 0.65) * amp * 0.18
+            + ripple + scrollWobble
+          pts.push({ x, y })
+        }
+
+        // Fill wave body
+        ctx.beginPath()
+        ctx.moveTo(0, H)
+        pts.forEach(p => ctx.lineTo(p.x, p.y))
+        ctx.lineTo(W, H)
+        ctx.closePath()
+        ctx.fillStyle = `rgba(${w.rgb.join(',')},${w.alpha})`
+        ctx.fill()
+
+        // Glow crest line
+        const glowAlpha = dark ? 0.85 : 0.55
+        const glowWidth = dark ? 2.5 : 1.8
+        const blurAmt   = dark ? 14 : 8
+        const glowGrad  = ctx.createLinearGradient(0, 0, W, 0)
+        glowGrad.addColorStop(0,   'transparent')
+        glowGrad.addColorStop(0.2, `rgba(${w.glowRgb.join(',')},${glowAlpha * 0.4})`)
+        glowGrad.addColorStop(0.5, `rgba(${w.glowRgb.join(',')},${glowAlpha})`)
+        glowGrad.addColorStop(0.8, `rgba(${w.glowRgb.join(',')},${glowAlpha * 0.4})`)
+        glowGrad.addColorStop(1,   'transparent')
+        ctx.save()
+        ctx.shadowBlur  = blurAmt
+        ctx.shadowColor = `rgba(${w.glowRgb.join(',')},0.9)`
+        ctx.strokeStyle = glowGrad
+        ctx.lineWidth   = glowWidth
+        ctx.beginPath()
+        pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y))
+        ctx.stroke()
+        // Second thinner highlight for shimmer
+        ctx.shadowBlur  = blurAmt * 1.8
+        ctx.lineWidth   = glowWidth * 0.5
+        ctx.stroke()
+        ctx.restore()
+
+        // Spawn sparkles on the top visible wave crest (layer 3+)
+        if (wi >= 2 && dark && Math.random() < 0.12) {
+          const si = Math.floor(Math.random() * pts.length)
+          spawnSparkle(pts[si].x, pts[si].y - 3)
+        }
+      })
+
+      // Draw & age sparkles
+      for (let i = sparkles.length - 1; i >= 0; i--) {
+        const s = sparkles[i]
+        s.life++
+        if (s.life >= s.maxLife) { sparkles.splice(i, 1); continue }
+        const progress = s.life / s.maxLife
+        const alpha = Math.sin(progress * Math.PI)
+        ctx.save()
+        ctx.shadowBlur  = 8
+        ctx.shadowColor = dark ? '#93c5fd' : '#38bdf8'
+        ctx.fillStyle   = dark
+          ? `rgba(147,197,253,${alpha * 0.9})`
+          : `rgba(56,189,248,${alpha * 0.7})`
+        ctx.beginPath()
+        ctx.arc(s.x, s.y - progress * 12, s.r * (1 - progress * 0.5), 0, Math.PI * 2)
+        ctx.fill()
+        ctx.restore()
       }
-      // Ribbons — 3-pass bloom
-      ctx.globalCompositeOperation = 'lighter'
-      ctx.lineCap = 'round'
-      ctx.lineJoin = 'round'
-      streams.forEach(s => ribbon(s, dark ? 0.035 : 0.02, s.w * 16))  // outer bloom
-      streams.forEach(s => ribbon(s, dark ? 0.09 : 0.05,  s.w * 5))   // mid glow
-      streams.forEach(s => ribbon(s, dark ? 0.55 : 0.32,  s.w))       // core line
-      ctx.globalCompositeOperation = 'source-over'
-      t += 0.016
+
+      phase += 0.8
       animId = requestAnimationFrame(draw)
     }
     draw()
-    return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize) }
+    return () => {
+      cancelAnimationFrame(animId)
+      window.removeEventListener('resize', resize)
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('scroll', onScroll)
+    }
   }, [dark])
   return <canvas ref={canvasRef} style={{ position: 'fixed', inset: 0, zIndex: -1, pointerEvents: 'none', width: '100%', height: '100%' }} />
 }
-
-
 
 // ── Animated chat hook ───────────────────────────────────────────────────────
 function useAnimatedChat() {
@@ -448,7 +533,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen text-foreground relative">
       <style>{auroraCSS}</style>
-      <GalacticBackground dark={dark} />
+      <OceanBackground dark={dark} />
 
       {/* NAV */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur border-b border-border">
