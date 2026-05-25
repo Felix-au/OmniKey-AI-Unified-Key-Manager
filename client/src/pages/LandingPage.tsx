@@ -70,22 +70,22 @@ function OceanBackground({ dark }: { dark: boolean }) {
     window.addEventListener('resize', resize)
     // Wave layers: noiseA=random amp range, noiseF/noiseS=slow beat freqs
     const darkWaves = [
-      { amp:80, freq:0.0045, speed:0.008, yBase:0.42, color:'rgba(15,23,71,0.9)',    noiseA:22, noiseF:0.00031, noiseS:0.00019 },
-      { amp:65, freq:0.007,  speed:0.013, yBase:0.52, color:'rgba(23,37,110,0.75)',  noiseA:18, noiseF:0.00042, noiseS:0.00024 },
-      { amp:55, freq:0.006,  speed:0.018, yBase:0.60, color:'rgba(30,58,138,0.65)',  noiseA:14, noiseF:0.00038, noiseS:0.00031 },
-      { amp:45, freq:0.009,  speed:0.024, yBase:0.68, color:'rgba(37,99,235,0.40)',  noiseA:12, noiseF:0.00055, noiseS:0.00027 },
-      { amp:35, freq:0.011,  speed:0.032, yBase:0.76, color:'rgba(99,102,241,0.30)', noiseA:10, noiseF:0.00061, noiseS:0.00035 },
+      { amp:68, freq:0.0045, speed:0.008, yBase:0.42, color:'rgba(15,23,71,0.9)',    noiseA:19, noiseF:0.00031, noiseS:0.00019 },
+      { amp:55, freq:0.007,  speed:0.013, yBase:0.52, color:'rgba(23,37,110,0.75)',  noiseA:15, noiseF:0.00042, noiseS:0.00024 },
+      { amp:47, freq:0.006,  speed:0.018, yBase:0.60, color:'rgba(30,58,138,0.65)',  noiseA:12, noiseF:0.00038, noiseS:0.00031 },
+      { amp:38, freq:0.009,  speed:0.024, yBase:0.68, color:'rgba(37,99,235,0.40)',  noiseA:10, noiseF:0.00055, noiseS:0.00027 },
+      { amp:30, freq:0.011,  speed:0.032, yBase:0.76, color:'rgba(99,102,241,0.30)', noiseA:9,  noiseF:0.00061, noiseS:0.00035 },
     ]
     const lightWaves = [
-      { amp:80, freq:0.0045, speed:0.008, yBase:0.42, color:'rgba(186,230,253,0.85)', noiseA:22, noiseF:0.00031, noiseS:0.00019 },
-      { amp:65, freq:0.007,  speed:0.013, yBase:0.52, color:'rgba(125,211,252,0.70)', noiseA:18, noiseF:0.00042, noiseS:0.00024 },
-      { amp:55, freq:0.006,  speed:0.018, yBase:0.60, color:'rgba(56,189,248,0.55)',  noiseA:14, noiseF:0.00038, noiseS:0.00031 },
-      { amp:45, freq:0.009,  speed:0.024, yBase:0.68, color:'rgba(14,165,233,0.40)',  noiseA:12, noiseF:0.00055, noiseS:0.00027 },
-      { amp:35, freq:0.011,  speed:0.032, yBase:0.76, color:'rgba(2,132,199,0.30)',   noiseA:10, noiseF:0.00061, noiseS:0.00035 },
+      { amp:68, freq:0.0045, speed:0.008, yBase:0.42, color:'rgba(186,230,253,0.85)', noiseA:19, noiseF:0.00031, noiseS:0.00019 },
+      { amp:55, freq:0.007,  speed:0.013, yBase:0.52, color:'rgba(125,211,252,0.70)', noiseA:15, noiseF:0.00042, noiseS:0.00024 },
+      { amp:47, freq:0.006,  speed:0.018, yBase:0.60, color:'rgba(56,189,248,0.55)',  noiseA:12, noiseF:0.00038, noiseS:0.00031 },
+      { amp:38, freq:0.009,  speed:0.024, yBase:0.68, color:'rgba(14,165,233,0.40)',  noiseA:10, noiseF:0.00055, noiseS:0.00027 },
+      { amp:30, freq:0.011,  speed:0.032, yBase:0.76, color:'rgba(2,132,199,0.30)',   noiseA:9,  noiseF:0.00061, noiseS:0.00035 },
     ]
     const waves = dark ? darkWaves : lightWaves
     // 45 particles with per-particle random params
-    const particles = Array.from({ length: 36 }, () => ({
+    const particles = Array.from({ length: 45 }, () => ({
       x: Math.random(), y: 0.3 + Math.random() * 0.7,
       r: 1.2 + Math.random() * 2.8,
       speed: 0.00008 + Math.random() * 0.00014,
@@ -122,9 +122,9 @@ function OceanBackground({ dark }: { dark: boolean }) {
       particles.forEach(pt => {
         pt.y -= pt.speed; pt.wobble += pt.wobbleSpeed; pt.phase += pt.twinkleSpeed
         if (pt.y < -0.05) { pt.y = 1.05; pt.x = Math.random() }
-        // Subtle cursor pull
-        pt.x += (mouse.x - pt.x) * 0.0006
-        pt.y += (mouse.y - pt.y) * 0.0004
+        // Cursor pull — stronger influence
+        pt.x += (mouse.x - pt.x) * 0.0022
+        pt.y += (mouse.y - pt.y) * 0.0015
         const px = pt.x * W + Math.sin(pt.wobble) * 6
         const py = pt.y * H
         const a = pt.alpha * (0.5 + 0.5 * Math.sin(pt.phase))
@@ -134,10 +134,16 @@ function OceanBackground({ dark }: { dark: boolean }) {
           ctx.beginPath(); ctx.arc(px, py, pt.r * 3.5, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill()
           ctx.beginPath(); ctx.arc(px, py, pt.r * 0.6, 0, Math.PI * 2); ctx.fillStyle = `rgba(230,248,255,${Math.min(a*1.4,0.9)})`; ctx.fill()
         } else {
-          const g = ctx.createRadialGradient(px, py, 0, px, py, pt.r * 3.5)
-          g.addColorStop(0, `rgba(15,30,80,${a*0.7})`); g.addColorStop(0.4, `rgba(30,58,138,${a*0.35})`); g.addColorStop(1, 'rgba(30,58,138,0)')
-          ctx.beginPath(); ctx.arc(px, py, pt.r * 3.5, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill()
-          ctx.beginPath(); ctx.arc(px, py, pt.r * 0.5, 0, Math.PI * 2); ctx.fillStyle = `rgba(10,20,60,${Math.min(a*1.2,0.6)})`; ctx.fill()
+          // Black-light glow: large dark halo + bright navy core
+          const glowR = pt.r * 6
+          const g = ctx.createRadialGradient(px, py, 0, px, py, glowR)
+          g.addColorStop(0, `rgba(5,10,40,${Math.min(a*0.9,0.75)})`)
+          g.addColorStop(0.3, `rgba(10,20,80,${a*0.55})`)
+          g.addColorStop(0.65, `rgba(20,40,120,${a*0.25})`)
+          g.addColorStop(1, 'rgba(30,58,138,0)')
+          ctx.beginPath(); ctx.arc(px, py, glowR, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill()
+          // Bright hard core
+          ctx.beginPath(); ctx.arc(px, py, pt.r * 0.55, 0, Math.PI * 2); ctx.fillStyle = `rgba(2,8,30,${Math.min(a*1.6,0.85)})`; ctx.fill()
         }
       })
       phase += 0.6; t++
