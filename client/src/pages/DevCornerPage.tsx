@@ -25,9 +25,10 @@ export default function DevCornerPage() {
   const [responseOutput, setResponseOutput] = useState('')
   const [executing, setExecuting] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [apiFormat, setApiFormat] = useState<'openai' | 'gemini'>('openai')
 
   // Fetch current unified API key
-  const { data: keyData } = useQuery<{ apiKey: string }>({
+  const { data: keyData } = useQuery<{ apiKey: string; geminiApiKey: string }>({
     queryKey: ['unified-key'],
     queryFn: () => apiFetch('/api/settings/api-key'),
   })
@@ -39,14 +40,17 @@ export default function DevCornerPage() {
   })
 
   const availableModels = fallbackEntries.filter(e => e.keyCount > 0 && e.enabled)
-  const apiKey = keyData?.apiKey || 'omnikey-placeholder-key'
+  const apiKey = (apiFormat === 'openai' ? keyData?.apiKey : keyData?.geminiApiKey) || (apiFormat === 'openai' ? 'omnikey-placeholder-key' : 'omnikey-g-placeholder-key')
   
   const base = (import.meta.env.VITE_API_URL || import.meta.env.BASE_URL).replace(/\/$/, '')
-  const baseApiUrl = base.startsWith('http') ? `${base}/v1` : `${window.location.origin}${base}/v1`
-  const completionEndpoint = `${baseApiUrl}/chat/completions`
+  const baseApiUrl = base.startsWith('http') ? base : `${window.location.origin}${base}`
+  const completionEndpoint = apiFormat === 'openai'
+    ? `${baseApiUrl}/v1/chat/completions`
+    : `${baseApiUrl}/v1beta/models/${selectedModel}:${stream ? 'streamGenerateContent' : 'generateContent'}`
 
   // Dynamically compile JavaScript request snippet
-  const jsCodeSnippet = `// OmniKey AI Unified Request Example
+  const jsCodeSnippet = apiFormat === 'openai'
+    ? `// OmniKey AI Unified Request Example
 const apiKey = '${apiKey}';
 const endpoint = '${completionEndpoint}';
 
@@ -61,7 +65,7 @@ async function generateCompletion() {
       body: JSON.stringify({
         model: '${selectedModel}',
         messages: [
-          { role: 'system', content: '${systemPrompt.replace(/'/g, "\\'")}' },
+          ${systemPrompt ? `{ role: 'system', content: '${systemPrompt.replace(/'/g, "\\'")}' },` : ''}
           { role: 'user', content: '${userPrompt.replace(/'/g, "\\'")}' }
         ],
         temperature: ${temperature},
@@ -100,6 +104,60 @@ async function generateCompletion() {
   }
 }
 
+generateCompletion();`
+    : `// OmniKey AI Unified Request Example (Gemini Format)
+const apiKey = '${apiKey}';
+const endpoint = '${baseApiUrl}/v1beta/models/${selectedModel}:${stream ? 'streamGenerateContent' : 'generateContent'}';
+
+async function generateCompletion() {
+  try {
+    const url = \`\${endpoint}?key=\${apiKey}\${stream ? '&alt=sse' : ''}\`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [
+          { role: 'user', parts: [{ text: '${userPrompt.replace(/'/g, "\\'")}' }] }
+        ],
+        ${systemPrompt ? `systemInstruction: { parts: [{ text: '${systemPrompt.replace(/'/g, "\\'")}' }] },` : ''}
+        generationConfig: {
+          temperature: ${temperature},
+          ${maxTokens ? `maxOutputTokens: ${maxTokens},` : ''}
+          ${topP < 1.0 ? `topP: ${topP},` : ''}
+        }
+      })
+    });
+
+    if (${stream}) {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      console.log('--- Streaming Response (SSE) ---');
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\\n');
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const parsed = JSON.parse(line.slice(6));
+              const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
+              process.stdout.write(text);
+            } catch (err) {}
+          }
+        }
+      }
+    } else {
+      const data = await response.json();
+      console.log('Response content:', data.candidates?.[0]?.content?.parts?.[0]?.text);
+    }
+  } catch (error) {
+    console.error('Request failed:', error);
+  }
+}
+
 generateCompletion();`;
 
   const copyToClipboard = () => {
@@ -114,28 +172,59 @@ generateCompletion();`;
     setResponseOutput('Sending request to server...')
     
     try {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      }
-      
-      const body: any = {
-        model: selectedModel,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature,
-        stream
-      }
-      if (maxTokens) body.max_tokens = parseInt(maxTokens)
-      if (topP < 1.0) body.top_p = topP
+      let res: Response
+      if (apiFormat === 'openai') {
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        }
+        
+        const body: any = {
+          model: selectedModel,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature,
+          stream
+        }
+        if (maxTokens) body.max_tokens = parseInt(maxTokens)
+        if (topP < 1.0) body.top_p = topP
 
-      const res = await fetch(`${base}/v1/chat/completions`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body)
-      })
+        res = await fetch(`${base}/v1/chat/completions`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(body)
+        })
+      } else {
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json'
+        }
+        
+        const body: any = {
+          contents: [
+            { role: 'user', parts: [{ text: userPrompt }] }
+          ],
+          generationConfig: {
+            temperature
+          }
+        }
+        if (systemPrompt) {
+          body.systemInstruction = {
+            parts: [{ text: systemPrompt }]
+          }
+        }
+        if (maxTokens) body.generationConfig.maxOutputTokens = parseInt(maxTokens)
+        if (topP < 1.0) body.generationConfig.topP = topP
+
+        const url = `${base}/v1beta/models/${selectedModel}:${stream ? 'streamGenerateContent' : 'generateContent'}?key=${apiKey}${stream ? '&alt=sse' : ''}`
+
+        res = await fetch(url, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(body)
+        })
+      }
 
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }))
@@ -165,7 +254,12 @@ generateCompletion();`;
               if (line.includes('[DONE]')) continue
               try {
                 const parsed = JSON.parse(line.slice(6))
-                const content = parsed.choices?.[0]?.delta?.content || ''
+                let content = ''
+                if (apiFormat === 'openai') {
+                  content = parsed.choices?.[0]?.delta?.content || ''
+                } else {
+                  content = parsed.candidates?.[0]?.content?.parts?.[0]?.text || ''
+                }
                 streamingText += content
                 setResponseOutput(streamingText)
               } catch (e) {}
@@ -199,6 +293,20 @@ generateCompletion();`;
           </div>
 
           <div className="space-y-4">
+            <div>
+              <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                API Key Format / Type
+              </label>
+              <select
+                value={apiFormat}
+                onChange={e => setApiFormat(e.target.value as 'openai' | 'gemini')}
+                className="w-full bg-background border rounded-lg h-8 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+              >
+                <option value="openai">OpenAI Format (Bearer Token, /v1/...)</option>
+                <option value="gemini">Gemini Format (Query Param, /v1beta/...)</option>
+              </select>
+            </div>
+
             <div>
               <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
                 Unified API Authorization Key
