@@ -14,6 +14,7 @@ import logoUrl from './assets/logo.png'
 import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 import ModelsPage from '@/pages/ModelsPage'
 import ComparePage from '@/pages/ComparePage'
+import DebatePage from '@/pages/DebatePage'
 
 
 const queryClient = new QueryClient()
@@ -104,6 +105,7 @@ function DashboardLayout() {
           <nav className="flex items-center gap-6 ml-10">
             <NavItem to="/playground">Playground</NavItem>
             <NavItem to="/compare">Arena</NavItem>
+            <NavItem to="/debate">Debate</NavItem>
             <NavItem to="/keys">Keys</NavItem>
             <NavItem to="/fallback">Fallback</NavItem>
             <NavItem to="/analytics">Analytics</NavItem>
@@ -160,6 +162,7 @@ function DashboardLayout() {
           <Route path="/" element={<Navigate to="/playground" replace />} />
           <Route path="/playground" element={<PlaygroundPage />} />
           <Route path="/compare" element={<ComparePage />} />
+          <Route path="/debate" element={<DebatePage />} />
           <Route path="/keys" element={<KeysPage />} />
           <Route path="/fallback" element={<FallbackPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
