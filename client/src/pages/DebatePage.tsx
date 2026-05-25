@@ -398,7 +398,7 @@ Read the entire debate history. Provide a detailed critique, declare a final win
                     <SelectContent>
                       <SelectItem value="auto">Auto (Smart Routing)</SelectItem>
                       {availableModels.map(m => (
-                        <SelectItem key={m.modelId} value={m.modelId}>{m.displayName}</SelectItem>
+                        <SelectItem key={m.modelDbId} value={m.modelId}>{m.displayName}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -416,7 +416,7 @@ Read the entire debate history. Provide a detailed critique, declare a final win
                     <SelectContent>
                       <SelectItem value="auto">Auto (Smart Routing)</SelectItem>
                       {availableModels.map(m => (
-                        <SelectItem key={m.modelId} value={m.modelId}>{m.displayName}</SelectItem>
+                        <SelectItem key={m.modelDbId} value={m.modelId}>{m.displayName}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -434,7 +434,7 @@ Read the entire debate history. Provide a detailed critique, declare a final win
                     <SelectContent>
                       <SelectItem value="auto">Auto (Smart Routing)</SelectItem>
                       {availableModels.map(m => (
-                        <SelectItem key={m.modelId} value={m.modelId}>{m.displayName}</SelectItem>
+                        <SelectItem key={m.modelDbId} value={m.modelId}>{m.displayName}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
