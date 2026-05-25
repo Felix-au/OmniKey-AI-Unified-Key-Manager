@@ -117,14 +117,16 @@ function SideNavItem({ to, icon, label, collapsed }: { to: string; icon: React.R
       to={to}
       title={collapsed ? label : undefined}
       className={({ isActive }) =>
-        `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+        `flex items-center gap-3 rounded-lg text-sm transition-colors ${
+          collapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2'
+        } ${
           isActive
             ? 'bg-accent text-foreground font-medium'
             : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
         }`
       }
     >
-      <span className="shrink-0">{icon}</span>
+      <span className={`shrink-0 ${collapsed ? '[&>svg]:w-5 [&>svg]:h-5' : ''}`}>{icon}</span>
       {!collapsed && <span className="truncate">{label}</span>}
     </NavLink>
   )
@@ -156,7 +158,7 @@ function DashboardLayout() {
 
   if (!localDbEnabled && !user) return <LoginPage />
 
-  const sidebarW = collapsed ? 'w-[56px]' : 'w-[220px]'
+  const sidebarW = collapsed ? 'w-[72px]' : 'w-[220px]'
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -164,15 +166,29 @@ function DashboardLayout() {
       <aside className={`${sidebarW} shrink-0 flex flex-col border-r border-border bg-background/95 backdrop-blur sticky top-0 h-screen overflow-hidden transition-all duration-200 z-40`}>
         {/* Brand + collapse toggle */}
         <div className="flex items-center h-14 px-3 border-b border-border gap-2 shrink-0">
-          <img src={logoUrl} alt="OmniKey AI" className="h-6 w-6 object-contain shrink-0" />
-          {!collapsed && <span className="font-semibold text-sm tracking-tight truncate">OmniKey AI</span>}
+          {/* Logo — always visible; clicking it expands when collapsed */}
           <button
-            onClick={() => setCollapsed(c => !c)}
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="ml-auto shrink-0 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors"
+            onClick={() => collapsed && setCollapsed(false)}
+            title={collapsed ? 'Expand sidebar' : undefined}
+            className={`shrink-0 rounded-lg transition-colors ${collapsed ? 'hover:bg-accent/60 cursor-pointer p-1' : 'cursor-default'}`}
           >
-            <IconChevron collapsed={collapsed} />
+            <img
+              src={logoUrl}
+              alt="OmniKey AI"
+              className={`object-contain transition-all duration-200 ${collapsed ? 'h-9 w-9' : 'h-6 w-6'}`}
+            />
           </button>
+          {!collapsed && <span className="font-semibold text-sm tracking-tight truncate">OmniKey AI</span>}
+          {/* Chevron only shown when expanded, to collapse */}
+          {!collapsed && (
+            <button
+              onClick={() => setCollapsed(true)}
+              title="Collapse sidebar"
+              className="ml-auto shrink-0 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors"
+            >
+              <IconChevron collapsed={false} />
+            </button>
+          )}
         </div>
 
         {/* Nav links */}
