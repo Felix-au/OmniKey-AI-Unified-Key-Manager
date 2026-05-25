@@ -12,6 +12,7 @@ import DevCornerPage from '@/pages/DevCornerPage'
 import AdminPage from '@/pages/AdminPage'
 import logoUrl from './assets/logo.png'
 import { ConfirmationModal } from '@/components/ui/confirmation-modal'
+import ModelsPage from '@/pages/ModelsPage'
 
 const queryClient = new QueryClient()
 
@@ -103,6 +104,7 @@ function DashboardLayout() {
             <NavItem to="/keys">Keys</NavItem>
             <NavItem to="/fallback">Fallback</NavItem>
             <NavItem to="/analytics">Analytics</NavItem>
+            <NavItem to="/models">Models</NavItem>
             <NavItem to="/dev-corner">Dev Corner</NavItem>
           </nav>
           <div className="ml-auto py-2 flex items-center gap-4">
@@ -157,6 +159,7 @@ function DashboardLayout() {
           <Route path="/keys" element={<KeysPage />} />
           <Route path="/fallback" element={<FallbackPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
+          <Route path="/models" element={<ModelsPage />} />
           <Route path="/dev-corner" element={<DevCornerPage />} />
           <Route path="/test" element={<Navigate to="/playground" replace />} />
           <Route path="/health" element={<Navigate to="/keys" replace />} />
