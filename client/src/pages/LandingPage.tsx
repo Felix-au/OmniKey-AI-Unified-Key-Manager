@@ -52,7 +52,6 @@ const auroraCSS = `
 function OceanBackground({ dark }: { dark: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const mouseRef  = useRef({ x: 0.5, y: 0.5, tx: 0.5, ty: 0.5 })
-  const scrollRef = useRef({ vel: 0, last: 0 })
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -67,16 +66,10 @@ function OceanBackground({ dark }: { dark: boolean }) {
       mouseRef.current.tx = e.clientX / window.innerWidth
       mouseRef.current.ty = e.clientY / window.innerHeight
     }
-    const onScroll = () => {
-      const dy = window.scrollY - scrollRef.current.last
-      scrollRef.current.vel = Math.max(-1, Math.min(1, dy * 0.06))
-      scrollRef.current.last = window.scrollY
-    }
     const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight }
     resize()
     window.addEventListener('resize', resize)
     window.addEventListener('mousemove', onMouseMove, { passive: true })
-    window.addEventListener('scroll', onScroll, { passive: true })
 
     // ── Wave definitions (random initial phases) ─────────────────────────────
     const seed = () => Math.random()
@@ -115,13 +108,10 @@ function OceanBackground({ dark }: { dark: boolean }) {
     const draw = () => {
       const W = canvas.width, H = canvas.height
       const m  = mouseRef.current
-      const sv = scrollRef.current
 
       // Smooth mouse tracking
-      m.x += (m.tx - m.x) * 0.06
-      m.y += (m.ty - m.y) * 0.06
-      // Decay scroll velocity
-      sv.vel *= 0.92
+      m.x += (m.tx - m.x) * 0.04
+      m.y += (m.ty - m.y) * 0.04
 
       // Sky gradient
       const grad = ctx.createLinearGradient(0, 0, 0, H)
@@ -144,26 +134,17 @@ function OceanBackground({ dark }: { dark: boolean }) {
         w.speed = Math.max(0.003, Math.min(0.04, w.speed + w.dSpeed))
 
         const t = phase * w.speed + w.phase
-        // Mouse influence: cursor Y stretches amplitude, cursor X drifts phase
-        const mouseAmpMod   = 1 + (m.y - 0.5) * 0.8
-        const mousePhaseOff = (m.x - 0.5) * 2.2
-        // Scroll turbulence
-        const scrollMod = 1 + Math.abs(sv.vel) * 3.5
-        const amp = w.amp * mouseAmpMod * scrollMod
+        // Very subtle mouse influence: tiny phase nudge from cursor X only
+        const mousePhaseOff = (m.x - 0.5) * 0.35
+        const amp = w.amp
 
         // Build wave points
         const pts: {x:number,y:number}[] = []
         for (let x = 0; x <= W + 2; x += 3) {
-          const nx = x / W
-          // Gaussian ripple at cursor X, depth based on cursor Y
-          const dx = nx - m.x
-          const ripple = Math.exp(-dx * dx * 10) * (m.y - 0.5) * amp * 1.6
-          const scrollWobble = sv.vel * 28 * Math.sin(x * 0.007 + t * 1.2)
           const y = w.yBase * H
             + Math.sin(x * w.freq + t + mousePhaseOff) * amp
             + Math.sin(x * w.freq * 1.9 + t * 1.5 + wi) * amp * 0.28
             + Math.sin(x * w.freq * 0.55 + t * 0.65) * amp * 0.18
-            + ripple + scrollWobble
           pts.push({ x, y })
         }
 
@@ -234,7 +215,6 @@ function OceanBackground({ dark }: { dark: boolean }) {
       cancelAnimationFrame(animId)
       window.removeEventListener('resize', resize)
       window.removeEventListener('mousemove', onMouseMove)
-      window.removeEventListener('scroll', onScroll)
     }
   }, [dark])
   return <canvas ref={canvasRef} style={{ position: 'fixed', inset: 0, zIndex: -1, pointerEvents: 'none', width: '100%', height: '100%' }} />
