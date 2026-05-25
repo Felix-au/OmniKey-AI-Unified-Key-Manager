@@ -132,6 +132,7 @@ The React Dashboard is your command center. It features persistent support for *
 | **Stats & Logs** | Track token consumption, daily/monthly totals, and historical query latency. |
 | **Playground** | Interactive chat workspace with an API Format toggle (OpenAI vs. Gemini format) to test query responses in real-time. |
 | **Dev Corner** | Premium sandbox featuring format toggling, auto-compiling JS template generators for both OpenAI/Gemini formats, streaming output rendering, and a direct testing console. |
+| **Debate Arena** | Stage structured debates between two model personas (In Favor vs. Against) under a Judge model, with automatic chat history sanitization. |
 | **Admin Console (`/admin`)** | High-level operations center monitoring user distributions, success rates, latency distributions, error breakdowns, and overall savings (in Rupees `₹`). Enables editing model catalogs globally, inspecting logs (with resolved Developer Emails), and rotating admin login credentials (secured with HMAC-SHA256). |
 
 ---
@@ -175,6 +176,7 @@ The React Dashboard is your command center. It features persistent support for *
 | `server/src/routes/gemini-proxy.ts` | Gemini-compatible proxy routing endpoint translating request & response bodies |
 | `server/src/routes/ping.ts` | Keep-alive heartbeat endpoints (/api/cron-health) |
 | `client/src/pages/DevCornerPage.tsx` | Interactive sandbox configuration form and dynamic JS template generator |
+| `client/src/pages/DebatePage.tsx` | AI Debate Arena page implementing multi-agent structured debate orchestration |
 | `client/src/App.tsx` | Single-page dashboard application view |
 | `shared/src/types.ts` | Common schema typings between client and server |
 
