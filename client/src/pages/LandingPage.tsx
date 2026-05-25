@@ -89,7 +89,7 @@ function OceanBackground({ dark }: { dark: boolean }) {
     ]
     const waves = dark ? darkWaves : lightWaves
     // 45 particles with per-particle random params
-    const particles = Array.from({ length: 45 }, () => ({
+    const particles = Array.from({ length: dark ? 45 : 50 }, () => ({
       x: Math.random(), y: 0.3 + Math.random() * 0.7,
       r: 1.2 + Math.random() * 2.8,
       speed: 0.00008 + Math.random() * 0.00014,
