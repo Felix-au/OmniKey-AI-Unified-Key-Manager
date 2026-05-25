@@ -33,10 +33,11 @@ export default function PlaygroundPage() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [selectedModel, setSelectedModel] = useState<string>('auto')
+  const [apiFormat, setApiFormat] = useState<'openai' | 'gemini'>('openai')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
-  const { data: keyData } = useQuery<{ apiKey: string }>({
+  const { data: keyData } = useQuery<{ apiKey: string; geminiApiKey: string }>({
     queryKey: ['unified-key'],
     queryFn: () => apiFetch('/api/settings/api-key'),
   })
@@ -64,21 +65,42 @@ export default function PlaygroundPage() {
     inputRef.current?.focus()
 
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-      if (keyData?.apiKey) headers['Authorization'] = `Bearer ${keyData.apiKey}`
-
-      const body: any = {
-        messages: newMessages.map(m => ({ role: m.role, content: m.content })),
-      }
-      if (selectedModel !== 'auto') body.model = selectedModel
-
       const base = (import.meta.env.VITE_API_URL || import.meta.env.BASE_URL).replace(/\/$/, '')
       const start = Date.now()
-      const res = await fetch(`${base}/v1/chat/completions`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body),
-      })
+      let res: Response
+
+      if (apiFormat === 'openai') {
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+        if (keyData?.apiKey) headers['Authorization'] = `Bearer ${keyData.apiKey}`
+
+        const body: any = {
+          messages: newMessages.map(m => ({ role: m.role, content: m.content })),
+        }
+        if (selectedModel !== 'auto') body.model = selectedModel
+
+        res = await fetch(`${base}/v1/chat/completions`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(body),
+        })
+      } else {
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+        const keyVal = keyData?.geminiApiKey || ''
+        const urlModel = selectedModel === 'auto' ? 'auto' : selectedModel
+
+        const body: any = {
+          contents: newMessages.map(m => ({
+            role: m.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: m.content }]
+          }))
+        }
+
+        res = await fetch(`${base}/v1beta/models/${urlModel}:generateContent?key=${keyVal}`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(body),
+        })
+      }
 
       const latency = Date.now() - start
       const routedVia = res.headers.get('X-Routed-Via')
@@ -95,7 +117,14 @@ export default function PlaygroundPage() {
       }
 
       const data = await res.json()
-      const content = data.choices?.[0]?.message?.content ?? JSON.stringify(data, null, 2)
+      
+      let content = ''
+      if (apiFormat === 'openai') {
+        content = data.choices?.[0]?.message?.content ?? JSON.stringify(data, null, 2)
+      } else {
+        content = data.candidates?.[0]?.content?.parts?.[0]?.text ?? JSON.stringify(data, null, 2)
+      }
+
       const via = data._routed_via ?? (routedVia ? {
         platform: routedVia.split('/')[0],
         model: routedVia.split('/').slice(1).join('/'),
@@ -147,6 +176,16 @@ export default function PlaygroundPage() {
         description="Send a chat completion through the router and see which provider serves it."
         actions={
           <>
+            <Select value={apiFormat} onValueChange={(v) => setApiFormat(v as 'openai' | 'gemini')}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="openai">OpenAI Format</SelectItem>
+                <SelectItem value="gemini">Gemini Format</SelectItem>
+              </SelectContent>
+            </Select>
+
             <Select value={selectedModel} onValueChange={(v) => setSelectedModel(v ?? 'auto')}>
               <SelectTrigger className="w-[260px]">
                 <SelectValue />
