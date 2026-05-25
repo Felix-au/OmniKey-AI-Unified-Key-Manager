@@ -65,3 +65,8 @@ update-hermes.sh
 
 # Scratchpad / temporary files
 scratch/
+
+# Custom un-tracked documents
+future_changes.md
+changelog.md
+
