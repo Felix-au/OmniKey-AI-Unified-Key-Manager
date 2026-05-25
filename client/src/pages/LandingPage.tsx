@@ -51,7 +51,6 @@ const auroraCSS = `
 // ── Ocean wave background ─────────────────────────────────────────────────────
 function OceanBackground({ dark }: { dark: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const mouseRef  = useRef({ x: 0.5, y: 0.5, tx: 0.5, ty: 0.5 })
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -61,15 +60,9 @@ function OceanBackground({ dark }: { dark: boolean }) {
     let animId: number
     let phase = 0
 
-    // ── Event listeners ──────────────────────────────────────────────────────
-    const onMouseMove = (e: MouseEvent) => {
-      mouseRef.current.tx = e.clientX / window.innerWidth
-      mouseRef.current.ty = e.clientY / window.innerHeight
-    }
     const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight }
     resize()
     window.addEventListener('resize', resize)
-    window.addEventListener('mousemove', onMouseMove, { passive: true })
 
     // ── Wave definitions (random initial phases) ─────────────────────────────
     const seed = () => Math.random()
@@ -107,12 +100,6 @@ function OceanBackground({ dark }: { dark: boolean }) {
     // ── Draw loop ────────────────────────────────────────────────────────────
     const draw = () => {
       const W = canvas.width, H = canvas.height
-      const m  = mouseRef.current
-
-      // Smooth mouse tracking
-      m.x += (m.tx - m.x) * 0.04
-      m.y += (m.ty - m.y) * 0.04
-
       // Sky gradient
       const grad = ctx.createLinearGradient(0, 0, 0, H)
       if (dark) {
@@ -134,15 +121,13 @@ function OceanBackground({ dark }: { dark: boolean }) {
         w.speed = Math.max(0.003, Math.min(0.04, w.speed + w.dSpeed))
 
         const t = phase * w.speed + w.phase
-        // Very subtle mouse influence: tiny phase nudge from cursor X only
-        const mousePhaseOff = (m.x - 0.5) * 0.35
         const amp = w.amp
 
         // Build wave points
         const pts: {x:number,y:number}[] = []
         for (let x = 0; x <= W + 2; x += 3) {
           const y = w.yBase * H
-            + Math.sin(x * w.freq + t + mousePhaseOff) * amp
+            + Math.sin(x * w.freq + t) * amp
             + Math.sin(x * w.freq * 1.9 + t * 1.5 + wi) * amp * 0.28
             + Math.sin(x * w.freq * 0.55 + t * 0.65) * amp * 0.18
           pts.push({ x, y })
@@ -181,8 +166,8 @@ function OceanBackground({ dark }: { dark: boolean }) {
         ctx.stroke()
         ctx.restore()
 
-        // Spawn sparkles on the top visible wave crest (layer 3+)
-        if (wi >= 2 && dark && Math.random() < 0.12) {
+        // Spawn sparkles on wave crests
+        if (wi >= 2 && Math.random() < 0.12) {
           const si = Math.floor(Math.random() * pts.length)
           spawnSparkle(pts[si].x, pts[si].y - 3)
         }
@@ -196,11 +181,11 @@ function OceanBackground({ dark }: { dark: boolean }) {
         const progress = s.life / s.maxLife
         const alpha = Math.sin(progress * Math.PI)
         ctx.save()
-        ctx.shadowBlur  = 8
-        ctx.shadowColor = dark ? '#93c5fd' : '#38bdf8'
+        ctx.shadowBlur  = dark ? 10 : 18
+        ctx.shadowColor = dark ? '#93c5fd' : '#0f172a'
         ctx.fillStyle   = dark
           ? `rgba(147,197,253,${alpha * 0.9})`
-          : `rgba(56,189,248,${alpha * 0.7})`
+          : `rgba(15,23,42,${alpha * 0.95})`
         ctx.beginPath()
         ctx.arc(s.x, s.y - progress * 12, s.r * (1 - progress * 0.5), 0, Math.PI * 2)
         ctx.fill()
@@ -214,7 +199,6 @@ function OceanBackground({ dark }: { dark: boolean }) {
     return () => {
       cancelAnimationFrame(animId)
       window.removeEventListener('resize', resize)
-      window.removeEventListener('mousemove', onMouseMove)
     }
   }, [dark])
   return <canvas ref={canvasRef} style={{ position: 'fixed', inset: 0, zIndex: -1, pointerEvents: 'none', width: '100%', height: '100%' }} />
