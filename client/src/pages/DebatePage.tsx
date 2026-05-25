@@ -389,7 +389,7 @@ Read the entire debate history. Provide a detailed critique, declare a final win
                       value={rounds}
                       onChange={(e) => setRounds(Math.max(1, parseInt(e.target.value) || 1))}
                       disabled={isDebating}
-                      className="h-8 text-xs rounded-xl"
+                      className="h-8 text-xs rounded-xl w-full"
                     />
                   </div>
 
@@ -400,7 +400,7 @@ Read the entire debate history. Provide a detailed critique, declare a final win
                       onValueChange={(v) => { if (v === 'every_round' || v === 'at_end') setJudgingInterval(v) }}
                       disabled={isDebating}
                     >
-                      <SelectTrigger className="h-8 text-xs rounded-xl">
+                      <SelectTrigger className="h-8 text-xs rounded-xl w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -424,7 +424,7 @@ Read the entire debate history. Provide a detailed critique, declare a final win
                     Argues: In Favor
                   </Label>
                   <Select value={infavorModel} onValueChange={(v) => { if (v) setInfavorModel(v) }} disabled={isDebating}>
-                    <SelectTrigger className="h-8 text-xs rounded-xl">
+                    <SelectTrigger className="h-8 text-xs rounded-xl w-full">
                       <SelectValue placeholder="In Favor Model" />
                     </SelectTrigger>
                     <SelectContent>
@@ -442,7 +442,7 @@ Read the entire debate history. Provide a detailed critique, declare a final win
                     Argues: Against
                   </Label>
                   <Select value={againstModel} onValueChange={(v) => { if (v) setAgainstModel(v) }} disabled={isDebating}>
-                    <SelectTrigger className="h-8 text-xs rounded-xl">
+                    <SelectTrigger className="h-8 text-xs rounded-xl w-full">
                       <SelectValue placeholder="Against Model" />
                     </SelectTrigger>
                     <SelectContent>
