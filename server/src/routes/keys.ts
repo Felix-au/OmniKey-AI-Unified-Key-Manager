@@ -93,10 +93,25 @@ keysRouter.post('/', async (req: AuthenticatedRequest, res: Response, next) => {
     }
 
     const { platform, key, label } = parsed.data;
-    const { encrypted, iv, authTag } = encrypt(key);
 
     if (isLocalDbEnabled()) {
       const db = getDb();
+      // Check for duplicate key in local SQLite database
+      const rows = db.prepare('SELECT encrypted_key, iv, auth_tag FROM api_keys').all() as any[];
+      const isDuplicate = rows.some(row => {
+        try {
+          return decrypt(row.encrypted_key, row.iv, row.auth_tag).trim() === key.trim();
+        } catch {
+          return false;
+        }
+      });
+
+      if (isDuplicate) {
+        res.status(400).json({ error: { message: 'This API key has already been added.' } });
+        return;
+      }
+
+      const { encrypted, iv, authTag } = encrypt(key);
       const result = db.prepare(`
         INSERT INTO api_keys (platform, label, encrypted_key, iv, auth_tag, status, enabled)
         VALUES (?, ?, ?, ?, ?, 'unknown', 1)
@@ -111,6 +126,22 @@ keysRouter.post('/', async (req: AuthenticatedRequest, res: Response, next) => {
         enabled: true,
       });
     } else {
+      // Check for duplicate key in cloud MongoDB database
+      const rows = await ApiKey.find({ userId: req.userId! }, 'encryptedKey iv authTag');
+      const isDuplicate = rows.some(row => {
+        try {
+          return decrypt(row.encryptedKey, row.iv, row.authTag).trim() === key.trim();
+        } catch {
+          return false;
+        }
+      });
+
+      if (isDuplicate) {
+        res.status(400).json({ error: { message: 'This API key has already been added.' } });
+        return;
+      }
+
+      const { encrypted, iv, authTag } = encrypt(key);
       const result = await ApiKey.create({
         userId: req.userId!,
         platform,
@@ -320,6 +351,17 @@ keysRouter.post('/import', async (req: AuthenticatedRequest, res: Response, next
 
     if (isLocalDbEnabled()) {
       const db = getDb();
+      // Fetch existing keys to prevent duplicates
+      const rows = db.prepare('SELECT encrypted_key, iv, auth_tag FROM api_keys').all() as any[];
+      const existingKeys = new Set<string>();
+      for (const row of rows) {
+        try {
+          existingKeys.add(decrypt(row.encrypted_key, row.iv, row.auth_tag).trim());
+        } catch {
+          // Ignore
+        }
+      }
+
       const insert = db.prepare(`
         INSERT INTO api_keys (platform, label, encrypted_key, iv, auth_tag, status, enabled)
         VALUES (?, ?, ?, ?, ?, 'unknown', 1)
@@ -332,20 +374,42 @@ keysRouter.post('/import', async (req: AuthenticatedRequest, res: Response, next
           }
           if (!item.key) continue;
 
+          const trimmedKey = item.key.trim();
+          if (existingKeys.has(trimmedKey)) {
+            continue; // Skip duplicate key
+          }
+
           const { encrypted, iv, authTag } = encrypt(item.key);
           insert.run(item.platform, item.label, encrypted, iv, authTag);
+          existingKeys.add(trimmedKey);
           importedCount++;
         }
       });
 
       runTransaction();
     } else {
+      // Fetch existing keys for user to prevent duplicates
+      const rows = await ApiKey.find({ userId: req.userId! }, 'encryptedKey iv authTag');
+      const existingKeys = new Set<string>();
+      for (const row of rows) {
+        try {
+          existingKeys.add(decrypt(row.encryptedKey, row.iv, row.authTag).trim());
+        } catch {
+          // Ignore
+        }
+      }
+
       const bulkDocs = [];
       for (const item of parsed) {
         if (!PLATFORMS.includes(item.platform as any)) {
           continue;
         }
         if (!item.key) continue;
+
+        const trimmedKey = item.key.trim();
+        if (existingKeys.has(trimmedKey)) {
+          continue; // Skip duplicate key
+        }
 
         const { encrypted, iv, authTag } = encrypt(item.key);
         bulkDocs.push({
@@ -358,6 +422,7 @@ keysRouter.post('/import', async (req: AuthenticatedRequest, res: Response, next
           status: 'healthy',
           enabled: true,
         });
+        existingKeys.add(trimmedKey);
         importedCount++;
       }
 
