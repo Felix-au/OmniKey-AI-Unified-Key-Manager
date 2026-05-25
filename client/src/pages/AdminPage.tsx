@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 
 interface AdminStats {
   system: {
@@ -111,6 +112,7 @@ export default function AdminPage() {
 
   // Flush State
   const [flushingLogs, setFlushingLogs] = useState(false)
+  const [showFlushConfirm, setShowFlushConfirm] = useState(false)
 
   // Model Toggle Loading Map
   const [togglingModel, setTogglingModel] = useState<Record<string, boolean>>({})
@@ -221,10 +223,12 @@ export default function AdminPage() {
   }
 
   // Flush Analytics Logs
-  const handleFlushLogs = async () => {
-    if (!window.confirm('WARNING: Are you sure you want to permanently delete all proxy logs? This cannot be undone.')) {
-      return
-    }
+  const handleFlushLogs = () => {
+    setShowFlushConfirm(true)
+  }
+
+  const executeFlushLogs = async () => {
+    setShowFlushConfirm(false)
     setError(null)
     setSuccessMsg(null)
     setFlushingLogs(true)
@@ -900,6 +904,16 @@ export default function AdminPage() {
           </section>
         )}
       </main>
+      <ConfirmationModal
+        isOpen={showFlushConfirm}
+        title="Flush Analytics Logs?"
+        description="WARNING: Are you sure you want to permanently delete all proxy logs? This cannot be undone."
+        confirmLabel="Flush Logs"
+        cancelLabel="Cancel"
+        onConfirm={executeFlushLogs}
+        onCancel={() => setShowFlushConfirm(false)}
+        variant="destructive"
+      />
     </div>
   )
 }

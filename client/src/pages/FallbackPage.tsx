@@ -21,6 +21,7 @@ import { apiFetch } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { PageHeader } from '@/components/page-header'
+import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 
 interface FallbackEntry {
   modelDbId: number
@@ -207,6 +208,17 @@ function SortableModelRow({
 export default function FallbackPage() {
   const queryClient = useQueryClient()
   const [localEntries, setLocalEntries] = useState<FallbackEntry[] | null>(null)
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    onConfirm: () => {},
+  });
 
   const { data: entries = [], isLoading } = useQuery<FallbackEntry[]>({
     queryKey: ['fallback'],
@@ -262,12 +274,19 @@ export default function FallbackPage() {
   function handleToggle(modelDbId: number, enabled: boolean) {
     const target = allEntries.find(e => e.modelDbId === modelDbId)
     if (target && target.globallyDisabled && enabled) {
-      const confirm = window.confirm(
-        "Warning: This model has been disabled by the system administrator due to non-availability or other issues. Enabling it may cause completions or fallback routes using it to fail."
-      )
-      if (!confirm) {
-        return
-      }
+      setConfirmModal({
+        isOpen: true,
+        title: "Enable Globally Disabled Model?",
+        description: "Warning: This model has been disabled by the system administrator due to non-availability or other issues. Enabling it may cause completions or fallback routes using it to fail.",
+        onConfirm: () => {
+          const updated = allEntries.map(e =>
+            e.modelDbId === modelDbId ? { ...e, enabled: true } : e
+          )
+          setLocalEntries(updated)
+          setConfirmModal(prev => ({ ...prev, isOpen: false }))
+        }
+      })
+      return
     }
     const updated = allEntries.map(e =>
       e.modelDbId === modelDbId ? { ...e, enabled } : e
@@ -291,10 +310,17 @@ export default function FallbackPage() {
   function handleEnableAll() {
     const hasGloballyDisabled = allEntries.some(e => e.globallyDisabled)
     if (hasGloballyDisabled) {
-      const confirm = window.confirm(
-        "Warning: This will enable all models, including those disabled by the system administrator due to non-availability or other issues. Proceed with caution."
-      )
-      if (!confirm) return
+      setConfirmModal({
+        isOpen: true,
+        title: "Enable All Models?",
+        description: "Warning: This will enable all models, including those disabled by the system administrator due to non-availability or other issues. Proceed with caution.",
+        onConfirm: () => {
+          const updated = allEntries.map(e => ({ ...e, enabled: true }))
+          setLocalEntries(updated)
+          setConfirmModal(prev => ({ ...prev, isOpen: false }))
+        }
+      })
+      return
     }
     const updated = allEntries.map(e => ({ ...e, enabled: true }))
     setLocalEntries(updated)
@@ -393,6 +419,13 @@ export default function FallbackPage() {
           </>
         )}
       </div>
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        description={confirmModal.description}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { auth } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import { Button } from '@/components/ui/button'
 import logoUrl from '../assets/logo.png'
+import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 
 export default function LoginPage() {
   const { setDatabaseMode } = useAuth()
@@ -14,6 +15,7 @@ export default function LoginPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -231,14 +233,7 @@ export default function LoginPage() {
               type="button"
               variant="outline"
               size="xs"
-              onClick={() => {
-                const confirmSwitch = window.confirm(
-                  "Only switch to local-first mode if you have run the project locally on your device; otherwise, it would not work."
-                )
-                if (confirmSwitch) {
-                  setDatabaseMode('local', rememberMode)
-                }
-              }}
+              onClick={() => setConfirmModalOpen(true)}
               className="text-[10px] font-bold py-1.5 px-3 h-auto text-violet-400 hover:text-violet-300 border-violet-500/20 hover:border-violet-500/40 bg-violet-950/10 hover:bg-violet-950/20 rounded-xl"
             >
               Switch to Local-First
@@ -254,6 +249,18 @@ export default function LoginPage() {
         </div>
 
       </div>
+      <ConfirmationModal
+        isOpen={confirmModalOpen}
+        title="Switch to Local-First Mode?"
+        description="Only switch to local-first mode if you have run the project locally on your device; otherwise, it would not work."
+        confirmLabel="Switch"
+        cancelLabel="Cancel"
+        onConfirm={() => {
+          setConfirmModalOpen(false)
+          setDatabaseMode('local', rememberMode)
+        }}
+        onCancel={() => setConfirmModalOpen(false)}
+      />
     </div>
   )
 }
