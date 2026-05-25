@@ -208,7 +208,7 @@ geminiProxyRouter.get('/models', async (req: Request, res: Response, next) => {
 // Gemini-compatible Single Model Detail API
 geminiProxyRouter.get('/models/:model([^:]+)', async (req: Request, res: Response, next) => {
   try {
-    let modelId = req.params.model;
+    let modelId = req.params.model as string;
     if (modelId.startsWith('models/')) {
       modelId = modelId.replace(/^models\//, '');
     }
@@ -338,7 +338,7 @@ geminiProxyRouter.post('/models/:model([^:]+):*', async (req: Request, res: Resp
     }, 0);
     const estimatedTotal = estimatedInputTokens + (max_tokens ?? 1000);
 
-    let modelId = req.params.model;
+    let modelId = req.params.model as string;
     if (modelId && modelId.startsWith('models/')) {
       modelId = modelId.replace(/^models\//, '');
     }
@@ -427,7 +427,7 @@ geminiProxyRouter.post('/models/:model([^:]+):*', async (req: Request, res: Resp
           res.setHeader('X-Key-Used', keyUsed);
           if (attempt > 0) res.setHeader('X-Fallback-Attempts', String(attempt));
 
-          const geminiResponse = translateToGeminiResponse(result, modelId);
+          const geminiResponse = translateToGeminiResponse(result, modelId as string);
           if (geminiResponse && typeof geminiResponse === 'object') {
             geminiResponse._routed_via = {
               platform: route.platform,
@@ -448,6 +448,7 @@ geminiProxyRouter.post('/models/:model([^:]+):*', async (req: Request, res: Resp
         } else {
           let totalOutputTokens = 0;
           let streamStarted = false;
+          const useSSE = req.query.alt === 'sse';
           try {
             const gen = route.provider.streamChatCompletion(
               route.apiKey, messages, route.modelId,
@@ -455,7 +456,6 @@ geminiProxyRouter.post('/models/:model([^:]+):*', async (req: Request, res: Resp
             );
 
             let isFirstChunk = true;
-            const useSSE = req.query.alt === 'sse';
 
             for await (const chunk of gen) {
               if (!streamStarted) {
