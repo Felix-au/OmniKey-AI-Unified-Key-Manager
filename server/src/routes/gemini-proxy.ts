@@ -209,7 +209,12 @@ geminiProxyRouter.get('/models', async (req: Request, res: Response, next) => {
 geminiProxyRouter.get('/models/:model', async (req: Request, res: Response, next) => {
   try {
     const modelParam = req.params.model as string;
-    let modelId = modelParam.split(':')[0];
+    let modelId = modelParam;
+    if (modelParam.endsWith(':generateContent')) {
+      modelId = modelParam.slice(0, -':generateContent'.length);
+    } else if (modelParam.endsWith(':streamGenerateContent')) {
+      modelId = modelParam.slice(0, -':streamGenerateContent'.length);
+    }
     if (modelId.startsWith('models/')) {
       modelId = modelId.replace(/^models\//, '');
     }
@@ -333,9 +338,17 @@ geminiProxyRouter.post('/models/:model', async (req: Request, res: Response) => 
     const { messages, temperature, max_tokens, top_p } = parsed;
     
     const modelParam = req.params.model as string;
-    const parts = modelParam.split(':');
-    let modelId = parts[0];
-    const method = parts[1] || 'generateContent';
+    let modelId = modelParam;
+    let method = 'generateContent';
+    
+    if (modelParam.endsWith(':generateContent')) {
+      modelId = modelParam.slice(0, -':generateContent'.length);
+      method = 'generateContent';
+    } else if (modelParam.endsWith(':streamGenerateContent')) {
+      modelId = modelParam.slice(0, -':streamGenerateContent'.length);
+      method = 'streamGenerateContent';
+    }
+    
     const isStream = method === 'streamGenerateContent';
 
     const estimatedInputTokens = messages.reduce((sum, m) => {
