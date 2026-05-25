@@ -1,10 +1,47 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import { Button } from '@/components/ui/button'
 import logoUrl from '../assets/logo.png'
 import { ConfirmationModal } from '@/components/ui/confirmation-modal'
+
+function DarkModeToggle() {
+  const [dark, setDark] = useState(() =>
+    typeof window !== 'undefined' && document.documentElement.classList.contains('dark')
+  )
+
+  useEffect(() => {
+    const stored = localStorage.getItem('theme')
+    if (stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark')
+      setDark(true)
+    }
+  }, [])
+
+  function toggle() {
+    const next = !dark
+    setDark(next)
+    document.documentElement.classList.toggle('dark', next)
+    localStorage.setItem('theme', next ? 'dark' : 'light')
+  }
+
+  return (
+    <Button 
+      variant="ghost" 
+      size="sm" 
+      onClick={toggle} 
+      aria-label="Toggle theme"
+      className="absolute top-6 right-6 rounded-xl border border-border text-foreground hover:bg-muted"
+    >
+      {dark ? (
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+      ) : (
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      )}
+    </Button>
+  )
+}
 
 export default function LoginPage() {
   const { setDatabaseMode } = useAuth()
@@ -75,31 +112,34 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-slate-950 p-6 relative overflow-hidden">
+    <div className="min-h-screen w-full flex items-center justify-center bg-background p-6 relative overflow-hidden text-foreground">
+      {/* Dark/Light Theme Toggle */}
+      <DarkModeToggle />
+
       {/* Decorative background gradients */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-violet-600/10 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none" />
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-violet-600/10 dark:bg-violet-600/5 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-600/10 dark:bg-indigo-600/5 blur-[120px] pointer-events-none" />
 
       {/* Main glass card */}
-      <div className="w-full max-w-[420px] bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-8 shadow-2xl relative z-10 transition-all duration-300">
+      <div className="w-full max-w-[420px] bg-card/60 backdrop-blur-xl border border-border rounded-3xl p-8 shadow-2xl relative z-10 transition-all duration-300">
 
         {/* Brand header */}
         <div className="flex flex-col items-center text-center mb-8">
-          <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center p-3.5 shadow-lg shadow-white/5 mb-4 animate-pulse">
+          <div className="w-20 h-20 bg-slate-50 dark:bg-white border border-border rounded-3xl flex items-center justify-center p-3.5 shadow-md mb-4">
             <img src={logoUrl} alt="OmniKey AI Logo" className="w-full h-full object-contain" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white mb-1.5">OmniKey AI</h1>
-          <p className="text-xs text-slate-400 font-medium">Unified Key Manager & Multi-Tenant Gateway</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground mb-1.5">OmniKey AI</h1>
+          <p className="text-xs text-muted-foreground font-medium">Unified Key Manager & Multi-Tenant Gateway</p>
         </div>
 
         {/* Tab Switcher */}
-        <div className="grid grid-cols-2 p-1.5 bg-slate-950/80 rounded-2xl mb-6 border border-slate-900">
+        <div className="grid grid-cols-2 p-1.5 bg-muted/50 rounded-2xl mb-6 border border-border">
           <button
             type="button"
             onClick={() => { setIsRegister(false); setError(null); }}
             className={`py-2 text-xs font-semibold rounded-xl transition-all ${!isRegister
-                ? 'bg-slate-800 text-white shadow'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
               }`}
           >
             Sign In
@@ -108,8 +148,8 @@ export default function LoginPage() {
             type="button"
             onClick={() => { setIsRegister(true); setError(null); }}
             className={`py-2 text-xs font-semibold rounded-xl transition-all ${isRegister
-                ? 'bg-slate-800 text-white shadow'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
               }`}
           >
             Create Account
@@ -118,7 +158,7 @@ export default function LoginPage() {
 
         {/* Error message */}
         {error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium px-4 py-3 rounded-2xl mb-6 flex items-start gap-2.5">
+          <div className="bg-red-500/10 border border-red-500/20 text-red-500 dark:text-red-400 text-xs font-medium px-4 py-3 rounded-2xl mb-6 flex items-start gap-2.5">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
             <span>{error}</span>
           </div>
@@ -127,7 +167,7 @@ export default function LoginPage() {
         {/* Auth form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-1.5 ml-1">
+            <label className="block text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1.5 ml-1">
               Email Address
             </label>
             <input
@@ -136,12 +176,12 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               required
-              className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all"
+              className="w-full bg-background border border-border rounded-2xl px-4 py-3 text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-1.5 ml-1">
+            <label className="block text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1.5 ml-1">
               Password
             </label>
             <input
@@ -150,13 +190,13 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
-              className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all"
+              className="w-full bg-background border border-border rounded-2xl px-4 py-3 text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all"
             />
           </div>
 
           {isRegister && (
             <div>
-              <label className="block text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-1.5 ml-1">
+              <label className="block text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1.5 ml-1">
                 Confirm Password
               </label>
               <input
@@ -165,7 +205,7 @@ export default function LoginPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all"
+                className="w-full bg-background border border-border rounded-2xl px-4 py-3 text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all"
               />
             </div>
           )}
@@ -193,9 +233,9 @@ export default function LoginPage() {
 
         {/* Divider */}
         <div className="flex items-center gap-3 my-5">
-          <div className="h-px bg-slate-800/60 grow" />
-          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">or</span>
-          <div className="h-px bg-slate-800/60 grow" />
+          <div className="h-px bg-border grow" />
+          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">or</span>
+          <div className="h-px bg-border grow" />
         </div>
 
         {/* Google Sign In */}
@@ -203,7 +243,7 @@ export default function LoginPage() {
           type="button"
           onClick={handleGoogleSignIn}
           disabled={loading}
-          className="w-full py-6 rounded-2xl border border-slate-800 bg-slate-950 hover:bg-slate-900 text-white font-semibold text-xs transition-all flex items-center justify-center gap-2.5 transform active:scale-[0.98]"
+          className="w-full py-6 rounded-2xl border border-border bg-background hover:bg-muted text-foreground font-semibold text-xs transition-all flex items-center justify-center gap-2.5 transform active:scale-[0.98]"
         >
           <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path d="M21.35,11.1H12v2.7h5.38c-0.24,1.28 -0.96,2.37 -2.04,3.1v2.58h3.3c1.93,-1.78 3.04,-4.4 3.04,-7.48c0,-0.68 -0.06,-1.34 -0.18,-1.9Z" fill="#4285F4" />
@@ -215,17 +255,17 @@ export default function LoginPage() {
         </Button>
 
         {/* Dynamic Mode Switcher (Local-First fallback) */}
-        <div className="mt-5 p-4 rounded-2xl bg-slate-950/60 border border-slate-900 flex flex-col items-center">
-          <p className="text-[10px] text-slate-400 font-semibold text-center mb-2.5">
+        <div className="mt-5 p-4 rounded-2xl bg-muted/30 border border-border flex flex-col items-center">
+          <p className="text-[10px] text-muted-foreground font-semibold text-center mb-2.5">
             Running offline or hosting locally?
           </p>
           <div className="flex items-center gap-4">
-            <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 cursor-pointer select-none">
+            <label className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={rememberMode}
                 onChange={(e) => setRememberMode(e.target.checked)}
-                className="rounded border-slate-800 bg-slate-950 text-violet-600 focus:ring-violet-500 w-3 h-3"
+                className="rounded border-border bg-background text-violet-600 focus:ring-violet-500 w-3 h-3"
               />
               Remember choice
             </label>
@@ -234,7 +274,7 @@ export default function LoginPage() {
               variant="outline"
               size="xs"
               onClick={() => setConfirmModalOpen(true)}
-              className="text-[10px] font-bold py-1.5 px-3 h-auto text-violet-400 hover:text-violet-300 border-violet-500/20 hover:border-violet-500/40 bg-violet-950/10 hover:bg-violet-950/20 rounded-xl"
+              className="text-[10px] font-bold py-1.5 px-3 h-auto text-violet-600 dark:text-violet-400 border-violet-500/20 hover:border-violet-500/40 bg-violet-500/5 hover:bg-violet-500/10 rounded-xl"
             >
               Switch to Local-First
             </Button>
@@ -242,8 +282,8 @@ export default function LoginPage() {
         </div>
 
         {/* Footer note */}
-        <div className="mt-6 pt-5 border-t border-slate-800/40 text-center">
-          <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
+        <div className="mt-6 pt-5 border-t border-border text-center">
+          <p className="text-[10px] text-muted-foreground font-medium leading-relaxed">
             Authentication is secured by Firebase Guard. Database persistence resides on MongoDB Atlas.
           </p>
         </div>
