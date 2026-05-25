@@ -11,6 +11,7 @@ import AnalyticsPage from '@/pages/AnalyticsPage'
 import DevCornerPage from '@/pages/DevCornerPage'
 import AdminPage from '@/pages/AdminPage'
 import logoUrl from './assets/logo.png'
+import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 
 const queryClient = new QueryClient()
 
@@ -73,6 +74,7 @@ function Brand() {
 
 function DashboardLayout() {
   const { user, loading, localDbEnabled, cloudDbAvailable, logout, setDatabaseMode } = useAuth()
+  const [showSwitchModal, setShowSwitchModal] = useState(false)
 
   if (loading) {
     return (
@@ -120,9 +122,19 @@ function DashboardLayout() {
               </span>
             )}
             {!localDbEnabled && (
-              <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider bg-emerald-500/5 border border-emerald-500/10 rounded-xl px-2.5 py-1">
-                Cloud Connected
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider bg-emerald-500/5 border border-emerald-500/10 rounded-xl px-2.5 py-1">
+                  Cloud Connected
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowSwitchModal(true)}
+                  className="text-xs font-semibold text-violet-600 dark:text-violet-400 border-violet-500/20 hover:border-violet-500/40 bg-violet-500/5 hover:bg-violet-500/10 rounded-xl h-8 px-3"
+                >
+                  Switch to Local
+                </Button>
+              </div>
             )}
             <DarkModeToggle />
             {!localDbEnabled && user && (
@@ -150,6 +162,18 @@ function DashboardLayout() {
           <Route path="/health" element={<Navigate to="/keys" replace />} />
         </Routes>
       </main>
+      <ConfirmationModal
+        isOpen={showSwitchModal}
+        title="Switch to Local-First Mode?"
+        description="Only switch to local-first mode if you have run the project locally on your device; otherwise, it would not work."
+        confirmLabel="Switch"
+        cancelLabel="Cancel"
+        onConfirm={() => {
+          setShowSwitchModal(false)
+          setDatabaseMode('local')
+        }}
+        onCancel={() => setShowSwitchModal(false)}
+      />
     </div>
   )
 }
