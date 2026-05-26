@@ -263,7 +263,15 @@ In Favor Player Model: "${getModelDisplayName(infavorModel)}"
 Against Player Model: "${getModelDisplayName(againstModel)}"
 
 Guidelines:
-Review the debate history provided below. Provide a brief (under 80 words) assessment of this round's arguments, scoring each player's performance in this round out of 10.`
+1. Review the debate history for this round.
+2. Provide a sharp, punchy analysis (under 120 words) detailing which side presented a stronger, more logical argument in this specific round.
+3. You MUST always explicitly score both debaters out of 10 at the top of your assessment. Use the following structured format exactly at the start of your response:
+   **Score Card (Round \${r}):**
+   - In Favor Model: X/10
+   - Against Model: Y/10
+   
+   **Round Critique:**
+   [Your concise, analytical evaluation here]`
 
           const updatedMessagesForJ = turn2 ? [...updatedMessagesFor2, turn2] : updatedMessagesFor2
           const historyJ = [
@@ -296,7 +304,19 @@ Topic: "${topic}"
 In Favor Player Model: "${getModelDisplayName(infavorModel)}"
 Against Player Model: "${getModelDisplayName(againstModel)}"
 
-Read the entire debate history. Provide a detailed critique, declare a final winner, and summarize why they won.`
+1. Read the entire debate history thoroughly.
+2. Deliver a comprehensive final verdict containing:
+   - A final aggregated score out of 10 for both participants.
+   - Critique of the core arguments from each side (positives and weaknesses).
+   - Clear declaration of the winner and the key reasons why they won.
+3. You MUST always explicitly score both debaters out of 10 and declare a final winner at the top of your verdict. Use the following structured format exactly at the start of your response:
+   **Final Arena Verdict:**
+   - In Favor Model: X/10
+   - Against Model: Y/10
+   - **Declared Winner:** [In Favor Model Name OR Against Model Name]
+   
+   **Key Debate Summary & Analysis:**
+   [Your structured, high-quality final critique here]`
 
         const historyFinal = [
           { role: 'system', content: finalJudgeSystemPrompt },
