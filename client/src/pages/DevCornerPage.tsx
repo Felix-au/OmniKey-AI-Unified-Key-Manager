@@ -4,7 +4,6 @@ import { apiFetch } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PageHeader } from '@/components/page-header'
-import { MarkdownRenderer } from '@/components/markdown-renderer'
 
 interface FallbackEntry {
   modelDbId: number
@@ -42,7 +41,7 @@ export default function DevCornerPage() {
 
   const availableModels = fallbackEntries.filter(e => e.keyCount > 0 && e.enabled)
   const apiKey = (apiFormat === 'openai' ? keyData?.apiKey : keyData?.geminiApiKey) || (apiFormat === 'openai' ? 'omnikey-placeholder-key' : 'omnikey-g-placeholder-key')
-  
+
   const base = (import.meta.env.VITE_API_URL || import.meta.env.BASE_URL).replace(/\/$/, '')
   const baseApiUrl = base.startsWith('http') ? base : `${window.location.origin}${base}`
   const completionEndpoint = apiFormat === 'openai'
@@ -171,7 +170,7 @@ generateCompletion();`;
   const handleExecuteRequest = async () => {
     setExecuting(true)
     setResponseOutput('Sending request to server...')
-    
+
     try {
       let res: Response
       if (apiFormat === 'openai') {
@@ -179,7 +178,7 @@ generateCompletion();`;
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
         }
-        
+
         const body: any = {
           model: selectedModel,
           messages: [
@@ -201,7 +200,7 @@ generateCompletion();`;
         const headers: Record<string, string> = {
           'Content-Type': 'application/json'
         }
-        
+
         const body: any = {
           contents: [
             { role: 'user', parts: [{ text: userPrompt }] }
@@ -263,7 +262,7 @@ generateCompletion();`;
                 }
                 streamingText += content
                 setResponseOutput(streamingText)
-              } catch (e) {}
+              } catch (e) { }
             }
           }
         }
@@ -488,10 +487,8 @@ generateCompletion();`;
               <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Interactive Execution Console</h4>
               <p className="text-[10px] text-muted-foreground">Real-time parsed output response from the gateway router.</p>
             </div>
-            <div className="flex-1 min-h-0 rounded-xl border border-slate-200 dark:border-slate-900 overflow-auto p-4 bg-background">
-              {responseOutput
-                ? <MarkdownRenderer content={responseOutput} />
-                : <span className="font-mono text-[11px] text-muted-foreground">Console idle. Click "Run Proxy Sandbox Request" to execute dynamic request blocks.</span>}
+            <div className="flex-1 min-h-0 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-900 overflow-auto p-4 text-left font-mono text-[11px] text-emerald-700 dark:text-emerald-400 leading-relaxed whitespace-pre-wrap select-all cursor-text">
+              {responseOutput || 'Console idle. Click "Run Proxy Sandbox Request" to execute dynamic request blocks.'}
             </div>
           </div>
         </div>
