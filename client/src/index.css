@@ -52,19 +52,19 @@
 
 :root {
     --background: oklch(0.92 0.01 240);
-    --foreground: oklch(0.18 0 0);
+    --foreground: oklch(0.05 0 0);
     --card: oklch(0.95 0.005 240);
-    --card-foreground: oklch(0.18 0 0);
+    --card-foreground: oklch(0.05 0 0);
     --popover: oklch(0.95 0.005 240);
-    --popover-foreground: oklch(0.18 0 0);
+    --popover-foreground: oklch(0.05 0 0);
     --primary: oklch(0.22 0 0);
     --primary-foreground: oklch(0.98 0 0);
     --secondary: oklch(0.90 0.01 240);
-    --secondary-foreground: oklch(0.22 0 0);
+    --secondary-foreground: oklch(0.08 0 0);
     --muted: oklch(0.88 0.01 240);
-    --muted-foreground: oklch(0.48 0 0);
+    --muted-foreground: oklch(0.28 0.005 240);
     --accent: oklch(0.86 0.01 240);
-    --accent-foreground: oklch(0.22 0 0);
+    --accent-foreground: oklch(0.08 0 0);
     --destructive: oklch(0.577 0.245 27.325);
     --border: oklch(0.82 0.01 240);
     --input: oklch(0.82 0.01 240);
@@ -76,11 +76,11 @@
     --chart-5: oklch(0.87 0 0);
     --radius: 0.5rem;
     --sidebar: oklch(0.94 0.008 240);
-    --sidebar-foreground: oklch(0.18 0 0);
+    --sidebar-foreground: oklch(0.05 0 0);
     --sidebar-primary: oklch(0.22 0 0);
     --sidebar-primary-foreground: oklch(0.98 0 0);
     --sidebar-accent: oklch(0.86 0.01 240);
-    --sidebar-accent-foreground: oklch(0.22 0 0);
+    --sidebar-accent-foreground: oklch(0.08 0 0);
     --sidebar-border: oklch(0.82 0.01 240);
     --sidebar-ring: oklch(0.55 0 0);
 }
@@ -151,4 +151,23 @@
 /* ── Light Mode Grayish Background Refinements ── */
 html:not(.dark) .bg-white {
     background-color: oklch(0.95 0.005 240) !important;
+}
+
+/* ── Light Mode Darker Text Overrides ── */
+html:not(.dark) {
+    .text-slate-400, .text-gray-400, .text-muted-foreground {
+        color: oklch(0.28 0.005 240) !important;
+    }
+    .text-slate-500, .text-gray-500 {
+        color: oklch(0.20 0.005 240) !important;
+    }
+    .text-slate-600, .text-gray-600 {
+        color: oklch(0.14 0.005 240) !important;
+    }
+    .text-slate-700, .text-gray-700 {
+        color: oklch(0.08 0 0) !important;
+    }
+    .text-slate-800, .text-gray-800, .text-slate-900, .text-gray-900 {
+        color: oklch(0.05 0 0) !important;
+    }
 }
