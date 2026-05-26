@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PageHeader } from '@/components/page-header'
 import { Badge } from '@/components/ui/badge'
+import { MarkdownRenderer } from '@/components/markdown-renderer'
 
 interface FallbackEntry {
   modelDbId: number
@@ -321,7 +322,9 @@ export default function ComparePage() {
                               : 'bg-muted'
                           }`}
                         >
-                          <div className="whitespace-pre-wrap">{msg.content}</div>
+                          {msg.role === 'user'
+                            ? <div className="whitespace-pre-wrap">{msg.content}</div>
+                            : <MarkdownRenderer content={msg.content} compact />}
                           {msg.meta && (
                             <div className="flex items-center gap-1.5 mt-2 flex-wrap text-[10px] opacity-80 tabular-nums font-medium text-muted-foreground border-t border-muted-foreground/10 pt-1.5">
                               {msg.meta.platform && <span className="uppercase text-violet-500 font-semibold">{msg.meta.platform}</span>}

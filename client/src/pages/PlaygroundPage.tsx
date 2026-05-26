@@ -4,6 +4,7 @@ import { apiFetch } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PageHeader } from '@/components/page-header'
+import { MarkdownRenderer } from '@/components/markdown-renderer'
 
 interface FallbackEntry {
   modelDbId: number
@@ -233,7 +234,9 @@ export default function PlaygroundPage() {
                         : 'bg-muted'
                     }`}
                   >
-                    <div className="whitespace-pre-wrap">{msg.content}</div>
+                    {msg.role === 'user'
+                      ? <div className="whitespace-pre-wrap">{msg.content}</div>
+                      : <MarkdownRenderer content={msg.content} compact />}
                     {msg.meta && (
                       <div className="flex items-center gap-2 mt-2 flex-wrap text-[11px] opacity-70 tabular-nums">
                         {msg.meta.platform && <span>{msg.meta.platform}</span>}

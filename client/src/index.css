@@ -171,3 +171,31 @@ html:not(.dark) {
         color: oklch(0.05 0 0) !important;
     }
 }
+/* ── Markdown Renderer — Theme-Aware Highlight.js Overrides ── */
+/*
+  Code blocks always use the dark github theme (0d1117 bg) for
+  consistent syntax colour regardless of app theme.
+  We only re-tint the token colours slightly in light mode so
+  they're more readable at a glance when surrounded by light UI.
+*/
+.markdown-body pre {
+    /* Ensures code blocks don't bleed outside their container */
+    max-width: 100%;
+}
+
+/* Light mode: give inline code a warm off-white bg instead of the dark muted */
+html:not(.dark) .markdown-body code:not([class*="language-"]) {
+    background-color: oklch(0.88 0.01 240);
+    color: oklch(0.10 0.015 260);
+    border-color: oklch(0.78 0.01 240);
+}
+
+/* Ensure hljs inside pre keeps the dark theme regardless */
+.markdown-body .hljs {
+    background: transparent;
+}
+
+/* Table: light-mode row hover uses our cool-gray accent */
+html:not(.dark) .markdown-body table tbody tr:hover {
+    background-color: oklch(0.90 0.01 240);
+}

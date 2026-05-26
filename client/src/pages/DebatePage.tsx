@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { MarkdownRenderer } from '@/components/markdown-renderer'
 
 interface FallbackEntry {
   modelDbId: number
@@ -599,8 +600,8 @@ Against Player Model: "${getModelDisplayName(againstModel)}"
                     )}
                   </div>
 
-                  <div className="text-xs leading-relaxed whitespace-pre-wrap mb-3 font-medium">
-                    {msg.content}
+                  <div className="mb-3">
+                    <MarkdownRenderer content={msg.content} compact />
                   </div>
 
                   <div className="flex items-center gap-2 border-t border-muted/50 pt-2 text-[9px] text-muted-foreground font-semibold">
