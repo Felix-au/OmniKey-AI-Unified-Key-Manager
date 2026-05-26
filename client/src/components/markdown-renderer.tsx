@@ -4,9 +4,6 @@ import rehypeHighlight from 'rehype-highlight'
 import type { Components } from 'react-markdown'
 import { cn } from '@/lib/utils'
 
-// Import a highlight.js theme — we use a neutral one and override via CSS
-import 'highlight.js/styles/github-dark.css'
-
 interface MarkdownRendererProps {
   content: string
   className?: string
@@ -68,7 +65,7 @@ const components: Components = {
   // ── Code Block wrapper ────────────────────────────────────────────────────
   pre: ({ children }) => (
     <div className="relative group my-2">
-      <pre className="overflow-x-auto rounded-xl border border-border bg-[#0d1117] dark:bg-[#0d1117] p-4 text-[0.82em] leading-relaxed">
+      <pre className="overflow-x-auto rounded-xl border p-4 text-[0.82em] leading-relaxed bg-[#f6f8fa] dark:bg-[#0d1117] border-[#d0d7de] dark:border-[#30363d]">
         {children}
       </pre>
     </div>

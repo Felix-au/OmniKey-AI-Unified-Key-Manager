@@ -3,6 +3,7 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 @import "@fontsource-variable/geist-mono";
+@import "highlight.js/styles/github.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -171,29 +172,66 @@ html:not(.dark) {
         color: oklch(0.05 0 0) !important;
     }
 }
-/* ── Markdown Renderer — Theme-Aware Highlight.js Overrides ── */
-/*
-  Code blocks always use the dark github theme (0d1117 bg) for
-  consistent syntax colour regardless of app theme.
-  We only re-tint the token colours slightly in light mode so
-  they're more readable at a glance when surrounded by light UI.
-*/
-.markdown-body pre {
-    /* Ensures code blocks don't bleed outside their container */
-    max-width: 100%;
+
+/* ── Markdown Renderer — Theme-Aware Highlight.js ── */
+
+/* Light mode: pre uses GitHub light bg (#f6f8fa) — matches github.css theme */
+html:not(.dark) .markdown-body pre {
+    background-color: #f6f8fa;
+    border-color: #d0d7de;
 }
 
-/* Light mode: give inline code a warm off-white bg instead of the dark muted */
-html:not(.dark) .markdown-body code:not([class*="language-"]) {
+/* Light mode: inline code uses cool-gray instead of muted */
+html:not(.dark) .markdown-body code:not([class*="language-"]):not([class*="hljs"]) {
     background-color: oklch(0.88 0.01 240);
     color: oklch(0.10 0.015 260);
     border-color: oklch(0.78 0.01 240);
 }
 
-/* Ensure hljs inside pre keeps the dark theme regardless */
+/* Both modes: hljs bg should be transparent so the pre bg shows */
 .markdown-body .hljs {
     background: transparent;
+    padding: 0;
 }
+
+/* Dark mode: switch to GitHub Dark token colors */
+.dark .markdown-body pre {
+    background-color: #0d1117;
+    border-color: #30363d;
+}
+.dark .markdown-body .hljs                              { color: #c9d1d9; }
+.dark .markdown-body .hljs-doctag,
+.dark .markdown-body .hljs-keyword,
+.dark .markdown-body .hljs-template-tag,
+.dark .markdown-body .hljs-template-variable,
+.dark .markdown-body .hljs-type,
+.dark .markdown-body .hljs-variable.language_           { color: #ff7b72; }
+.dark .markdown-body .hljs-title,
+.dark .markdown-body .hljs-title.class_,
+.dark .markdown-body .hljs-title.function_              { color: #d2a8ff; }
+.dark .markdown-body .hljs-attr,
+.dark .markdown-body .hljs-attribute,
+.dark .markdown-body .hljs-literal,
+.dark .markdown-body .hljs-number,
+.dark .markdown-body .hljs-operator,
+.dark .markdown-body .hljs-variable                    { color: #79c0ff; }
+.dark .markdown-body .hljs-meta .hljs-string,
+.dark .markdown-body .hljs-regexp,
+.dark .markdown-body .hljs-string                      { color: #a5d6ff; }
+.dark .markdown-body .hljs-built_in,
+.dark .markdown-body .hljs-symbol                      { color: #ffa657; }
+.dark .markdown-body .hljs-code,
+.dark .markdown-body .hljs-comment,
+.dark .markdown-body .hljs-formula                     { color: #8b949e; }
+.dark .markdown-body .hljs-name,
+.dark .markdown-body .hljs-quote,
+.dark .markdown-body .hljs-selector-tag               { color: #7ee787; }
+.dark .markdown-body .hljs-section                    { color: #1f6feb; font-weight: 700; }
+.dark .markdown-body .hljs-bullet                     { color: #f2cc60; }
+.dark .markdown-body .hljs-strong                     { color: #c9d1d9; font-weight: 700; }
+.dark .markdown-body .hljs-emphasis                   { color: #c9d1d9; font-style: italic; }
+.dark .markdown-body .hljs-addition                   { color: #aff5b4; background-color: #033a16; }
+.dark .markdown-body .hljs-deletion                   { color: #ffdcd7; background-color: #67060c; }
 
 /* Table: light-mode row hover uses our cool-gray accent */
 html:not(.dark) .markdown-body table tbody tr:hover {
