@@ -88,8 +88,8 @@ function OceanBackground({ dark }: { dark: boolean }) {
       { amp: 30, freq: 0.011, speed: 0.032, yBase: 0.76, color: 'rgba(2,132,199,0.30)', noiseA: 9, noiseF: 0.00061, noiseS: 0.00035 },
     ]
     const waves = dark ? darkWaves : lightWaves
-    // 45 particles with per-particle random params
-    const particles = Array.from({ length: dark ? 45 : 55 }, () => ({
+    // 15 particles with per-particle random params
+    const particles = Array.from({ length: dark ? 15 : 45 }, () => ({
       x: Math.random(), y: 0.3 + Math.random() * 0.7,
       r: 1.2 + Math.random() * 2.8,
       speed: 0.00008 + Math.random() * 0.00014,
