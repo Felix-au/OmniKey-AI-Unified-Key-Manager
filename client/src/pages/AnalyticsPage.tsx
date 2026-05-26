@@ -172,24 +172,24 @@ export default function AnalyticsPage() {
               {byModel.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">No data yet</p>
               ) : (
-                <div className="max-h-[360px] overflow-y-auto -mx-4">
+                <div className="max-h-[360px] overflow-y-auto overflow-x-auto -mx-4">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="pl-4">Model</TableHead>
-                        <TableHead>Provider</TableHead>
-                        <TableHead className="text-right">Requests</TableHead>
-                        <TableHead className="text-right">Success</TableHead>
-                        <TableHead className="text-right">Latency</TableHead>
-                        <TableHead className="text-right">In tokens</TableHead>
-                        <TableHead className="text-right pr-4">Out tokens</TableHead>
+                        <TableHead className="pl-4 whitespace-nowrap">Model</TableHead>
+                        <TableHead className="whitespace-nowrap">Provider</TableHead>
+                        <TableHead className="text-right whitespace-nowrap">Requests</TableHead>
+                        <TableHead className="text-right whitespace-nowrap">Success</TableHead>
+                        <TableHead className="text-right whitespace-nowrap">Latency</TableHead>
+                        <TableHead className="text-right whitespace-nowrap">In tokens</TableHead>
+                        <TableHead className="text-right pr-4 whitespace-nowrap">Out tokens</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {byModel.map((m: any, i: number) => (
                         <TableRow key={i}>
-                          <TableCell className="pl-4 text-sm font-medium">{m.displayName}</TableCell>
-                          <TableCell className="text-xs text-muted-foreground">{m.platform}</TableCell>
+                          <TableCell className="pl-4 text-sm font-medium whitespace-nowrap">{m.displayName}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{m.platform}</TableCell>
                           <TableCell className="text-right tabular-nums">{m.requests}</TableCell>
                           <TableCell className="text-right tabular-nums">{m.successRate}%</TableCell>
                           <TableCell className="text-right tabular-nums">{m.avgLatencyMs} ms</TableCell>

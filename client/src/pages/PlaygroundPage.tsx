@@ -170,14 +170,14 @@ export default function PlaygroundPage() {
     : availableModels.find(m => m.modelId === selectedModel)?.displayName ?? selectedModel
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
+    <div className="flex flex-col h-[calc(100vh-13rem)] sm:h-[calc(100vh-9rem)] md:h-[calc(100vh-8rem)]">
       <PageHeader
         title="Playground"
         description="Send a chat completion through the router and see which provider serves it."
         actions={
-          <>
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             <Select value={apiFormat} onValueChange={(v) => setApiFormat(v as 'openai' | 'gemini')}>
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-full sm:w-[150px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -187,7 +187,7 @@ export default function PlaygroundPage() {
             </Select>
 
             <Select value={selectedModel} onValueChange={(v) => setSelectedModel(v ?? 'auto')}>
-              <SelectTrigger className="w-[260px]">
+              <SelectTrigger className="flex-1 sm:w-[260px] min-w-[160px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -207,7 +207,7 @@ export default function PlaygroundPage() {
                 Clear
               </Button>
             )}
-          </>
+          </div>
         }
       />
 

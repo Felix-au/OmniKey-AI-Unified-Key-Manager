@@ -98,38 +98,38 @@ export default function ModelsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <PageHeader 
-          title="Model Registry & Status" 
-          description="View active models, user enablement preferences, and check live endpoint availability in real-time."
-        />
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span>Sort by:</span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="bg-card border border-border rounded-xl text-xs h-9 px-3 focus:outline-none focus:border-violet-500 text-foreground cursor-pointer"
+      <PageHeader 
+        title="Model Registry & Status" 
+        description="View active models, user enablement preferences, and check live endpoint availability in real-time."
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span>Sort by:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="bg-card border border-border rounded-xl text-xs h-9 px-3 focus:outline-none focus:border-violet-500 text-foreground cursor-pointer"
+              >
+                <option value="default">Default Priority</option>
+                <option value="name">Model Name (A-Z)</option>
+                <option value="platform">Platform (A-Z)</option>
+                <option value="userStatus">User Enabled First</option>
+                <option value="adminStatus">Admin Active First</option>
+              </select>
+            </div>
+            <Button 
+              onClick={checkAll} 
+              disabled={fallbackEntries.length === 0}
+              className="bg-violet-600 hover:bg-violet-500 text-white font-semibold rounded-xl text-xs h-9 px-4 flex items-center gap-1.5 shadow-lg shadow-violet-600/15 border-none cursor-pointer"
             >
-              <option value="default">Default Priority</option>
-              <option value="name">Model Name (A-Z)</option>
-              <option value="platform">Platform (A-Z)</option>
-              <option value="userStatus">User Enabled First</option>
-              <option value="adminStatus">Admin Active First</option>
-            </select>
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              </svg>
+              Check All Active
+            </Button>
           </div>
-          <Button 
-            onClick={checkAll} 
-            disabled={fallbackEntries.length === 0}
-            className="bg-violet-600 hover:bg-violet-500 text-white font-semibold rounded-xl text-xs h-9 px-4 flex items-center gap-1.5 shadow-lg shadow-violet-600/15 border-none cursor-pointer"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-            </svg>
-            Check All Active
-          </Button>
-        </div>
-      </div>
+        }
+      />
 
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20">
@@ -140,7 +140,7 @@ export default function ModelsPage() {
           <span className="text-xs text-muted-foreground">Loading registry metadata...</span>
         </div>
       ) : (
-        <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+        <div className="rounded-xl border border-border bg-card overflow-x-auto shadow-sm">
           <table className="w-full border-collapse text-left text-sm">
             <thead>
               <tr className="border-b bg-muted/40 text-xs font-semibold text-muted-foreground uppercase tracking-wider">

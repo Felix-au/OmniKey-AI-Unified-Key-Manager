@@ -368,11 +368,11 @@ export default function KeysPage() {
 
         <section>
           <h2 className="text-sm font-medium mb-3">Add a provider key</h2>
-          <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3 rounded-lg border p-4 bg-card">
+          <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-end gap-3 rounded-lg border p-4 bg-card">
             <div className="space-y-1.5">
               <Label className="text-xs">Platform</Label>
               <Select value={platform} onValueChange={(v) => setPlatform(v as Platform)}>
-                <SelectTrigger className="w-[220px]">
+                <SelectTrigger className="w-full sm:w-[220px]">
                   <SelectValue placeholder="Select provider" />
                 </SelectTrigger>
                 <SelectContent>
@@ -389,18 +389,18 @@ export default function KeysPage() {
                   value={accountId}
                   onChange={e => setAccountId(e.target.value)}
                   placeholder="a1b2c3d4…"
-                  className="w-[200px] font-mono text-xs"
+                  className="w-full sm:w-[200px] font-mono text-xs"
                 />
               </div>
             )}
-            <div className="space-y-1.5 flex-1 min-w-[240px]">
+            <div className="space-y-1.5 flex-1 min-w-0">
               <Label className="text-xs">{needsAccountId ? 'API token' : 'API key'}</Label>
               <Input
                 type="password"
                 value={apiKey}
                 onChange={e => setApiKey(e.target.value)}
                 placeholder={needsAccountId ? 'Bearer token' : 'paste key here'}
-                className="font-mono text-xs"
+                className="font-mono text-xs w-full"
               />
             </div>
             <div className="space-y-1.5">
@@ -409,10 +409,10 @@ export default function KeysPage() {
                 value={label}
                 onChange={e => setLabel(e.target.value)}
                 placeholder="optional"
-                className="w-[160px]"
+                className="w-full sm:w-[160px]"
               />
             </div>
-            <Button type="submit" size="sm" disabled={!platform || !apiKey || (needsAccountId && !accountId) || addKey.isPending}>
+            <Button type="submit" size="sm" className="w-full sm:w-auto" disabled={!platform || !apiKey || (needsAccountId && !accountId) || addKey.isPending}>
               {addKey.isPending ? 'Adding…' : 'Add key'}
             </Button>
           </form>
@@ -422,7 +422,7 @@ export default function KeysPage() {
         </section>
 
         <section>
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
             <h2 className="text-sm font-medium">Configured providers</h2>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={keys.length === 0}>
@@ -464,14 +464,14 @@ export default function KeysPage() {
                       const status = h?.status ?? k.status
                       const lastChecked = h?.lastCheckedAt
                       return (
-                        <div key={k.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors">
+                        <div key={k.id} className="flex flex-wrap items-center gap-2 px-3 py-3 hover:bg-muted/40 transition-colors">
                           <span className={`size-1.5 rounded-full flex-shrink-0 ${statusDot[status] ?? statusDot.unknown}`} />
-                          <code className="text-xs font-mono flex-shrink-0">{k.maskedKey}</code>
+                          <code className="text-xs font-mono flex-shrink-0 truncate max-w-[120px] sm:max-w-none">{k.maskedKey}</code>
                           {k.label && <span className="text-xs text-muted-foreground">{k.label}</span>}
                           <span className="text-xs text-muted-foreground">{statusLabel[status] ?? status}</span>
                           <div className="flex-1" />
                           {lastChecked && (
-                            <span className="text-[11px] text-muted-foreground tabular-nums">
+                            <span className="text-[11px] text-muted-foreground tabular-nums hidden sm:inline">
                               {parseUtcDate(lastChecked)?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}
                             </span>
                           )}

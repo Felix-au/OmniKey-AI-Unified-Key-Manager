@@ -44,7 +44,14 @@ export default function ComparePage() {
     { id: 'panel-2', model: 'auto', format: 'gemini', messages: [], loading: false },
   ])
   const [input, setInput] = useState('')
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   const { data: keyData } = useQuery<{ apiKey: string; geminiApiKey: string }>({
     queryKey: ['unified-key'],
@@ -216,7 +223,7 @@ export default function ComparePage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
+    <div className="flex flex-col h-[calc(100vh-13rem)] sm:h-[calc(100vh-9rem)] md:h-[calc(100vh-8rem)]">
       <PageHeader
         title="Arena"
         description="Compare latency, output quality, and fallback routing of multiple configurations side-by-side."
@@ -244,14 +251,17 @@ export default function ComparePage() {
       />
 
       {/* Panels container */}
-      <div className="flex-1 min-h-0 grid gap-4 mb-4" style={{ gridTemplateColumns: `repeat(${numPanels}, minmax(0, 1fr))` }}>
+      <div
+        className="flex-1 min-h-0 grid gap-3 mb-3 overflow-y-auto"
+        style={{ gridTemplateColumns: `repeat(${isMobile ? 1 : numPanels}, minmax(0, 1fr))` }}
+      >
         {panels.map((panel, idx) => {
           const activeModelLabel = panel.model === 'auto'
             ? 'Auto'
             : availableModels.find(m => m.modelId === panel.model)?.displayName ?? panel.model
 
           return (
-            <div key={panel.id} className="flex flex-col rounded-xl border bg-card/60 backdrop-blur overflow-hidden min-h-0 relative shadow-sm hover:shadow transition-shadow">
+            <div key={panel.id} className="flex flex-col rounded-xl border bg-card/60 backdrop-blur overflow-hidden min-h-[300px] relative shadow-sm hover:shadow transition-shadow">
               {/* Panel Header Settings */}
               <div className="p-3 border-b bg-muted/20 flex flex-col gap-2">
                 <div className="flex items-center justify-between">

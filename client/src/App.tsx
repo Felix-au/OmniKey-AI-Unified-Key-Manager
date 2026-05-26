@@ -134,10 +134,52 @@ function SectionLabel({ label, collapsed }: { label: string; collapsed: boolean 
   return <p className="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">{label}</p>
 }
 
+// ── Mobile Hamburger Button ───────────────────────────────────────────────────
+const IconMenu = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
+  </svg>
+)
+const IconX = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+  </svg>
+)
+
+// ── Mobile Theme Toggle (icon-only, for topbar) ───────────────────────────────
+function MobileThemeToggle() {
+  const [dark, setDark] = useState(() =>
+    typeof window !== 'undefined' && document.documentElement.classList.contains('dark')
+  )
+  useEffect(() => {
+    const stored = localStorage.getItem('theme')
+    if (stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark')
+      setDark(true)
+    }
+  }, [])
+  function toggle() {
+    const next = !dark
+    setDark(next)
+    document.documentElement.classList.toggle('dark', next)
+    localStorage.setItem('theme', next ? 'dark' : 'light')
+  }
+  return (
+    <button
+      onClick={toggle}
+      title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+      className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors"
+    >
+      {dark ? <IconSun /> : <IconMoon />}
+    </button>
+  )
+}
+
 // ── Dashboard Layout ──────────────────────────────────────────────────────────
 function DashboardLayout() {
   const { user, loading, localDbEnabled, cloudDbAvailable, logout, setDatabaseMode } = useAuth()
   const [collapsed, setCollapsed] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const [showSwitchModal, setShowSwitchModal] = useState(false)
 
   if (loading) {
@@ -156,27 +198,33 @@ function DashboardLayout() {
 
   const sidebarW = collapsed ? 'w-[72px]' : 'w-[220px]'
 
-  return (
-    <div className="min-h-screen bg-background flex">
-      {/* ── Sidebar ── */}
-      <aside className={`${sidebarW} shrink-0 flex flex-col border-r border-border bg-background/95 backdrop-blur sticky top-0 h-screen overflow-hidden transition-all duration-200 z-40`}>
+  // Shared sidebar inner content (used for both desktop & mobile drawer)
+  function SidebarContent({ mobile = false }: { mobile?: boolean }) {
+    return (
+      <>
         {/* Brand + collapse toggle */}
         <div className="flex items-center h-14 px-3 border-b border-border gap-2 shrink-0">
-          {/* Logo — always visible; clicking it expands when collapsed */}
           <button
-            onClick={() => collapsed && setCollapsed(false)}
-            title={collapsed ? 'Expand sidebar' : undefined}
-            className={`shrink-0 rounded-lg transition-colors ${collapsed ? 'hover:bg-accent/60 cursor-pointer p-1' : 'cursor-default'}`}
+            onClick={() => { if (collapsed && !mobile) setCollapsed(false) }}
+            title={collapsed && !mobile ? 'Expand sidebar' : undefined}
+            className={`shrink-0 rounded-lg transition-colors ${collapsed && !mobile ? 'hover:bg-accent/60 cursor-pointer p-1' : 'cursor-default'}`}
           >
             <img
               src={logoUrl}
               alt="OmniKey AI"
-              className={`object-contain transition-all duration-200 ${collapsed ? 'h-9 w-9' : 'h-6 w-6'}`}
+              className={`object-contain transition-all duration-200 ${collapsed && !mobile ? 'h-9 w-9' : 'h-6 w-6'}`}
             />
           </button>
-          {!collapsed && <span className="font-semibold text-sm tracking-tight truncate">OmniKey AI</span>}
-          {/* Chevron only shown when expanded, to collapse */}
-          {!collapsed && (
+          {(!collapsed || mobile) && <span className="font-semibold text-sm tracking-tight truncate">OmniKey AI</span>}
+          {mobile ? (
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="ml-auto shrink-0 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors"
+              aria-label="Close menu"
+            >
+              <IconX />
+            </button>
+          ) : (!collapsed && (
             <button
               onClick={() => setCollapsed(true)}
               title="Collapse sidebar"
@@ -184,30 +232,29 @@ function DashboardLayout() {
             >
               <IconChevron collapsed={false} />
             </button>
-          )}
+          ))}
         </div>
 
         {/* Nav links */}
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-2 space-y-0.5">
-          <SectionLabel label="Chat" collapsed={collapsed} />
-          <SideNavItem to="/playground" icon={<IconChat />} label="Chat" collapsed={collapsed} />
-          <SideNavItem to="/compare"   icon={<IconArena />}  label="Arena"  collapsed={collapsed} />
-          <SideNavItem to="/debate"    icon={<IconDebate />} label="Debate" collapsed={collapsed} />
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-2 space-y-0.5" onClick={() => mobile && setMobileOpen(false)}>
+          <SectionLabel label="Chat" collapsed={collapsed && !mobile} />
+          <SideNavItem to="/playground" icon={<IconChat />} label="Chat"  collapsed={collapsed && !mobile} />
+          <SideNavItem to="/compare"   icon={<IconArena />}  label="Arena"  collapsed={collapsed && !mobile} />
+          <SideNavItem to="/debate"    icon={<IconDebate />} label="Debate" collapsed={collapsed && !mobile} />
 
-          <SectionLabel label="Manage" collapsed={collapsed} />
-          <SideNavItem to="/models"    icon={<IconModels />}   label="Models"    collapsed={collapsed} />
-          <SideNavItem to="/keys"      icon={<IconKeys />}     label="Keys"      collapsed={collapsed} />
-          <SideNavItem to="/fallback"  icon={<IconFallback />} label="Fallback"  collapsed={collapsed} />
-          <SideNavItem to="/analytics" icon={<IconAnalytics />}label="Analytics" collapsed={collapsed} />
+          <SectionLabel label="Manage" collapsed={collapsed && !mobile} />
+          <SideNavItem to="/models"    icon={<IconModels />}   label="Models"    collapsed={collapsed && !mobile} />
+          <SideNavItem to="/keys"      icon={<IconKeys />}     label="Keys"      collapsed={collapsed && !mobile} />
+          <SideNavItem to="/fallback"  icon={<IconFallback />} label="Fallback"  collapsed={collapsed && !mobile} />
+          <SideNavItem to="/analytics" icon={<IconAnalytics />}label="Analytics" collapsed={collapsed && !mobile} />
 
-          <SectionLabel label="Developer" collapsed={collapsed} />
-          <SideNavItem to="/dev-corner" icon={<IconDev />}   label="Dev Corner" collapsed={collapsed} />
+          <SectionLabel label="Developer" collapsed={collapsed && !mobile} />
+          <SideNavItem to="/dev-corner" icon={<IconDev />}   label="Dev Corner" collapsed={collapsed && !mobile} />
         </nav>
 
         {/* Bottom controls */}
         <div className="px-2 py-3 border-t border-border space-y-1 shrink-0">
-          {/* DB mode badge */}
-          {!collapsed && (
+          {(!collapsed || mobile) && (
             <>
               {localDbEnabled && cloudDbAvailable && (
                 <button
@@ -237,8 +284,8 @@ function DashboardLayout() {
               )}
             </>
           )}
-          <DarkModeToggle collapsed={collapsed} />
-          {!localDbEnabled && user && !collapsed && (
+          <DarkModeToggle collapsed={collapsed && !mobile} />
+          {!localDbEnabled && user && (!collapsed || mobile) && (
             <button
               onClick={logout}
               className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-red-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
@@ -247,11 +294,55 @@ function DashboardLayout() {
             </button>
           )}
         </div>
+      </>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-background flex">
+      {/* ── Desktop Sidebar (hidden on mobile) ── */}
+      <aside className={`hidden md:flex ${sidebarW} shrink-0 flex-col border-r border-border bg-background/95 backdrop-blur sticky top-0 h-screen overflow-hidden transition-all duration-200 z-40`}>
+        <SidebarContent />
       </aside>
+
+      {/* ── Mobile Drawer Overlay ── */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-50 md:hidden"
+          aria-modal="true"
+          role="dialog"
+        >
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setMobileOpen(false)}
+          />
+          {/* Drawer panel */}
+          <aside className="absolute left-0 top-0 h-full w-[260px] flex flex-col border-r border-border bg-background shadow-2xl">
+            <SidebarContent mobile />
+          </aside>
+        </div>
+      )}
 
       {/* ── Main content ── */}
       <div className="flex-1 min-w-0 overflow-auto">
-        <main className="max-w-6xl mx-auto px-6 py-8">
+        {/* Mobile top bar */}
+        <div className="md:hidden sticky top-0 z-30 flex items-center gap-3 h-14 px-4 border-b border-border bg-background/95 backdrop-blur">
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors"
+            aria-label="Open menu"
+          >
+            <IconMenu />
+          </button>
+          <img src={logoUrl} alt="OmniKey AI" className="h-5 w-5 object-contain" />
+          <span className="font-semibold text-sm tracking-tight">OmniKey AI</span>
+          <div className="ml-auto">
+            <MobileThemeToggle />
+          </div>
+        </div>
+
+        <main className="max-w-6xl mx-auto px-3 sm:px-6 py-5 sm:py-8">
           <Routes>
             <Route path="/"           element={<Navigate to="/playground" replace />} />
             <Route path="/playground" element={<PlaygroundPage />} />

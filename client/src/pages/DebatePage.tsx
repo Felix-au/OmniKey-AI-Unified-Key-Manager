@@ -333,7 +333,7 @@ Read the entire debate history. Provide a detailed critique, declare a final win
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-140px)] min-h-0">
+    <div className="flex flex-col min-h-[calc(100vh-13rem)] sm:min-h-[calc(100vh-9rem)] md:h-[calc(100vh-140px)] md:min-h-0">
       <PageHeader
         title="AI Debate Arena"
         description="Select a topic, configure two player models to debate opposite stances, and watch a judge model evaluate their logical structure."
@@ -497,7 +497,7 @@ Read the entire debate history. Provide a detailed critique, declare a final win
         </div>
 
         {/* Live Arena feed column */}
-        <div className="lg:col-span-2 flex flex-col border rounded-2xl bg-card/40 backdrop-blur overflow-hidden h-full shadow-sm relative">
+        <div className="lg:col-span-2 flex flex-col border rounded-2xl bg-card/40 backdrop-blur overflow-hidden min-h-[400px] lg:h-full shadow-sm relative">
           
           {/* Floor Header status */}
           <div className="p-4 border-b bg-muted/20 flex items-center justify-between">

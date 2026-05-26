@@ -339,7 +339,7 @@ export default function FallbackPage() {
         title="Fallback chain"
         description="Drag to reorder. Requests try models top-to-bottom until one succeeds."
         actions={
-          <>
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={() => sortMutation.mutate('intelligence')} disabled={sortMutation.isPending}>
               Sort by intelligence
             </Button>
@@ -349,7 +349,7 @@ export default function FallbackPage() {
             <Button variant="outline" size="sm" onClick={() => sortMutation.mutate('budget')} disabled={sortMutation.isPending}>
               Sort by budget
             </Button>
-          </>
+          </div>
         }
       />
 
