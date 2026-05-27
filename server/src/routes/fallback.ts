@@ -145,9 +145,17 @@ fallbackRouter.get('/', async (req: AuthenticatedRequest, res: Response, next) =
       const penalties = getAllPenalties();
       const penaltyMap = new Map(penalties.map(p => [p.modelDbId.toString(), p]));
 
+      const promoUser = await PromoUser.findOne({ userId: req.userId });
+      const hasPromo = !!promoUser;
+
       const mapped = userConfigs.map(c => {
         const m = c.modelId;
         if (!m) return null;
+
+        // Skip promo models entirely if this user has no promo allocations
+        if ((m.platform as string) === 'omnikey' && !hasPromo) {
+          return null;
+        }
 
         const penalty = penaltyMap.get(m._id.toString());
         const keyCount = (m.platform as string) === 'omnikey' ? 1 : (keyCountMap.get(m.platform) ?? 0);

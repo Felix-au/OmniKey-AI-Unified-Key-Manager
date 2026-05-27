@@ -271,7 +271,7 @@ export default function FallbackPage() {
     queryFn: () => apiFetch('/api/fallback'),
   })
 
-  const { data: tokenUsage } = useQuery<TokenUsageData>({
+  const { data: tokenUsage, isLoading: isTokenUsageLoading } = useQuery<TokenUsageData>({
     queryKey: ['fallback', 'token-usage'],
     queryFn: () => apiFetch('/api/fallback/token-usage'),
   })
@@ -295,7 +295,7 @@ export default function FallbackPage() {
   })
 
   const allEntries = localEntries ?? entries
-  const displayEntries = allEntries.filter(e => e.keyCount > 0 || e.platform === 'omnikey')
+  const displayEntries = allEntries.filter(e => e.keyCount > 0 || (e.platform === 'omnikey' && tokenUsage?.promo))
   const unconfiguredPlatforms = [...new Set(allEntries.filter(e => e.keyCount === 0 && e.platform !== 'omnikey').map(e => e.platform))]
 
   const sensors = useSensors(
@@ -400,12 +400,26 @@ export default function FallbackPage() {
       />
 
       <div className="space-y-6">
-        {tokenUsage?.promo && (
-          <PromoUsageBar promo={tokenUsage.promo} />
-        )}
+        {isTokenUsageLoading ? (
+          <div className="rounded-lg border bg-card p-6 flex flex-col items-center justify-center min-h-[100px] relative overflow-hidden">
+            <div className="absolute inset-0 bg-slate-500/5 backdrop-blur-[1px] flex items-center justify-center gap-3">
+              <svg className="animate-spin h-5 w-5 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              <span className="text-xs text-muted-foreground font-semibold">Loading promotional & monthly budgets...</span>
+            </div>
+          </div>
+        ) : (
+          <>
+            {tokenUsage?.promo && (
+              <PromoUsageBar promo={tokenUsage.promo} />
+            )}
 
-        {tokenUsage && tokenUsage.totalBudget > 0 && (
-          <TokenUsageBar data={tokenUsage} />
+            {tokenUsage && tokenUsage.totalBudget > 0 && (
+              <TokenUsageBar data={tokenUsage} />
+            )}
+          </>
         )}
 
         {isLoading ? (
