@@ -12,7 +12,7 @@ import './env.js';
 import { createApp } from './app.js';
 import { initDb } from './db/index.js';
 import { connectMongo } from './db/mongo.js';
-import { seedMongoModels, seedMongoAdmin } from './db/mongoSeed.js';
+import { seedMongoModels, seedMongoAdmin, seedMongoAdminEmails } from './db/mongoSeed.js';
 import { isLocalDbEnabled } from './db/context.js';
 import { startHealthChecker } from './services/health.js';
 
@@ -34,6 +34,7 @@ async function main() {
       await connectMongo();
       await seedMongoModels();
       await seedMongoAdmin();
+      await seedMongoAdminEmails();
       mongoConnected = true;
     } catch (err: any) {
       console.warn('\n========================================================================');

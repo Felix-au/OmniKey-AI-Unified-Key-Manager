@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendEmailVerification } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -67,7 +67,10 @@ export default function LoginPage() {
 
     try {
       if (isRegister) {
-        await createUserWithEmailAndPassword(auth, email, password)
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+        if (userCredential.user) {
+          await sendEmailVerification(userCredential.user)
+        }
       } else {
         await signInWithEmailAndPassword(auth, email, password)
       }

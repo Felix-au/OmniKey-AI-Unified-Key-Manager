@@ -54,6 +54,7 @@ export function initDb(dbPath?: string): Database.Database {
   ensureUnifiedKey(db);
   ensureUnifiedGeminiKey(db);
   seedAdmin(db);
+  seedAdminEmails(db);
 
   // Sync global disabled status to fallback_config once
   try {
@@ -139,6 +140,11 @@ function createTables(db: Database.Database) {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS admin_emails (
+      email TEXT PRIMARY KEY,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE INDEX IF NOT EXISTS idx_requests_created_at ON requests(created_at);
     CREATE INDEX IF NOT EXISTS idx_requests_platform ON requests(platform);
     CREATE INDEX IF NOT EXISTS idx_api_keys_platform ON api_keys(platform);
@@ -158,6 +164,21 @@ function seedAdmin(db: Database.Database) {
     console.log('[SQLite] Seeded default admin account successfully.');
   } catch (err: any) {
     console.warn('[SQLite] Failed to seed admin account:', err.message || err);
+  }
+}
+
+function seedAdminEmails(db: Database.Database) {
+  try {
+    const count = db.prepare("SELECT COUNT(*) as cnt FROM sqlite_master WHERE type='table' AND name='admin_emails'").get() as { cnt: number };
+    if (count.cnt === 0) return;
+    const emailCount = db.prepare('SELECT COUNT(*) as cnt FROM admin_emails').get() as { cnt: number };
+    if (emailCount.cnt > 0) return;
+
+    db.prepare('INSERT INTO admin_emails (email) VALUES (?)')
+      .run('harshit.soni.23cse@bmu.edu.in');
+    console.log('[SQLite] Seeded default admin email successfully.');
+  } catch (err: any) {
+    console.warn('[SQLite] Failed to seed admin emails:', err.message || err);
   }
 }
 

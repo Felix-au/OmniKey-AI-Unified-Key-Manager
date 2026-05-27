@@ -50,6 +50,10 @@ export async function requireDashboardAuth(
 
   try {
     const decodedToken = await admin.auth().verifyIdToken(idToken);
+    if (decodedToken.email_verified !== true) {
+      res.status(403).json({ error: 'Access denied. Your email address has not been verified.' });
+      return;
+    }
     req.userId = decodedToken.uid;
     req.userEmail = decodedToken.email;
     next();

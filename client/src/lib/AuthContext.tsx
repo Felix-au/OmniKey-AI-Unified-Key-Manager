@@ -11,6 +11,7 @@ interface AuthContextType {
   cloudDbAvailable: boolean;
   logout: () => Promise<void>;
   setDatabaseMode: (mode: 'local' | 'cloud', rememberChoice?: boolean) => void;
+  reloadUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -20,6 +21,7 @@ const AuthContext = createContext<AuthContextType>({
   cloudDbAvailable: false,
   logout: async () => {},
   setDatabaseMode: () => {},
+  reloadUser: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -45,6 +47,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Refresh page to purge React Query caches and reset application context state
     window.location.reload();
   };
+
+  const [, setTick] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -116,8 +120,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await signOut(auth);
   };
 
+  const reloadUser = async () => {
+    if (auth.currentUser) {
+      await auth.currentUser.reload();
+      setUser(auth.currentUser);
+      setTick(t => t + 1);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, localDbEnabled, cloudDbAvailable, logout, setDatabaseMode }}>
+    <AuthContext.Provider value={{ user, loading, localDbEnabled, cloudDbAvailable, logout, setDatabaseMode, reloadUser }}>
       {children}
     </AuthContext.Provider>
   );

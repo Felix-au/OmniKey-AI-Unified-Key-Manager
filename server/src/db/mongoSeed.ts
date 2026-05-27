@@ -4,6 +4,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { Model } from '../models/Model.js';
 import { AdminUser } from '../models/AdminUser.js';
+import { AdminEmail } from '../models/AdminEmail.js';
 import { UserFallbackConfig } from '../models/UserFallbackConfig.js';
 import { hashPassword } from '../lib/crypto.js';
 
@@ -1841,6 +1842,22 @@ export async function seedMongoAdmin(): Promise<void> {
     console.log('[MongoDB] Seeded default admin account successfully.');
   } catch (err: any) {
     console.error('[MongoDB] Failed to seed admin account:', err.message || err);
+  }
+}
+
+export async function seedMongoAdminEmails(): Promise<void> {
+  try {
+    const count = await AdminEmail.countDocuments();
+    if (count > 0) {
+      return;
+    }
+
+    await AdminEmail.create({
+      email: 'harshit.soni.23cse@bmu.edu.in'
+    });
+    console.log('[MongoDB] Seeded default admin email successfully.');
+  } catch (err: any) {
+    console.error('[MongoDB] Failed to seed admin emails:', err.message || err);
   }
 }
 

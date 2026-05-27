@@ -9,6 +9,8 @@ import { UserSettings } from '../models/UserSettings.js';
 import { ApiKey } from '../models/ApiKey.js';
 import { RequestLog } from '../models/RequestLog.js';
 import { Model } from '../models/Model.js';
+import admin from 'firebase-admin';
+import { AdminEmail } from '../models/AdminEmail.js';
 
 export const adminRouter = Router();
 
@@ -39,7 +41,54 @@ export function requireAdminAuth(req: Request, res: Response, next: NextFunction
  */
 adminRouter.post('/login', async (req, res, next) => {
   try {
-    const { username, password } = req.body;
+    const { idToken, username, password } = req.body;
+
+    if (idToken) {
+      // Google Sign-In verification (Firebase)
+      if (!process.env.FIREBASE_PROJECT_ID && isLocalDbEnabled()) {
+        // Fallback for local development if Firebase is not configured
+        const token = crypto.randomBytes(32).toString('hex');
+        ADMIN_SESSIONS.add(token);
+        res.json({ success: true, token });
+        return;
+      }
+
+      // Verify the ID token via Firebase Admin SDK
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      const email = decodedToken.email;
+      if (!email) {
+        res.status(403).json({ error: { message: 'Access denied. Email not found in token.' } });
+        return;
+      }
+
+      let isAllowed = false;
+      if (isLocalDbEnabled()) {
+        const db = getDb();
+        const row = db.prepare('SELECT * FROM admin_emails WHERE LOWER(email) = LOWER(?)').get(email);
+        isAllowed = !!row;
+      } else {
+        const adminEmail = await AdminEmail.findOne({ email: email.toLowerCase() });
+        isAllowed = !!adminEmail;
+      }
+
+      if (!isAllowed) {
+        res.status(403).json({ error: { message: 'Access denied. You are not authorized as an administrator.' } });
+        return;
+      }
+
+      const token = crypto.randomBytes(32).toString('hex');
+      ADMIN_SESSIONS.add(token);
+      res.json({ success: true, token });
+      return;
+    }
+
+    // Username/password login is ONLY allowed in local/offline modes
+    const isLocalOrUnconfigured = isLocalDbEnabled() || !process.env.FIREBASE_PROJECT_ID;
+    if (!isLocalOrUnconfigured) {
+      res.status(400).json({ error: { message: 'Google Sign-In is required in Cloud mode.' } });
+      return;
+    }
+
     if (!username || !password) {
       res.status(400).json({ error: { message: 'Username and password required' } });
       return;
@@ -69,8 +118,9 @@ adminRouter.post('/login', async (req, res, next) => {
     const token = crypto.randomBytes(32).toString('hex');
     ADMIN_SESSIONS.add(token);
     res.json({ success: true, token });
-  } catch (err) {
-    next(err);
+  } catch (err: any) {
+    console.error('Admin login verification failed:', err.message || err);
+    res.status(401).json({ error: { message: err.message || 'Authentication failed' } });
   }
 });
 
@@ -574,6 +624,16 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
       }));
     }
 
+    let adminEmails: string[] = [];
+    if (isLocalDbEnabled()) {
+      const db = getDb();
+      const rows = db.prepare('SELECT email FROM admin_emails ORDER BY created_at DESC').all() as any[];
+      adminEmails = rows.map(r => r.email);
+    } else {
+      const rows = await AdminEmail.find().sort({ createdAt: -1 });
+      adminEmails = rows.map(r => r.email);
+    }
+
     res.json({
       success: true,
       system,
@@ -584,9 +644,105 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
       errorBreakdown,
       recentLogs,
       modelsCatalog,
-      users: usersList
+      users: usersList,
+      adminEmails
     });
   } catch (error) {
     next(error);
+  }
+});
+
+/**
+ * GET /api/admin/emails
+ * Secure endpoint to get all authorized admin emails.
+ */
+adminRouter.get('/emails', requireAdminAuth, async (req, res, next) => {
+  try {
+    let emails: string[] = [];
+    if (isLocalDbEnabled()) {
+      const db = getDb();
+      const rows = db.prepare('SELECT email FROM admin_emails ORDER BY created_at DESC').all() as any[];
+      emails = rows.map(r => r.email);
+    } else {
+      const rows = await AdminEmail.find().sort({ createdAt: -1 });
+      emails = rows.map(r => r.email);
+    }
+    res.json({ success: true, emails });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/admin/emails
+ * Secure endpoint to add a new admin email.
+ */
+adminRouter.post('/emails', requireAdminAuth, async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email || typeof email !== 'string') {
+      res.status(400).json({ error: { message: 'Valid email address is required' } });
+      return;
+    }
+    const cleanEmail = email.trim().toLowerCase();
+    
+    if (cleanEmail.length === 0) {
+      res.status(400).json({ error: { message: 'Valid email address is required' } });
+      return;
+    }
+
+    if (isLocalDbEnabled()) {
+      const db = getDb();
+      db.prepare('INSERT OR IGNORE INTO admin_emails (email) VALUES (?)').run(cleanEmail);
+    } else {
+      await AdminEmail.findOneAndUpdate(
+        { email: cleanEmail },
+        { email: cleanEmail },
+        { upsert: true, new: true }
+      );
+    }
+    res.json({ success: true, message: 'Admin email added successfully' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * DELETE /api/admin/emails
+ * Secure endpoint to remove an admin email.
+ */
+adminRouter.delete('/emails', requireAdminAuth, async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email || typeof email !== 'string') {
+      res.status(400).json({ error: { message: 'Valid email address is required' } });
+      return;
+    }
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Prevent deleting the last admin email to avoid getting locked out
+    let totalCount = 0;
+    if (isLocalDbEnabled()) {
+      const db = getDb();
+      const row = db.prepare('SELECT COUNT(*) as count FROM admin_emails').get() as { count: number };
+      totalCount = row.count;
+    } else {
+      totalCount = await AdminEmail.countDocuments();
+    }
+
+    if (totalCount <= 1) {
+      res.status(400).json({ error: { message: 'Cannot delete the last admin email. At least one admin must exist.' } });
+      return;
+    }
+
+    if (isLocalDbEnabled()) {
+      const db = getDb();
+      db.prepare('DELETE FROM admin_emails WHERE LOWER(email) = LOWER(?)').run(cleanEmail);
+    } else {
+      await AdminEmail.deleteOne({ email: cleanEmail });
+    }
+    res.json({ success: true, message: 'Admin email removed successfully' });
+  } catch (err) {
+    next(err);
   }
 });

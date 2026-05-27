@@ -15,6 +15,7 @@ import ModelsPage from '@/pages/ModelsPage'
 import ComparePage from '@/pages/ComparePage'
 import DebatePage from '@/pages/DebatePage'
 import LandingPage from '@/pages/LandingPage'
+import EmailVerificationPage from '@/pages/EmailVerificationPage'
 
 const queryClient = new QueryClient()
 
@@ -195,6 +196,7 @@ function DashboardLayout() {
   }
 
   if (!localDbEnabled && !user) return <LoginPage />
+  if (!localDbEnabled && user && !user.emailVerified) return <EmailVerificationPage />
 
   const sidebarW = collapsed ? 'w-[72px]' : 'w-[220px]'
 
