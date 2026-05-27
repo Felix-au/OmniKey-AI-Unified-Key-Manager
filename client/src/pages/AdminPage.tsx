@@ -4,6 +4,7 @@ import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
+import { Switch } from '@/components/ui/switch'
 
 interface AdminStats {
   system: {
@@ -70,7 +71,7 @@ interface AdminStats {
     tokensConsumed: number;
     costSaved: number;
   }>;
-  adminEmails?: string[];
+  adminEmails?: Array<{ email: string; isFundingProvider: boolean }>;
 }
 
 export default function AdminPage() {
@@ -78,7 +79,7 @@ export default function AdminPage() {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('omnikey_admin_token'))
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [adminEmails, setAdminEmails] = useState<string[]>([])
+  const [adminEmails, setAdminEmails] = useState<Array<{ email: string; isFundingProvider: boolean }>>([])
   const [newAdminEmail, setNewAdminEmail] = useState('')
   const [addingEmail, setAddingEmail] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -222,7 +223,7 @@ export default function AdminPage() {
       }
 
       setSuccessMsg('Admin email added successfully!')
-      setAdminEmails(prev => [newAdminEmail.trim().toLowerCase(), ...prev])
+      setAdminEmails(prev => [{ email: newAdminEmail.trim().toLowerCase(), isFundingProvider: false }, ...prev])
       setNewAdminEmail('')
     } catch (err: any) {
       setError(err.message)
@@ -251,7 +252,33 @@ export default function AdminPage() {
       }
 
       setSuccessMsg('Admin email removed successfully!')
-      setAdminEmails(prev => prev.filter(e => e !== emailToRemove))
+      setAdminEmails(prev => prev.filter(e => e.email !== emailToRemove))
+    } catch (err: any) {
+      setError(err.message)
+    }
+  }
+
+  const handleToggleFunding = async (email: string, isFundingProvider: boolean) => {
+    setError(null)
+    setSuccessMsg(null)
+    try {
+      const base = (import.meta.env.VITE_API_URL || import.meta.env.BASE_URL).replace(/\/$/, '')
+      const response = await fetch(`${base}/api/admin/emails/toggle-funding`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, isFundingProvider })
+      })
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.error?.message || 'Failed to update funding provider status')
+      }
+
+      setSuccessMsg('Funding provider status updated successfully!')
+      setAdminEmails(prev => prev.map(e => e.email === email ? { ...e, isFundingProvider } : e))
     } catch (err: any) {
       setError(err.message)
     }
@@ -1029,9 +1056,20 @@ export default function AdminPage() {
 
               <div className="space-y-2">
                 {adminEmails.length > 0 ? (
-                  adminEmails.map(email => (
+                  adminEmails.map(({ email, isFundingProvider }) => (
                     <div key={email} className="bg-slate-50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800/40 rounded-xl p-3 flex justify-between items-center gap-4">
-                      <span className="text-xs font-mono text-slate-700 dark:text-slate-300 truncate">{email}</span>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-xs font-mono text-slate-700 dark:text-slate-300 truncate">{email}</span>
+                        {!localDbEnabled && (
+                          <div className="flex items-center gap-2 mt-1 select-none">
+                            <span className="text-[10px] text-slate-550 dark:text-slate-400">Fund Promo Pool</span>
+                            <Switch
+                              checked={isFundingProvider}
+                              onCheckedChange={(checked) => handleToggleFunding(email, checked)}
+                            />
+                          </div>
+                        )}
+                      </div>
                       <Button
                         variant="ghost"
                         size="sm"

@@ -142,6 +142,7 @@ function createTables(db: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS admin_emails (
       email TEXT PRIMARY KEY,
+      is_funding_provider INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
@@ -149,6 +150,12 @@ function createTables(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_requests_platform ON requests(platform);
     CREATE INDEX IF NOT EXISTS idx_api_keys_platform ON api_keys(platform);
   `);
+
+  try {
+    db.exec("ALTER TABLE admin_emails ADD COLUMN is_funding_provider INTEGER NOT NULL DEFAULT 0");
+  } catch (err) {
+    // Ignore if column already exists
+  }
 }
 
 function seedAdmin(db: Database.Database) {

@@ -624,14 +624,14 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
       }));
     }
 
-    let adminEmails: string[] = [];
+    let adminEmails: { email: string; isFundingProvider: boolean }[] = [];
     if (isLocalDbEnabled()) {
       const db = getDb();
-      const rows = db.prepare('SELECT email FROM admin_emails ORDER BY created_at DESC').all() as any[];
-      adminEmails = rows.map(r => r.email);
+      const rows = db.prepare('SELECT email, is_funding_provider FROM admin_emails ORDER BY created_at DESC').all() as any[];
+      adminEmails = rows.map(r => ({ email: r.email, isFundingProvider: r.is_funding_provider === 1 }));
     } else {
       const rows = await AdminEmail.find().sort({ createdAt: -1 });
-      adminEmails = rows.map(r => r.email);
+      adminEmails = rows.map(r => ({ email: r.email, isFundingProvider: !!r.isFundingProvider }));
     }
 
     res.json({
@@ -658,16 +658,45 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
  */
 adminRouter.get('/emails', requireAdminAuth, async (req, res, next) => {
   try {
-    let emails: string[] = [];
+    let emails: { email: string; isFundingProvider: boolean }[] = [];
     if (isLocalDbEnabled()) {
       const db = getDb();
-      const rows = db.prepare('SELECT email FROM admin_emails ORDER BY created_at DESC').all() as any[];
-      emails = rows.map(r => r.email);
+      const rows = db.prepare('SELECT email, is_funding_provider FROM admin_emails ORDER BY created_at DESC').all() as any[];
+      emails = rows.map(r => ({ email: r.email, isFundingProvider: r.is_funding_provider === 1 }));
     } else {
       const rows = await AdminEmail.find().sort({ createdAt: -1 });
-      emails = rows.map(r => r.email);
+      emails = rows.map(r => ({ email: r.email, isFundingProvider: !!r.isFundingProvider }));
     }
     res.json({ success: true, emails });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/admin/emails/toggle-funding
+ * Secure endpoint to toggle whether an admin account acts as a promo funding provider.
+ */
+adminRouter.post('/emails/toggle-funding', requireAdminAuth, async (req, res, next) => {
+  try {
+    const { email, isFundingProvider } = req.body;
+    if (!email || typeof email !== 'string') {
+      res.status(400).json({ error: { message: 'Valid email address is required' } });
+      return;
+    }
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (isLocalDbEnabled()) {
+      const db = getDb();
+      db.prepare('UPDATE admin_emails SET is_funding_provider = ? WHERE LOWER(email) = LOWER(?)')
+        .run(isFundingProvider ? 1 : 0, cleanEmail);
+    } else {
+      await AdminEmail.updateOne(
+        { email: cleanEmail },
+        { isFundingProvider: !!isFundingProvider }
+      );
+    }
+    res.json({ success: true, message: 'Funding provider status updated successfully' });
   } catch (err) {
     next(err);
   }
