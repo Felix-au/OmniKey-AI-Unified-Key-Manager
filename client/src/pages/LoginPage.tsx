@@ -53,6 +53,23 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmModalOpen, setConfirmModalOpen] = useState(false)
+  const [promoStatus, setPromoStatus] = useState<{ activePromoUsers: number; totalPromoLimit: number; remainingSlots: number; isActive: boolean } | null>(null)
+
+  useEffect(() => {
+    const fetchPromoStatus = async () => {
+      try {
+        const base = (import.meta.env.VITE_API_URL || import.meta.env.BASE_URL).replace(/\/$/, '')
+        const res = await fetch(`${base}/api/public/promo-status`)
+        if (res.ok) {
+          const data = await res.json()
+          setPromoStatus(data)
+        }
+      } catch (err) {
+        console.warn('Failed to fetch promo status:', err)
+      }
+    }
+    fetchPromoStatus()
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -256,6 +273,25 @@ export default function LoginPage() {
           </svg>
           Continue with Google
         </Button>
+
+        {promoStatus?.isActive && (
+          <div className="mt-5 p-4 rounded-2xl border border-emerald-500/10 bg-emerald-500/[0.03] text-center animate-fade-in relative overflow-hidden">
+            <div className="absolute top-0 right-0 -mr-1 -mt-1 w-2.5 h-2.5 bg-emerald-500/10 rounded-full blur-[1px] animate-pulse" />
+            <p className="text-xs font-bold text-slate-800 dark:text-emerald-450 flex items-center justify-center gap-1.5">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-450 opacity-75 animate-duration-1000"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              10M Promotional Credit Active
+            </p>
+            <p className="text-[10px] text-muted-foreground mt-1 leading-normal px-2">
+              Sign up today and automatically get allocated 10M tokens for fallbacks.
+            </p>
+            <div className="mt-2.5 text-[9px] font-bold tracking-wider text-emerald-600 dark:text-emerald-400 uppercase font-mono bg-emerald-500/10 rounded-lg py-1 px-2.5 inline-block">
+              Only {promoStatus.remainingSlots} of {promoStatus.totalPromoLimit} accounts left!
+            </div>
+          </div>
+        )}
 
         {/* Dynamic Mode Switcher (Local-First fallback) */}
         <div className="mt-5 p-4 rounded-2xl bg-muted/30 border border-border flex flex-col items-center">

@@ -99,6 +99,26 @@ export function createApp() {
     });
   });
 
+  // Public promotional pool status endpoint
+  app.get('/api/public/promo-status', async (_req, res, next) => {
+    try {
+      if (isLocalDbEnabled()) {
+        res.json({ activePromoUsers: 0, totalPromoLimit: 500, remainingSlots: 0, isActive: false });
+        return;
+      }
+      const { PromoUser } = await import('./models/PromoUser.js');
+      const count = await PromoUser.countDocuments();
+      res.json({
+        activePromoUsers: count,
+        totalPromoLimit: 500,
+        remainingSlots: Math.max(0, 500 - count),
+        isActive: count < 500
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+
   // Error handler (for API routes)
   app.use(errorHandler);
 

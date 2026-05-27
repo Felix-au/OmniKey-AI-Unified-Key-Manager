@@ -467,6 +467,23 @@ export default function LandingPage() {
   const stat1 = useCountUp(100)
   const stat2 = useCountUp(1000)
   const stat3 = useCountUp(12)
+  const [promoStatus, setPromoStatus] = useState<{ activePromoUsers: number; totalPromoLimit: number; remainingSlots: number; isActive: boolean } | null>(null)
+
+  useEffect(() => {
+    const fetchPromoStatus = async () => {
+      try {
+        const base = (import.meta.env.VITE_API_URL || import.meta.env.BASE_URL).replace(/\/$/, '')
+        const res = await fetch(`${base}/api/public/promo-status`)
+        if (res.ok) {
+          const data = await res.json()
+          setPromoStatus(data)
+        }
+      } catch (err) {
+        console.warn('Failed to fetch promo status:', err)
+      }
+    }
+    fetchPromoStatus()
+  }, [])
 
   return (
     <div className="min-h-screen text-foreground relative">
@@ -503,9 +520,24 @@ export default function LandingPage() {
 
       {/* HERO */}
       <section ref={heroRef} className="relative py-28 px-6 text-center">
-        <span className="inline-block text-xs font-semibold px-3 py-1 rounded-full border border-violet-500/30 bg-violet-500/10 text-violet-500 mb-6">
-          ⚡ 12 Free LLM Providers. Zero Lock-in.
-        </span>
+        {promoStatus?.isActive ? (
+          <div 
+            onClick={() => navigate('/keys')}
+            className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 text-xs font-semibold text-emerald-600 dark:text-emerald-400 mb-6 cursor-pointer transition-all duration-300 transform hover:scale-[1.02]"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-450 opacity-75 animate-duration-1000"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span>Launch Offer: Get 10M tokens free!</span>
+            <span className="text-slate-300 dark:text-slate-650">·</span>
+            <span className="font-mono text-emerald-500 dark:text-emerald-300 font-bold">{promoStatus.remainingSlots} slots remaining</span>
+          </div>
+        ) : (
+          <span className="inline-block text-xs font-semibold px-3 py-1 rounded-full border border-violet-500/30 bg-violet-500/10 text-violet-500 mb-6">
+            ⚡ 12 Free LLM Providers. Zero Lock-in.
+          </span>
+        )}
         <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6">
           One Key.<br />
           <span className="bg-gradient-to-r from-violet-500 to-indigo-500 bg-clip-text text-transparent">Every Model.</span>
