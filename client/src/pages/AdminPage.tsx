@@ -1056,32 +1056,48 @@ export default function AdminPage() {
 
               <div className="space-y-2">
                 {adminEmails.length > 0 ? (
-                  adminEmails.map(({ email, isFundingProvider }) => (
-                    <div key={email} className="bg-slate-50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800/40 rounded-xl p-3 flex justify-between items-center gap-4">
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-xs font-mono text-slate-700 dark:text-slate-300 truncate">{email}</span>
-                        {!localDbEnabled && (
-                          <div className="flex items-center gap-2 mt-1 select-none">
-                            <span className="text-[10px] text-slate-550 dark:text-slate-400">Fund Promo Pool</span>
-                            <Switch
-                              checked={isFundingProvider}
-                              onCheckedChange={(checked) => handleToggleFunding(email, checked)}
-                            />
-                          </div>
-                        )}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={adminEmails.length <= 1}
-                        onClick={() => handleRemoveAdminEmail(email)}
-                        className="text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 h-7 w-7 p-0 rounded-lg shrink-0"
-                        title={adminEmails.length <= 1 ? "Cannot delete the last admin" : "Remove administrator"}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                      </Button>
-                    </div>
-                  ))
+                  <div className="overflow-x-auto border border-slate-200/60 dark:border-slate-800/40 rounded-xl">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 dark:bg-slate-950/40 border-b border-slate-200/60 dark:border-slate-800/40">
+                          <th className="px-4 py-3 text-[10px] font-bold text-slate-550 dark:text-slate-400 uppercase tracking-wider">Email</th>
+                          {!localDbEnabled && (
+                            <th className="px-4 py-3 text-[10px] font-bold text-slate-550 dark:text-slate-400 uppercase tracking-wider text-center">Fund Promo Pool</th>
+                          )}
+                          <th className="px-4 py-3 text-[10px] font-bold text-slate-550 dark:text-slate-400 uppercase tracking-wider text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800/40">
+                        {adminEmails.map(({ email, isFundingProvider }) => (
+                          <tr key={email} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/10 transition-colors">
+                            <td className="px-4 py-3 text-xs font-mono text-slate-700 dark:text-slate-300 truncate max-w-[200px]">{email}</td>
+                            {!localDbEnabled && (
+                              <td className="px-4 py-3 text-center">
+                                <div className="inline-flex items-center justify-center">
+                                  <Switch
+                                    checked={isFundingProvider}
+                                    onCheckedChange={(checked) => handleToggleFunding(email, checked)}
+                                  />
+                                </div>
+                              </td>
+                            )}
+                            <td className="px-4 py-3 text-right">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                disabled={adminEmails.length <= 1}
+                                onClick={() => handleRemoveAdminEmail(email)}
+                                className="text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 h-7 w-7 p-0 rounded-lg"
+                                title={adminEmails.length <= 1 ? "Cannot delete the last admin" : "Remove administrator"}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 ) : (
                   <div className="text-center text-xs text-slate-500 py-6">No admin emails configured.</div>
                 )}
