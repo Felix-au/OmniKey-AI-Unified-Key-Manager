@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
 
 interface OnboardingTourProps {
   isOpen: boolean
@@ -9,59 +11,88 @@ interface OnboardingTourProps {
 export function OnboardingTour({ isOpen, onClose }: OnboardingTourProps) {
   const [step, setStep] = useState(1)
   
-  // Animation state for Step 1
-  const [step1State, setStep1State] = useState<'idle' | 'typing1' | 'success1' | 'typing2' | 'success2'>('idle')
-  const [key1Text, setKey1Text] = useState('')
-  const [key2Text, setKey2Text] = useState('')
+  // Step 1: Simulated Adding Keys State
+  const [step1State, setStep1State] = useState<'idle' | 'typing1' | 'added1' | 'typing2' | 'added2'>('idle')
+  const [platformInput, setPlatformInput] = useState('Google AI Studio')
+  const [keyInput, setKeyInput] = useState('')
+  const [labelInput, setLabelInput] = useState('')
+  const [configuredKeys, setConfiguredKeys] = useState<{ platform: string; key: string; label: string; status: string }[]>([])
 
-  // Animation state for Step 3
+  // Step 3: Priority swap timer
   const [step3Dragged, setStep3Dragged] = useState(false)
 
-  // Animation state for Step 4
+  // Step 4: Chat simulator counter
   const [activeMsgCount, setActiveMsgCount] = useState(1)
 
-  // Manage Step 1 typing sequences
+  // Step 5: Dev Corner sandbox simulator state
+  const [devFormat, setDevFormat] = useState<'openai' | 'gemini'>('openai')
+  const [devExecuting, setDevExecuting] = useState(false)
+  const [devConsole, setDevConsole] = useState('Console idle. Click "Run Proxy Sandbox Request" to execute dynamic request blocks.')
+
+  // Manage Step 1 typing simulations
   useEffect(() => {
     if (step !== 1 || !isOpen) return
     setStep1State('idle')
-    setKey1Text('')
-    setKey2Text('')
+    setKeyInput('')
+    setLabelInput('')
+    setPlatformInput('Google AI Studio')
+    setConfiguredKeys([])
 
+    // Type Key 1: Google
     const t1 = setTimeout(() => {
       setStep1State('typing1')
-      let fullText = 'AIzaSyB_SimulatedGoogleKey123'
+      let fullKey = 'AIzaSySimulatedGoogleKey10101'
       let cur = ''
       let idx = 0
       const timer = setInterval(() => {
-        if (idx < fullText.length) {
-          cur += fullText[idx]
-          setKey1Text(cur)
+        if (idx < fullKey.length) {
+          cur += fullKey[idx]
+          setKeyInput(cur)
           idx++
         } else {
           clearInterval(timer)
-          setStep1State('success1')
+          setLabelInput('primary-google')
+          setTimeout(() => {
+            setConfiguredKeys([
+              { platform: 'Google AI Studio', key: 'AIzaSySi•••••••••••••••••••••10101', label: 'primary-google', status: 'healthy' }
+            ])
+            setKeyInput('')
+            setLabelInput('')
+            setPlatformInput('Groq')
+            setStep1State('added1')
+          }, 600)
         }
-      }, 50)
+      }, 35)
       return () => clearInterval(timer)
-    }, 1000)
+    }, 1200)
 
+    // Type Key 2: Groq
     const t2 = setTimeout(() => {
       setStep1State('typing2')
-      let fullText = 'gsk_SimulatedGroqKey998877'
+      let fullKey = 'gsk_SimulatedGroqKey992288'
       let cur = ''
       let idx = 0
       const timer = setInterval(() => {
-        if (idx < fullText.length) {
-          cur += fullText[idx]
-          setKey2Text(cur)
+        if (idx < fullKey.length) {
+          cur += fullKey[idx]
+          setKeyInput(cur)
           idx++
         } else {
           clearInterval(timer)
-          setStep1State('success2')
+          setLabelInput('groq-fast')
+          setTimeout(() => {
+            setConfiguredKeys(prev => [
+              ...prev,
+              { platform: 'Groq', key: 'gsk_Sim•••••••••••••••••••••992288', label: 'groq-fast', status: 'healthy' }
+            ])
+            setKeyInput('')
+            setLabelInput('')
+            setStep1State('added2')
+          }, 600)
         }
-      }, 50)
+      }, 35)
       return () => clearInterval(timer)
-    }, 3500)
+    }, 4500)
 
     return () => {
       clearTimeout(t1)
@@ -69,131 +100,195 @@ export function OnboardingTour({ isOpen, onClose }: OnboardingTourProps) {
     }
   }, [step, isOpen])
 
-  // Manage Step 3 draggable reset interval
+  // Manage Step 3 draggable animation ticks
   useEffect(() => {
     if (step !== 3 || !isOpen) return
     setStep3Dragged(false)
     const t = setInterval(() => {
       setStep3Dragged(prev => !prev)
-    }, 3000)
+    }, 3200)
     return () => clearInterval(t)
   }, [step, isOpen])
 
-  // Manage Step 4 chat message increment sequence
+  // Manage Step 4 chat playback ticks
   useEffect(() => {
     if (step !== 4 || !isOpen) return
     setActiveMsgCount(1)
     const interval = setInterval(() => {
       setActiveMsgCount(prev => (prev < 5 ? prev + 1 : 1))
-    }, 4500)
+    }, 4800)
     return () => clearInterval(interval)
   }, [step, isOpen])
 
   if (!isOpen) return null
+
+  // Trigger simulated request in Step 5 Sandbox
+  const runSimulatedDevRequest = () => {
+    if (devExecuting) return
+    setDevExecuting(true)
+    setDevConsole('Sending request to server...')
+
+    setTimeout(() => {
+      setDevConsole(
+        `[System] Hitting proxy sandbox gateway...\n` +
+        `[System] Target URL: https://omnikey.ai/v1/chat/completions\n` +
+        `[System] Status: 200 OK\n` +
+        `[System] Rerouted: Google (gemini-2.5-flash) via KeyPool-B (sk_gemini_03)\n` +
+        `[System] Response size: 485 bytes | Latency: 165ms\n\n` +
+        `Connecting SSE Stream...\n`
+      )
+    }, 1000)
+
+    setTimeout(() => {
+      const responseText = "OmniKey AI provides zero downtime with silent multi-provider fallbacks. Your unified API credentials are fully active and compatible with all standard SDK pipelines. Happy hacking!"
+      let cur = ""
+      let idx = 0
+      const typingTimer = setInterval(() => {
+        if (idx < responseText.length) {
+          cur += responseText[idx]
+          setDevConsole(
+            `[System] Hitting proxy sandbox gateway...\n` +
+            `[System] Target URL: https://omnikey.ai/v1/chat/completions\n` +
+            `[System] Status: 200 OK\n` +
+            `[System] Rerouted: Google (gemini-2.5-flash) via KeyPool-B (sk_gemini_03)\n` +
+            `[System] Response size: 485 bytes | Latency: 165ms\n\n` +
+            `Connecting SSE Stream...\n` +
+            `"${cur}"`
+          )
+          idx++
+        } else {
+          clearInterval(typingTimer)
+          setDevExecuting(false)
+        }
+      }, 15)
+    }, 2200)
+  }
 
   const handleFinish = () => {
     localStorage.setItem('omnikey_onboarded', 'true')
     onClose()
   }
 
-  const stepsCount = 4
+  const stepsCount = 5
 
-  const simulatedChatData = [
+  const simulatedChatMessages = [
     {
-      prompt: "Analyze user demographics in the cloud",
-      target: "Groq (llama-3-70b)",
-      key: "KeyPool-A (sk_groq_01)",
-      status: "success",
-      color: "text-orange-500",
-      bg: "bg-orange-500/5 border-orange-500/20",
-      latency: "148ms",
-      response: "Cloud demographics show a 42% growth rate in key markets, highly concentrated in US-East."
+      role: 'user',
+      content: "Analyze user demographics in the cloud"
     },
     {
-      prompt: "Summarize top cloud integration risks",
-      target: "Groq (llama-3-70b)",
-      key: "KeyPool-A (sk_groq_01)",
-      status: "failover",
-      color: "text-orange-500",
-      bg: "bg-amber-500/5 border-amber-500/20",
-      latency: "312ms",
-      failoverTarget: "Gemini (gemini-1.5-flash)",
-      failoverKey: "KeyPool-B (sk_gemini_03)",
-      response: "Groq sk_groq_01 returned HTTP 429 (Rate Limit Exhausted). Silently auto-routed to Gemini: Top integration risks include API latency, synchronization delays, and transient connection losses."
+      role: 'assistant',
+      content: "Cloud demographics show a 42% growth rate in key markets, highly concentrated in US-East.",
+      meta: { platform: 'groq', model: 'llama-3-70b', keyUsed: 'sk_groq_01', latency: 148, fallbackAttempts: 0 }
     },
     {
-      prompt: "Write a bubble sort algorithm in Python",
-      target: "NVIDIA (mixtral-8x22b)",
-      key: "KeyPool-C (sk_nvidia_01)",
-      status: "success",
-      color: "text-emerald-500",
-      bg: "bg-emerald-500/5 border-emerald-500/20",
-      latency: "210ms",
-      response: "Here is your bubble sort:\n\n```python\ndef bubble_sort(arr):\n    n = len(arr)\n    for i in range(n):\n        for j in range(0, n-i-1):\n            if arr[j] > arr[j+1]:\n                arr[j], arr[j+1] = arr[j+1], arr[j]\n```"
+      role: 'user',
+      content: "Summarize top cloud integration risks"
     },
     {
-      prompt: "Optimize it for Big-O performance",
-      target: "NVIDIA (mixtral-8x22b)",
-      key: "KeyPool-C (sk_nvidia_01)",
-      status: "failover_error",
-      color: "text-emerald-500",
-      bg: "bg-rose-500/5 border-rose-500/20",
-      latency: "125ms",
-      failoverTarget: "Cerebras (llama3.1-8b)",
-      failoverKey: "KeyPool-D (sk_cerebras_01)",
-      response: "NVIDIA sk_nvidia_01 returned HTTP 502 (Gateway Timeout). Silently auto-routed to Cerebras: Bubble sort has worst-case O(N^2). Optimize by keeping track of swaps or using QuickSort / MergeSort for O(N log N)."
+      role: 'assistant',
+      content: "Top cloud integration risks include API latency, synchronization delays, and transient connection losses.",
+      meta: { platform: 'google', model: 'gemini-1.5-flash', keyUsed: 'sk_gemini_03', latency: 312, fallbackAttempts: 1 }
     },
     {
-      prompt: "What is the worst-case space complexity?",
-      target: "Mistral (codestral)",
-      key: "KeyPool-E (sk_mistral_01)",
-      status: "success",
-      color: "text-amber-500",
-      bg: "bg-amber-500/5 border-amber-500/20",
-      latency: "185ms",
-      response: "The worst-case space complexity of bubble sort is O(1) auxiliary space, as it performs sorting in-place without copying data."
+      role: 'user',
+      content: "Write a bubble sort algorithm in Python"
+    },
+    {
+      role: 'assistant',
+      content: "Here is your bubble sort:\n\n```python\ndef bubble_sort(arr):\n    n = len(arr)\n    for i in range(n):\n        for j in range(0, n-i-1):\n            if arr[j] > arr[j+1]:\n                arr[j], arr[j+1] = arr[j+1], arr[j]\n```",
+      meta: { platform: 'nvidia', model: 'mixtral-8x22b', keyUsed: 'sk_nvidia_01', latency: 210, fallbackAttempts: 0 }
+    },
+    {
+      role: 'user',
+      content: "Optimize it for Big-O performance"
+    },
+    {
+      role: 'assistant',
+      content: "Bubble sort has worst-case O(N^2). Optimize by keeping track of swaps or using QuickSort / MergeSort for O(N log N) time complexity.",
+      meta: { platform: 'cerebras', model: 'llama3.1-8b', keyUsed: 'sk_cerebras_01', latency: 125, fallbackAttempts: 1 }
+    },
+    {
+      role: 'user',
+      content: "What is the worst-case space complexity?"
+    },
+    {
+      role: 'assistant',
+      content: "The worst-case space complexity of bubble sort is O(1) auxiliary space, as it performs sorting in-place without copying data.",
+      meta: { platform: 'mistral', model: 'codestral', keyUsed: 'sk_mistral_01', latency: 185, fallbackAttempts: 0 }
     }
   ]
+
+  const statusDot: Record<string, string> = {
+    healthy: 'bg-emerald-500',
+    rate_limited: 'bg-amber-500',
+    invalid: 'bg-rose-500',
+  }
+
+  const jsCodeSnippet = `// OmniKey AI Unified Request Example
+const apiKey = 'omnikey-75dd7a2bc61b53f320ef4be8eb08e4cb8c...';
+const endpoint = 'https://omnikey.ai/v1/chat/completions';
+
+async function generateCompletion() {
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': \`Bearer \${apiKey}\`
+      },
+      body: JSON.stringify({
+        model: 'auto',
+        messages: [
+          { role: 'user', content: 'What is quantum computing?' }
+        ],
+        stream: true
+      })
+    });
+    console.log('Rerouted automatically on any 429 errors!');
+  } catch (err) {
+    console.error('Request failed:', err);
+  }
+}`
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-background/85 backdrop-blur-md overflow-y-auto animate-in fade-in duration-300">
       
-      {/* CSS Animation classes injection */}
       <style>{`
-        @keyframes simulated-pulse {
-          0%, 100% { opacity: 0.2; transform: scale(1); }
-          50% { opacity: 0.6; transform: scale(1.05); }
+        @keyframes mock-pulse {
+          0%, 100% { opacity: 0.3; transform: scale(1); }
+          50% { opacity: 0.7; transform: scale(1.05); }
         }
-        @keyframes simulated-ping {
-          0% { transform: scale(0.8); opacity: 0.8; }
-          100% { transform: scale(2); opacity: 0; }
+        @keyframes mock-ping {
+          0% { transform: scale(0.85); opacity: 0.8; }
+          100% { transform: scale(1.8); opacity: 0; }
         }
-        .anim-sim-pulse {
-          animation: simulated-pulse 2s infinite ease-in-out;
+        .anim-mock-pulse {
+          animation: mock-pulse 2s infinite ease-in-out;
         }
-        .anim-sim-ping {
-          animation: simulated-ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+        .anim-mock-ping {
+          animation: mock-ping 1.2s cubic-bezier(0, 0, 0.2, 1) infinite;
         }
         .step-transition {
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
       `}</style>
 
-      {/* Main glassmorphic card wrapper */}
-      <div className="w-full max-w-3xl bg-card border border-border shadow-2xl rounded-3xl overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[85vh] relative transform active:scale-100 transition-all duration-300">
+      {/* Onboarding Wizard Panel */}
+      <div className="w-full max-w-4xl bg-card border border-border shadow-2xl rounded-3xl overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[88vh] relative">
         
-        {/* Glow accent filters */}
-        <div className="absolute top-[-10%] left-[-10%] w-[35%] h-[35%] rounded-full bg-violet-600/10 dark:bg-violet-600/5 blur-[80px] pointer-events-none" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[35%] h-[35%] rounded-full bg-indigo-600/10 dark:bg-indigo-600/5 blur-[80px] pointer-events-none" />
+        {/* Colorful visual backdrop accents */}
+        <div className="absolute top-[-10%] left-[-10%] w-[35%] h-[35%] rounded-full bg-violet-600/10 dark:bg-violet-600/5 blur-[90px] pointer-events-none" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[35%] h-[35%] rounded-full bg-emerald-600/10 dark:bg-emerald-600/5 blur-[90px] pointer-events-none" />
 
-        {/* Header */}
-        <div className="px-6 py-5 border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between shrink-0">
+        {/* Header toolbar */}
+        <div className="px-6 py-4.5 border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
             <span className="relative flex h-2.5 w-2.5 shrink-0">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75 anim-sim-ping"></span>
+              <span className="absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75 anim-mock-ping"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-violet-600"></span>
             </span>
-            <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">OmniKey Interactive Tour</span>
+            <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Onboarding tour</span>
           </div>
           <button 
             onClick={onClose} 
@@ -203,220 +298,292 @@ export function OnboardingTour({ isOpen, onClose }: OnboardingTourProps) {
           </button>
         </div>
 
-        {/* Content Body */}
-        <div className="p-5 sm:p-6 overflow-y-auto flex-1 flex flex-col min-h-0 space-y-4">
+        {/* Primary Container */}
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 flex flex-col min-h-0 space-y-4">
           
-          {/* Steps tracker breadcrumbs */}
-          <div className="grid grid-cols-4 gap-2 shrink-0">
-            {[1, 2, 3, 4].map(s => (
+          {/* Progress track */}
+          <div className="grid grid-cols-5 gap-2 shrink-0">
+            {[1, 2, 3, 4, 5].map(s => (
               <div key={s} className="space-y-1.5">
                 <div className={`h-1 rounded-full transition-colors duration-500 ${s <= step ? 'bg-violet-600' : 'bg-muted'}`} />
                 <span className={`hidden sm:inline-block text-[9px] font-bold uppercase tracking-wider ${s === step ? 'text-violet-600 dark:text-violet-400' : 'text-muted-foreground'}`}>
-                  {s === 1 ? 'API Keys' : s === 2 ? 'Budgets' : s === 3 ? 'Priority' : 'Failover'}
+                  {s === 1 ? '1. Add Keys' : s === 2 ? '2. Budgets' : s === 3 ? '3. Priority' : s === 4 ? '4. Playback' : '5. Dev Corner'}
                 </span>
               </div>
             ))}
           </div>
 
-          {/* Title & Description */}
-          <div className="shrink-0 space-y-1 text-center sm:text-left mt-1">
+          {/* Headline details */}
+          <div className="shrink-0 space-y-0.5 text-center sm:text-left mt-1">
             {step === 1 && (
               <>
-                <h3 className="text-base sm:text-lg font-bold text-foreground">Step 1: Adding your provider keys</h3>
-                <p className="text-xs text-muted-foreground">Add credentials for Google, Groq, NVIDIA, etc. OmniKey healthchecks and validates keys automatically in the background.</p>
+                <h3 className="text-base sm:text-lg font-bold text-foreground">Step 1: Adding Provider Keys (Keys UI)</h3>
+                <p className="text-xs text-muted-foreground">Exactly like the live Keys dashboard. Input platform credentials, add custom labels, and check statuses in real time.</p>
               </>
             )}
             {step === 2 && (
               <>
-                <h3 className="text-base sm:text-lg font-bold text-foreground">Step 2: Monitoring token budgets</h3>
-                <p className="text-xs text-muted-foreground">Set and check monthly budgets per model platform to shield yourself against runaway costs or billing surprises.</p>
+                <h3 className="text-base sm:text-lg font-bold text-foreground">Step 2: Checking monthly budgets (Fallback UI)</h3>
+                <p className="text-xs text-muted-foreground">Shield your budget from runaway token consumption. Inspect segmented monthly allocations and your one-time Promotional Pool.</p>
               </>
             )}
             {step === 3 && (
               <>
-                <h3 className="text-base sm:text-lg font-bold text-foreground">Step 3: Deciding model fallback priority</h3>
-                <p className="text-xs text-muted-foreground">Arrange platforms in priority order. When a model throws an error, OmniKey automatically cascades to the next configured fallback.</p>
+                <h3 className="text-base sm:text-lg font-bold text-foreground">Step 3: Deciding model priority (Fallback UI)</h3>
+                <p className="text-xs text-muted-foreground">Adjust platform priority rankings. When a key or model fails, the router seamlessly fails over to the next option in the chain.</p>
               </>
             )}
             {step === 4 && (
               <>
-                <h3 className="text-base sm:text-lg font-bold text-foreground">Step 4: Smart Failover simulation</h3>
-                <p className="text-xs text-muted-foreground">Watch how 5 consecutive chat playground requests traverse different keys, platforms, and models under error states.</p>
+                <h3 className="text-base sm:text-lg font-bold text-foreground">Step 4: Smart Failover chat playback (Playground UI)</h3>
+                <p className="text-xs text-muted-foreground">See how consecutive Playground prompts automatically reroute past rate-limits (429) and gateway errors (502) silently.</p>
+              </>
+            )}
+            {step === 5 && (
+              <>
+                <h3 className="text-base sm:text-lg font-bold text-foreground">Step 5: Dynamic API Sandbox (Dev Corner UI)</h3>
+                <p className="text-xs text-muted-foreground">Access dynamic SDK scripts, copy endpoints/keys, and click "Run Proxy sandbox request" below to simulate live gateway connections.</p>
               </>
             )}
           </div>
 
-          {/* Visual simulation canvas container */}
-          <div className="flex-1 min-h-[220px] bg-muted/30 border border-border rounded-2xl p-4 flex flex-col justify-center relative overflow-hidden text-xs sm:text-sm">
+          {/* Interactive Screen Simulation Canvas */}
+          <div className="flex-1 min-h-[260px] bg-muted/20 border border-border rounded-2xl p-4 flex flex-col justify-center relative overflow-hidden text-xs sm:text-sm">
             
-            {/* Step 1 Visual Mockup: Adding keys typing effect */}
+            {/* Step 1 Simulation: Keys UI */}
             {step === 1 && (
-              <div className="space-y-3.5 max-w-md mx-auto w-full animate-in fade-in duration-300">
-                <div className="p-3.5 rounded-xl border border-border bg-card shadow-sm space-y-2.5">
-                  <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                    <span>Platform: Google Studio</span>
-                    <span className={`text-[9px] px-2 py-0.5 rounded ${step1State === 'success1' || step1State === 'typing2' || step1State === 'success2' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted text-muted-foreground'}`}>
-                      {step1State === 'success1' || step1State === 'typing2' || step1State === 'success2' ? '✓ HealthyChecked' : 'Verifying...'}
-                    </span>
-                  </div>
-                  <div className="font-mono text-xs p-2 rounded-lg bg-background border border-border flex items-center justify-between min-h-[34px] overflow-hidden whitespace-nowrap">
-                    <span className="truncate">{key1Text || 'typing...'}</span>
-                    {(step1State === 'success1' || step1State === 'typing2' || step1State === 'success2') && (
-                      <span className="size-2 rounded-full bg-emerald-500 shrink-0 shadow-lg shadow-emerald-500/30" />
-                    )}
+              <div className="space-y-4 w-full max-w-2xl mx-auto animate-in fade-in duration-300 text-left">
+                {/* Simulated Form exactly matching KeysPage */}
+                <div className="rounded-xl border border-border bg-card p-4 space-y-4">
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Add a provider key</div>
+                  
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium">Platform</label>
+                      <select 
+                        value={platformInput} 
+                        disabled
+                        className="w-full sm:w-[200px] bg-background border rounded-lg h-8 px-3 text-xs"
+                      >
+                        <option>Google AI Studio</option>
+                        <option>Groq</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5 flex-1 min-w-0">
+                      <label className="text-xs font-medium">API key</label>
+                      <Input
+                        type="password"
+                        value={keyInput}
+                        readOnly
+                        placeholder="paste key here"
+                        className="font-mono text-xs w-full h-8"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium">Label</label>
+                      <Input
+                        value={labelInput}
+                        readOnly
+                        placeholder="optional"
+                        className="w-full sm:w-[130px] h-8"
+                      />
+                    </div>
+
+                    <Button type="button" size="sm" className="bg-violet-600 text-white h-8 px-4" disabled>
+                      {step1State === 'typing1' || step1State === 'typing2' ? 'Adding...' : 'Add key'}
+                    </Button>
                   </div>
                 </div>
 
-                <div className="p-3.5 rounded-xl border border-border bg-card shadow-sm space-y-2.5 transition-all duration-500">
-                  <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                    <span>Platform: Groq Cloud</span>
-                    <span className={`text-[9px] px-2 py-0.5 rounded ${step1State === 'success2' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted text-muted-foreground'}`}>
-                      {step1State === 'success2' ? '✓ HealthyChecked' : 'Verifying...'}
-                    </span>
-                  </div>
-                  <div className="font-mono text-xs p-2 rounded-lg bg-background border border-border flex items-center justify-between min-h-[34px] overflow-hidden whitespace-nowrap">
-                    <span className="truncate">{key2Text || (step1State === 'success1' ? 'idle' : '...')}</span>
-                    {step1State === 'success2' && (
-                      <span className="size-2 rounded-full bg-emerald-500 shrink-0 shadow-lg shadow-emerald-500/30" />
-                    )}
-                  </div>
+                {/* Simulated Configured Providers List exactly matching KeysPage */}
+                <div className="space-y-2">
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Configured providers</div>
+                  {configuredKeys.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-border/80 p-6 text-center text-muted-foreground text-xs">
+                      No provider keys configured yet. Type and add one above.
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border divide-y bg-card overflow-hidden">
+                      {configuredKeys.map((k, i) => (
+                        <div key={i} className="flex items-center gap-2 px-3.5 py-2.5 hover:bg-muted/40 transition-colors animate-in slide-in-from-top-1 duration-300">
+                          <span className={`size-1.5 rounded-full shrink-0 ${statusDot[k.status]}`} />
+                          <code className="text-xs font-mono truncate max-w-[150px] sm:max-w-none">{k.key}</code>
+                          <span className="text-xs text-muted-foreground font-semibold">({k.label})</span>
+                          <span className="text-[10px] bg-emerald-500/10 text-emerald-500 rounded px-1.5 py-0.5 font-bold uppercase font-mono ml-1">Healthy</span>
+                          <span className="flex-1" />
+                          <Button variant="ghost" size="xs" className="h-6 text-[10px] text-muted-foreground" disabled>Check</Button>
+                          <Button variant="ghost" size="xs" className="h-6 text-[10px] text-red-500" disabled>Remove</Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Step 2 Visual Mockup: Token budgets segmented bar */}
+            {/* Step 2 Simulation: Budgets UI */}
             {step === 2 && (
-              <div className="space-y-4 max-w-md mx-auto w-full animate-in fade-in duration-300">
-                {/* Promo usage card mock */}
-                <div className="p-4 rounded-xl border border-emerald-500/10 bg-emerald-500/[0.03] space-y-2">
-                  <div className="flex justify-between text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                    <span>Promotional token pool</span>
-                    <span>9.2M / 10M remaining</span>
+              <div className="space-y-4 w-full max-w-2xl mx-auto animate-in fade-in duration-300 text-left">
+                {/* Simulated PromoUsageBar exactly matching FallbackPage */}
+                <section className="rounded-xl border border-emerald-500/15 bg-emerald-500/[0.02] p-4.5 space-y-2.5">
+                  <div className="flex items-baseline justify-between">
+                    <h2 className="text-xs font-bold text-emerald-600 dark:text-emerald-450 flex items-center gap-1.5 uppercase tracking-wider">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 anim-mock-pulse flex-shrink-0" />
+                      Promotional token pool (One-time)
+                    </h2>
+                    <span className="text-[10px] text-muted-foreground tabular-nums font-bold">
+                      <span className="text-foreground">9.2M</span> remaining <span className="mx-1">·</span> 92% of 10M
+                    </span>
                   </div>
-                  <div className="w-full h-2 bg-emerald-500/10 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full transition-all duration-[1500ms] w-[92%] ease-out" />
-                  </div>
-                </div>
 
-                {/* Monthly usage card mock */}
-                <div className="p-4 rounded-xl border border-border bg-card space-y-3">
-                  <div className="flex justify-between text-[10px] font-bold text-muted-foreground">
-                    <span>Monthly budget segments</span>
-                    <span>140M / 200M remaining (70%)</span>
+                  <div className="flex h-2.5 rounded-full overflow-hidden bg-muted">
+                    <div className="bg-emerald-500 transition-all duration-[1000ms] w-[92%] ease-out" />
+                    <div className="bg-muted-foreground/20 w-[8%]" />
                   </div>
-                  <div className="w-full h-2 bg-muted rounded-full overflow-hidden flex">
-                    <div className="h-full bg-[#4285f4] transition-all duration-[1000ms] w-[40%] ease-out" title="Google segment" />
-                    <div className="h-full bg-[#f55036] transition-all duration-[1200ms] w-[20%] ease-out" title="Groq segment" />
-                    <div className="h-full bg-[#76b900] transition-all duration-[1500ms] w-[10%] ease-out" title="NVIDIA segment" />
-                    <div className="h-full bg-muted-foreground/20 w-[30%]" title="Used" />
+                </section>
+
+                {/* Simulated TokenUsageBar exactly matching FallbackPage */}
+                <section className="rounded-xl border border-border bg-card p-4.5 space-y-3">
+                  <div className="flex items-baseline justify-between">
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Monthly token budget</h2>
+                    <span className="text-[10px] text-muted-foreground tabular-nums font-bold">
+                      <span className="text-foreground">140M</span> remaining <span className="mx-1">·</span> 70% of 200M
+                    </span>
                   </div>
-                  <div className="grid grid-cols-3 gap-2 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
-                    <div className="flex items-center gap-1.5"><span className="size-1.5 rounded-sm bg-[#4285f4]" />Google: 80M</div>
-                    <div className="flex items-center gap-1.5"><span className="size-1.5 rounded-sm bg-[#f55036]" />Groq: 40M</div>
-                    <div className="flex items-center gap-1.5"><span className="size-1.5 rounded-sm bg-[#76b900]" />NVIDIA: 20M</div>
+
+                  <div className="flex h-2.5 rounded-full overflow-hidden bg-muted">
+                    <div className="bg-[#4285f4] transition-all duration-[1200ms] w-[40%] ease-out" />
+                    <div className="bg-[#f55036] transition-all duration-[1500ms] w-[20%] ease-out" />
+                    <div className="bg-[#8b5cf6] transition-all duration-[1800ms] w-[10%] ease-out" />
+                    <div className="bg-muted-foreground/25 w-[30%]" />
                   </div>
-                </div>
+
+                  <div className="grid grid-cols-3 gap-3 text-[10px] font-bold text-muted-foreground font-mono mt-1">
+                    <div className="flex items-center gap-1.5"><span className="size-2 rounded bg-[#4285f4]" />google: 80M</div>
+                    <div className="flex items-center gap-1.5"><span className="size-2 rounded bg-[#f55036]" />groq: 40M</div>
+                    <div className="flex items-center gap-1.5"><span className="size-2 rounded bg-[#8b5cf6]" />cerebras: 20M</div>
+                  </div>
+                </section>
               </div>
             )}
 
-            {/* Step 3 Visual Mockup: Fallback Priority Swap Animation */}
+            {/* Step 3 Simulation: Fallback Priority List */}
             {step === 3 && (
-              <div className="space-y-2.5 max-w-sm mx-auto w-full animate-in fade-in duration-300">
-                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 text-center">
-                  Drag & Drop Priority Ordering
-                </div>
-                
-                {/* List item #1 */}
-                <div className={`p-3 rounded-xl border text-xs bg-card flex items-center gap-2.5 transition-all duration-700 ${
-                  step3Dragged ? 'border-violet-500/20 bg-violet-500/[0.02] shadow-sm' : 'border-border'
-                }`}>
-                  <span className="text-muted-foreground select-none">⠿</span>
-                  <span className="font-bold text-violet-600 dark:text-violet-400 w-3 text-center">{step3Dragged ? '1' : '2'}</span>
-                  <span className="font-medium">google/gemini-2.5-flash</span>
-                  <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 font-bold uppercase font-mono">Google</span>
+              <div className="space-y-3 w-full max-w-xl mx-auto animate-in fade-in duration-300 text-left">
+                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider text-center mb-1">
+                  Active Fallback Pools List (Sorted by Rank)
                 </div>
 
-                {/* List item #2 */}
-                <div className={`p-3 rounded-xl border border-border text-xs bg-card flex items-center gap-2.5 transition-all duration-700`}>
-                  <span className="text-muted-foreground select-none">⠿</span>
-                  <span className="font-bold text-muted-foreground w-3 text-center">{step3Dragged ? '2' : '1'}</span>
-                  <span className="font-medium">groq/llama-3.1-70b</span>
-                  <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-500 font-bold uppercase font-mono">Groq</span>
-                </div>
-
-                {/* List item #3 */}
-                <div className="p-3 rounded-xl border border-border text-xs bg-card flex items-center gap-2.5 opacity-60">
-                  <span className="text-muted-foreground select-none">⠿</span>
-                  <span className="font-bold text-muted-foreground w-3 text-center">3</span>
-                  <span className="font-medium">nvidia/mixtral-8x22b</span>
-                  <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 font-bold uppercase font-mono">NVIDIA</span>
-                </div>
-
-                {/* Drag Indicator Overlay Ring */}
-                <div className={`absolute left-[15%] pointer-events-none transition-all duration-1000 flex items-center justify-center ${
-                  step3Dragged ? 'top-[42%] opacity-0 scale-75' : 'top-[22%] opacity-100 scale-110'
-                }`}>
-                  <div className="size-6 rounded-full border border-violet-500 bg-violet-500/20 anim-sim-pulse flex items-center justify-center">
-                    <span className="text-xs">✨</span>
+                <div className="rounded-xl border border-border divide-y bg-card overflow-hidden">
+                  
+                  {/* Row 1 */}
+                  <div className={`flex items-center gap-3 px-4 py-3 transition-all duration-700 ${
+                    step3Dragged ? 'bg-violet-500/[0.03] border-violet-500/20' : 'bg-card'
+                  }`}>
+                    <button className="cursor-grab text-muted-foreground/60 select-none text-xs">⠿</button>
+                    <span className="text-xs font-mono text-violet-600 dark:text-violet-400 font-bold w-4 text-center">
+                      {step3Dragged ? '1' : '2'}
+                    </span>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-xs sm:text-sm">google/gemini-2.5-flash</span>
+                        <span className="text-[10px] text-muted-foreground">google</span>
+                      </div>
+                      <div className="flex gap-3 text-[9px] font-bold text-muted-foreground mt-0.5 uppercase tracking-wide">
+                        <span>Intel #1</span>
+                        <span>Speed #2</span>
+                        <span>40M tok/mo</span>
+                      </div>
+                    </div>
+                    <Switch checked={true} readOnly />
                   </div>
+
+                  {/* Row 2 */}
+                  <div className="flex items-center gap-3 px-4 py-3 bg-card transition-all duration-700">
+                    <button className="cursor-grab text-muted-foreground/60 select-none text-xs">⠿</button>
+                    <span className="text-xs font-mono text-muted-foreground font-bold w-4 text-center">
+                      {step3Dragged ? '2' : '1'}
+                    </span>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-xs sm:text-sm">groq/llama-3.1-70b</span>
+                        <span className="text-[10px] text-muted-foreground">groq</span>
+                      </div>
+                      <div className="flex gap-3 text-[9px] font-bold text-muted-foreground mt-0.5 uppercase tracking-wide">
+                        <span>Intel #2</span>
+                        <span>Speed #1</span>
+                        <span>20M tok/mo</span>
+                      </div>
+                    </div>
+                    <Switch checked={true} readOnly />
+                  </div>
+
+                  {/* Row 3 */}
+                  <div className="flex items-center gap-3 px-4 py-3 bg-card opacity-50">
+                    <button className="cursor-grab text-muted-foreground/60 select-none text-xs">⠿</button>
+                    <span className="text-xs font-mono text-muted-foreground font-bold w-4 text-center">3</span>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-xs sm:text-sm">nvidia/mixtral-8x22b</span>
+                        <span className="text-[10px] text-muted-foreground">nvidia</span>
+                      </div>
+                      <div className="flex gap-3 text-[9px] font-bold text-muted-foreground mt-0.5 uppercase tracking-wide">
+                        <span>Intel #3</span>
+                        <span>Speed #3</span>
+                        <span>10M tok/mo</span>
+                      </div>
+                    </div>
+                    <Switch checked={false} readOnly />
+                  </div>
+                </div>
+
+                {/* Animated cursor overlay */}
+                <div className={`absolute left-[12%] pointer-events-none transition-all duration-1000 flex items-center justify-center ${
+                  step3Dragged ? 'top-[44%] opacity-0 scale-75' : 'top-[22%] opacity-100 scale-110'
+                }`}>
+                  <div className="size-6 rounded-full border-2 border-violet-600 bg-violet-600/35 anim-mock-pulse" />
                 </div>
               </div>
             )}
 
-            {/* Step 4 Visual Mockup: Animated Failover Chat Log */}
+            {/* Step 4 Simulation: Playground UI */}
             {step === 4 && (
-              <div className="space-y-3 flex-1 flex flex-col justify-end min-h-0 animate-in fade-in duration-300 w-full">
+              <div className="w-full max-w-2xl mx-auto flex flex-col justify-end min-h-[220px] animate-in fade-in duration-300 text-left relative">
                 
-                {/* Top tracking state indicator */}
-                <div className="absolute top-2.5 left-0 right-0 text-center shrink-0 flex items-center justify-center gap-2">
-                  <span className="text-[10px] bg-violet-600/10 text-violet-500 border border-violet-500/20 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
-                    Simulating Request {activeMsgCount} of 5
-                  </span>
-                  <span className="text-[9px] text-muted-foreground anim-sim-pulse">Looping demo...</span>
+                {/* Header matching PlaygroundPage */}
+                <div className="absolute top-0 left-0 right-0 p-2.5 bg-muted/40 border-b border-border flex items-center justify-between rounded-t-xl shrink-0 z-10">
+                  <span className="text-[10px] font-bold text-muted-foreground">Playground Sandbox — Auto routing Active</span>
+                  <span className="text-[9px] px-2 py-0.5 rounded bg-violet-500/10 text-violet-500 font-bold uppercase">SSE Streaming enabled</span>
                 </div>
 
-                {/* Scrollbox of mock logs */}
-                <div className="space-y-3.5 overflow-y-auto px-1.5 py-2 max-h-[190px] text-xs sm:text-[11px] leading-relaxed scrollbar-none">
-                  {simulatedChatData.map((item, idx) => {
-                    const isVisible = idx < activeMsgCount
+                {/* Chat window list */}
+                <div className="flex-1 overflow-y-auto px-1 pt-12 pb-2 space-y-3.5 max-h-[200px] scrollbar-none">
+                  {simulatedChatMessages.map((msg, idx) => {
+                    const isVisible = idx < activeMsgCount * 2
                     if (!isVisible) return null
 
                     return (
-                      <div key={idx} className="space-y-1.5 animate-in slide-in-from-bottom-2 duration-300">
-                        {/* Prompt */}
-                        <div className="flex gap-2 justify-end">
-                          <div className="bg-violet-600 text-white rounded-xl px-3 py-1.5 max-w-[80%] font-semibold text-right shadow-sm">
-                            {item.prompt}
-                          </div>
-                        </div>
-
-                        {/* Rerouted detail payload panel */}
-                        <div className={`p-3 rounded-xl border ${item.bg} max-w-[85%] font-medium space-y-1`}>
-                          
-                          {/* Route line */}
-                          <div className="flex items-center gap-1.5 flex-wrap font-bold text-[9px] uppercase tracking-wider">
-                            <span className={item.color}>{item.target}</span>
-                            <span className="text-muted-foreground">· Key: {item.key}</span>
-                            <span className="text-muted-foreground">· {item.latency}</span>
-                          </div>
-
-                          {/* Failover cascader log */}
-                          {item.status === 'failover' && (
-                            <div className="p-1.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 font-bold font-mono text-[9px] uppercase tracking-wide flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                              Failover: Groq 429 ➔ Rerouted to {item.failoverTarget}
+                      <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}>
+                        <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-xs leading-relaxed ${
+                          msg.role === 'user' ? 'bg-violet-600 text-white' : 'bg-muted border border-border'
+                        }`}>
+                          <p className="whitespace-pre-wrap">{msg.content}</p>
+                          {msg.meta && (
+                            <div className="flex items-center gap-1.5 mt-2 flex-wrap text-[9px] font-bold uppercase tracking-wider text-muted-foreground/80 font-mono">
+                              <span>{msg.meta.platform}</span>
+                              <span>· {msg.meta.model}</span>
+                              <span className="bg-violet-500/10 text-violet-500 px-1 py-0.5 rounded">Key: {msg.meta.keyUsed}</span>
+                              <span>· {msg.meta.latency}ms</span>
+                              {msg.meta.fallbackAttempts > 0 && (
+                                <span className="bg-amber-500/10 text-amber-500 px-1 py-0.5 rounded flex items-center gap-1">
+                                  <span className="size-1 rounded-full bg-amber-500 animate-pulse" />
+                                  {msg.meta.fallbackAttempts} fallback
+                                </span>
+                              )}
                             </div>
                           )}
-
-                          {item.status === 'failover_error' && (
-                            <div className="p-1.5 rounded bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 font-bold font-mono text-[9px] uppercase tracking-wide flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                              Failover: NVIDIA 502 ➔ Rerouted to {item.failoverTarget}
-                            </div>
-                          )}
-
-                          {/* Mock response bubble */}
-                          <p className="text-foreground/90 whitespace-pre-line mt-1">{item.response}</p>
                         </div>
                       </div>
                     )
@@ -424,11 +591,72 @@ export function OnboardingTour({ isOpen, onClose }: OnboardingTourProps) {
                 </div>
               </div>
             )}
+
+            {/* Step 5 Simulation: Dev Corner UI */}
+            {step === 5 && (
+              <div className="w-full max-w-3xl mx-auto animate-in fade-in duration-300 text-left grid grid-cols-1 lg:grid-cols-2 gap-4">
+                
+                {/* Left panel: Config and sandbox button */}
+                <div className="bg-card border rounded-xl p-3.5 space-y-3">
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Request Configuration</div>
+                  
+                  <div className="space-y-2 text-[10px] font-semibold text-muted-foreground">
+                    <div>
+                      <label className="block text-[8px] uppercase font-bold text-slate-500 mb-1">API Key Format</label>
+                      <select value={devFormat} onChange={e => setDevFormat(e.target.value as 'openai' | 'gemini')} className="w-full bg-background border rounded h-6 px-2 text-[9px] focus:outline-none">
+                        <option value="openai">OpenAI Format (/v1/...)</option>
+                        <option value="gemini">Gemini Format (/v1beta/...)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[8px] uppercase font-bold text-slate-500 mb-1">Unified key</label>
+                      <Input value="omnikey-75dd7a2bc61b53f320ef4be8eb08e4cb..." readOnly className="w-full font-mono text-[9px] bg-muted/40 h-6 px-2" />
+                    </div>
+
+                    <div>
+                      <label className="block text-[8px] uppercase font-bold text-slate-500 mb-1">Target Endpoint</label>
+                      <Input value="https://omnikey.ai/v1/chat/completions" readOnly className="w-full font-mono text-[9px] bg-muted/40 h-6 px-2" />
+                    </div>
+                  </div>
+
+                  <Button 
+                    onClick={runSimulatedDevRequest} 
+                    disabled={devExecuting}
+                    className="w-full py-3 h-auto bg-violet-600 hover:bg-violet-500 text-[10px] font-bold text-white shadow shadow-violet-500/10 active:scale-[0.98] transition-all rounded-lg"
+                  >
+                    {devExecuting ? 'Executing Request...' : 'Run Proxy Sandbox Request'}
+                  </Button>
+                </div>
+
+                {/* Right panel: Live response output console */}
+                <div className="space-y-3 flex flex-col min-h-0">
+                  <div className="bg-card border rounded-xl p-3 flex flex-col flex-1 h-[120px] overflow-hidden">
+                    <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 shrink-0">Dynamic SDK Code Snippet</div>
+                    <div className="flex-1 min-h-0 bg-slate-50 dark:bg-slate-950 rounded-lg p-2 overflow-auto border border-border">
+                      <pre className="text-[8px] font-mono leading-relaxed text-indigo-950 dark:text-indigo-200 whitespace-pre scrollbar-none">
+                        {jsCodeSnippet}
+                      </pre>
+                    </div>
+                  </div>
+
+                  <div className="bg-card border rounded-xl p-3 flex flex-col flex-1 h-[100px] overflow-hidden">
+                    <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 shrink-0 flex items-center justify-between">
+                      <span>Execution Console</span>
+                      {devExecuting && <span className="text-[8px] text-emerald-500 animate-pulse font-bold lowercase">Streaming SSE...</span>}
+                    </div>
+                    <div className="flex-1 min-h-0 bg-slate-50 dark:bg-slate-950 rounded-lg p-2.5 overflow-auto border border-border font-mono text-[9px] text-emerald-700 dark:text-emerald-400 leading-relaxed whitespace-pre-wrap scrollbar-none">
+                      {devConsole}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Footer actions bar */}
-        <div className="px-6 py-4 border-t border-border bg-card/60 backdrop-blur-sm flex items-center justify-between shrink-0">
+        {/* Footer controls */}
+        <div className="px-6 py-4.5 border-t border-border bg-card/60 backdrop-blur-sm flex items-center justify-between shrink-0">
           <div className="flex gap-2">
             {step > 1 && (
               <Button 
@@ -462,7 +690,7 @@ export function OnboardingTour({ isOpen, onClose }: OnboardingTourProps) {
                 onClick={handleFinish}
                 className="step-transition bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 animate-pulse shadow-md shadow-emerald-600/20"
               >
-                Got it! Finish Tour
+                Got it! Finish Onboarding
               </Button>
             )}
           </div>
