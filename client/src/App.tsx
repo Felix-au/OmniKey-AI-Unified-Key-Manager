@@ -16,6 +16,7 @@ import ComparePage from '@/pages/ComparePage'
 import DebatePage from '@/pages/DebatePage'
 import LandingPage from '@/pages/LandingPage'
 import EmailVerificationPage from '@/pages/EmailVerificationPage'
+import { OnboardingTour } from '@/components/OnboardingTour'
 
 const queryClient = new QueryClient()
 
@@ -183,6 +184,17 @@ function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [showSwitchModal, setShowSwitchModal] = useState(false)
 
+  const [showTour, setShowTour] = useState(false)
+
+  useEffect(() => {
+    if (!loading && (localDbEnabled || user)) {
+      const onboarded = localStorage.getItem('omnikey_onboarded')
+      if (!onboarded) {
+        setShowTour(true)
+      }
+    }
+  }, [loading, localDbEnabled, user])
+
   if (loading) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-950">
@@ -286,6 +298,14 @@ function DashboardLayout() {
               )}
             </>
           )}
+          <button
+            onClick={() => setShowTour(true)}
+            title="Start Onboarding Tour"
+            className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-violet-600 dark:text-violet-400 hover:text-violet-500 hover:bg-violet-500/10 transition-colors"
+          >
+            <span className="shrink-0 text-xs">✨</span>
+            {(!collapsed || mobile) && <span>Onboarding Tour</span>}
+          </button>
           <DarkModeToggle collapsed={collapsed && !mobile} />
           {!localDbEnabled && user && (!collapsed || mobile) && (
             <button
@@ -370,6 +390,7 @@ function DashboardLayout() {
         onConfirm={() => { setShowSwitchModal(false); setDatabaseMode('local') }}
         onCancel={() => setShowSwitchModal(false)}
       />
+      <OnboardingTour isOpen={showTour} onClose={() => setShowTour(false)} />
     </div>
   )
 }
