@@ -152,6 +152,25 @@ export default function LoginPage() {
           <p className="text-xs text-muted-foreground font-medium">Unified Key Manager & Multi-Tenant Gateway</p>
         </div>
 
+        {promoStatus?.isActive && (
+          <div className="mb-6 p-4 rounded-2xl border border-emerald-500/10 bg-emerald-500/[0.03] text-center animate-fade-in relative overflow-hidden">
+            <div className="absolute top-0 right-0 -mr-1 -mt-1 w-2.5 h-2.5 bg-emerald-500/10 rounded-full blur-[1px] animate-pulse" />
+            <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300 flex items-center justify-center gap-1.5">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-450 opacity-75 animate-duration-1000"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              10M Promotional Credit Active
+            </p>
+            <p className="text-[10px] text-muted-foreground mt-1 leading-normal px-2">
+              Sign up today and automatically get allocated 10M tokens for fallbacks.
+            </p>
+            <div className="mt-2.5 text-[9px] font-bold tracking-wider text-emerald-600 dark:text-emerald-400 uppercase font-mono bg-emerald-500/10 rounded-lg py-1 px-2.5 inline-block">
+              Only {promoStatus.remainingSlots} of {promoStatus.totalPromoLimit} accounts left!
+            </div>
+          </div>
+        )}
+
         {/* Tab Switcher */}
         <div className="grid grid-cols-2 p-1.5 bg-muted/50 rounded-2xl mb-6 border border-border">
           <button
@@ -273,25 +292,6 @@ export default function LoginPage() {
           </svg>
           Continue with Google
         </Button>
-
-        {promoStatus?.isActive && (
-          <div className="mt-5 p-4 rounded-2xl border border-emerald-500/10 bg-emerald-500/[0.03] text-center animate-fade-in relative overflow-hidden">
-            <div className="absolute top-0 right-0 -mr-1 -mt-1 w-2.5 h-2.5 bg-emerald-500/10 rounded-full blur-[1px] animate-pulse" />
-            <p className="text-xs font-bold text-slate-800 dark:text-emerald-450 flex items-center justify-center gap-1.5">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-450 opacity-75 animate-duration-1000"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              10M Promotional Credit Active
-            </p>
-            <p className="text-[10px] text-muted-foreground mt-1 leading-normal px-2">
-              Sign up today and automatically get allocated 10M tokens for fallbacks.
-            </p>
-            <div className="mt-2.5 text-[9px] font-bold tracking-wider text-emerald-600 dark:text-emerald-400 uppercase font-mono bg-emerald-500/10 rounded-lg py-1 px-2.5 inline-block">
-              Only {promoStatus.remainingSlots} of {promoStatus.totalPromoLimit} accounts left!
-            </div>
-          </div>
-        )}
 
         {/* Dynamic Mode Switcher (Local-First fallback) */}
         <div className="mt-5 p-4 rounded-2xl bg-muted/30 border border-border flex flex-col items-center">
