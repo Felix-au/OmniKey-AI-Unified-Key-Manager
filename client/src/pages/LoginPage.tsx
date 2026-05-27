@@ -27,17 +27,17 @@ function DarkModeToggle() {
   }
 
   return (
-    <Button 
-      variant="ghost" 
-      size="sm" 
-      onClick={toggle} 
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={toggle}
       aria-label="Toggle theme"
       className="absolute top-6 right-6 rounded-xl border border-border text-foreground hover:bg-muted"
     >
       {dark ? (
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" /></svg>
       ) : (
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" /></svg>
       )}
     </Button>
   )
@@ -162,14 +162,35 @@ export default function LoginPage() {
               </span>
               10M Promotional Credit Active
             </p>
-            <p className="text-[10px] text-muted-foreground mt-1 leading-normal px-2">
-              Sign up today and automatically get allocated 10M tokens for fallbacks.
-            </p>
+
             <div className="mt-2.5 text-[9px] font-bold tracking-wider text-emerald-600 dark:text-emerald-400 uppercase font-mono bg-emerald-500/10 rounded-lg py-1 px-2.5 inline-block">
-              Only {promoStatus.remainingSlots} of {promoStatus.totalPromoLimit} accounts left!
+              {promoStatus.remainingSlots} of {promoStatus.totalPromoLimit} accounts left!
             </div>
           </div>
         )}
+
+        {/* Google Sign In */}
+        <Button
+          type="button"
+          onClick={handleGoogleSignIn}
+          disabled={loading}
+          className="w-full py-6 rounded-2xl border border-border bg-background hover:bg-muted text-foreground font-semibold text-xs transition-all flex items-center justify-center gap-2.5 transform active:scale-[0.98] mb-5"
+        >
+          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M21.35,11.1H12v2.7h5.38c-0.24,1.28 -0.96,2.37 -2.04,3.1v2.58h3.3c1.93,-1.78 3.04,-4.4 3.04,-7.48c0,-0.68 -0.06,-1.34 -0.18,-1.9Z" fill="#4285F4" />
+            <path d="M12,20.6c2.32,0 4.27,-0.77 5.69,-2.1l-2.58,-2c-0.77,0.52 -1.75,0.83 -3.11,0.83c-2.39,0 -4.41,-1.61 -5.13,-3.78H3.45v2.66C4.87,19.03 8.19,20.6 12,20.6Z" fill="#34A853" />
+            <path d="M6.87,13.55c-0.18,-0.54 -0.28,-1.11 -0.28,-1.7s0.1,-1.16 0.28,-1.7V7.49H3.45C2.82,8.75 2.47,10.18 2.47,11.7c0,1.52 0.35,2.95 0.98,4.21l3.42,-2.66Z" fill="#FBBC05" />
+            <path d="M12,6.27c1.26,0 2.39,0.43 3.28,1.28l2.46,-2.46C16.26,3.64 14.31,2.87 12,2.87c-3.81,0 -7.13,1.57 -8.55,4.62l3.42,2.66c0.72,-2.17 2.74,-3.78 5.13,-3.78Z" fill="#EA4335" />
+          </svg>
+          Continue with Google
+        </Button>
+
+        {/* Divider */}
+        <div className="flex items-center gap-3 mb-6">
+          <div className="h-px bg-border grow" />
+          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">or</span>
+          <div className="h-px bg-border grow" />
+        </div>
 
         {/* Tab Switcher */}
         <div className="grid grid-cols-2 p-1.5 bg-muted/50 rounded-2xl mb-6 border border-border">
@@ -177,8 +198,8 @@ export default function LoginPage() {
             type="button"
             onClick={() => { setIsRegister(false); setError(null); }}
             className={`py-2 text-xs font-semibold rounded-xl transition-all ${!isRegister
-                ? 'bg-card text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
+              ? 'bg-card text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
               }`}
           >
             Sign In
@@ -187,8 +208,8 @@ export default function LoginPage() {
             type="button"
             onClick={() => { setIsRegister(true); setError(null); }}
             className={`py-2 text-xs font-semibold rounded-xl transition-all ${isRegister
-                ? 'bg-card text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
+              ? 'bg-card text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
               }`}
           >
             Create Account
@@ -263,35 +284,12 @@ export default function LoginPage() {
                 Processing...
               </span>
             ) : isRegister ? (
-              'Create Cloud Account'
+              'Create Account'
             ) : (
               'Sign In to Dashboard'
             )}
           </Button>
         </form>
-
-        {/* Divider */}
-        <div className="flex items-center gap-3 my-5">
-          <div className="h-px bg-border grow" />
-          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">or</span>
-          <div className="h-px bg-border grow" />
-        </div>
-
-        {/* Google Sign In */}
-        <Button
-          type="button"
-          onClick={handleGoogleSignIn}
-          disabled={loading}
-          className="w-full py-6 rounded-2xl border border-border bg-background hover:bg-muted text-foreground font-semibold text-xs transition-all flex items-center justify-center gap-2.5 transform active:scale-[0.98]"
-        >
-          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path d="M21.35,11.1H12v2.7h5.38c-0.24,1.28 -0.96,2.37 -2.04,3.1v2.58h3.3c1.93,-1.78 3.04,-4.4 3.04,-7.48c0,-0.68 -0.06,-1.34 -0.18,-1.9Z" fill="#4285F4" />
-            <path d="M12,20.6c2.32,0 4.27,-0.77 5.69,-2.1l-2.58,-2c-0.77,0.52 -1.75,0.83 -3.11,0.83c-2.39,0 -4.41,-1.61 -5.13,-3.78H3.45v2.66C4.87,19.03 8.19,20.6 12,20.6Z" fill="#34A853" />
-            <path d="M6.87,13.55c-0.18,-0.54 -0.28,-1.11 -0.28,-1.7s0.1,-1.16 0.28,-1.7V7.49H3.45C2.82,8.75 2.47,10.18 2.47,11.7c0,1.52 0.35,2.95 0.98,4.21l3.42,-2.66Z" fill="#FBBC05" />
-            <path d="M12,6.27c1.26,0 2.39,0.43 3.28,1.28l2.46,-2.46C16.26,3.64 14.31,2.87 12,2.87c-3.81,0 -7.13,1.57 -8.55,4.62l3.42,2.66c0.72,-2.17 2.74,-3.78 5.13,-3.78Z" fill="#EA4335" />
-          </svg>
-          Continue with Google
-        </Button>
 
         {/* Dynamic Mode Switcher (Local-First fallback) */}
         <div className="mt-5 p-4 rounded-2xl bg-muted/30 border border-border flex flex-col items-center">
@@ -323,7 +321,7 @@ export default function LoginPage() {
         {/* Footer note */}
         <div className="mt-6 pt-5 border-t border-border text-center">
           <p className="text-[10px] text-muted-foreground font-medium leading-relaxed">
-            Authentication is secured by Firebase Guard. Database persistence resides on MongoDB Atlas.
+            Authentication is secured by Firebase Guard.
           </p>
         </div>
 
