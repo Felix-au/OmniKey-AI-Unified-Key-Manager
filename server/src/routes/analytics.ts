@@ -60,7 +60,7 @@ analyticsRouter.get('/summary', async (req: AuthenticatedRequest, res: Response,
       });
     } else {
       const stats = await RequestLog.aggregate([
-        { $match: { userId: req.userId, createdAt: { $gte: new Date(since) } } },
+        { $match: { $or: [{ userId: req.userId }, { fundedByUserId: req.userId }], createdAt: { $gte: new Date(since) } } },
         {
           $group: {
             _id: null,
@@ -140,7 +140,7 @@ analyticsRouter.get('/by-model', async (req: AuthenticatedRequest, res: Response
       return res.json(mapped);
     } else {
       const rows = await RequestLog.aggregate([
-        { $match: { userId: req.userId, createdAt: { $gte: new Date(since) } } },
+        { $match: { $or: [{ userId: req.userId }, { fundedByUserId: req.userId }], createdAt: { $gte: new Date(since) } } },
         {
           $group: {
             _id: { platform: '$platform', modelId: '$modelId' },
@@ -209,7 +209,7 @@ analyticsRouter.get('/by-platform', async (req: AuthenticatedRequest, res: Respo
       return res.json(mapped);
     } else {
       const rows = await RequestLog.aggregate([
-        { $match: { userId: req.userId, createdAt: { $gte: new Date(since) } } },
+        { $match: { $or: [{ userId: req.userId }, { fundedByUserId: req.userId }], createdAt: { $gte: new Date(since) } } },
         {
           $group: {
             _id: '$platform',
@@ -277,7 +277,7 @@ analyticsRouter.get('/timeline', async (req: AuthenticatedRequest, res: Response
       const format = interval === 'hour' ? '%Y-%m-%dT%H:00:00Z' : '%Y-%m-%d';
 
       const rows = await RequestLog.aggregate([
-        { $match: { userId: req.userId, createdAt: { $gte: new Date(since) } } },
+        { $match: { $or: [{ userId: req.userId }, { fundedByUserId: req.userId }], createdAt: { $gte: new Date(since) } } },
         {
           $group: {
             _id: { $dateToString: { format: format, date: '$createdAt', timezone: '+05:30' } },
@@ -367,7 +367,7 @@ analyticsRouter.get('/error-distribution', async (req: AuthenticatedRequest, res
       });
     } else {
       const errorLogs = await RequestLog.find({
-        userId: req.userId,
+        $or: [{ userId: req.userId }, { fundedByUserId: req.userId }],
         status: 'error',
         createdAt: { $gte: new Date(since) }
       });
@@ -470,7 +470,7 @@ analyticsRouter.get('/errors', async (req: AuthenticatedRequest, res: Response, 
       return res.json(mapped);
     } else {
       const rows = await RequestLog.find({
-        userId: req.userId,
+        $or: [{ userId: req.userId }, { fundedByUserId: req.userId }],
         status: 'error',
         createdAt: { $gte: new Date(since) }
       })

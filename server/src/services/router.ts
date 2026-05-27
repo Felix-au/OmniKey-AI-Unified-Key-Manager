@@ -7,6 +7,9 @@ import { isLocalDbEnabled } from '../db/context.js';
 import { Model, IModel } from '../models/Model.js';
 import { UserFallbackConfig } from '../models/UserFallbackConfig.js';
 import { ApiKey } from '../models/ApiKey.js';
+import { PromoUser } from '../models/PromoUser.js';
+import { AdminEmail } from '../models/AdminEmail.js';
+import { UserSettings } from '../models/UserSettings.js';
 
 interface ModelRow {
   id: number;
@@ -45,6 +48,9 @@ export interface RouteResult {
   keyLabel?: string;
   platform: string;
   displayName: string;
+  isPromo?: boolean;
+  fundedByUserId?: string;
+  fundedByUserEmail?: string;
 }
 
 // Round-robin index per platform
@@ -218,39 +224,140 @@ export async function routeRequest(
     }
   } else {
     // MongoDB multi-tenant cloud mode
-    const fallbackChain = await UserFallbackConfig.find({ userId })
-      .populate<{ modelId: IModel }>('modelId')
-      .sort({ priority: 1 });
+    const promo = await PromoUser.findOne({ userId });
+    const isPromoActive = promo && promo.tokensUsed < promo.tokensLimit;
 
-    const sortedChain = fallbackChain.map(entry => {
-      const modelIdStr = entry.modelId?._id?.toString() || '';
-      return {
-        entry,
-        effectivePriority: entry.priority + getPenalty(modelIdStr),
-      };
-    }).sort((a, b) => a.effectivePriority - b.effectivePriority);
+    let usePromo = false;
+    let fundingUserIds: string[] = [];
 
-    if (preferredModelDbId) {
-      const strPreferred = preferredModelDbId.toString();
-      const idx = sortedChain.findIndex(e => e.entry.modelId?._id?.toString() === strPreferred);
-      if (idx > 0) {
-        const [preferred] = sortedChain.splice(idx, 1);
-        sortedChain.unshift(preferred);
+    if (isPromoActive) {
+      const hasKeys = await ApiKey.exists({ userId, enabled: true, status: { $ne: 'invalid' } });
+      const requestedPromo = preferredModelDbId === 'omnikey-promo' || preferredModelDbId === 'promo';
+      
+      if (requestedPromo || !hasKeys) {
+        usePromo = true;
+        // Resolve all active funding admin IDs
+        const fundingAdmins = await AdminEmail.find({ isFundingProvider: true });
+        const adminEmails = fundingAdmins.map(a => a.email);
+        const adminSettings = await UserSettings.find({ email: { $in: adminEmails } });
+        fundingUserIds = adminSettings.map(s => s.userId);
       }
     }
 
-    for (const item of sortedChain) {
-      const c = item.entry;
-      if (!c.enabled) continue;
+    let chainToUse: Array<{ model: IModel; priority: number; effectivePriority: number }> = [];
 
-      const model = c.modelId;
+    if (usePromo) {
+      // Find all enabled real models (exclude virtual promo model itself to avoid infinite loop)
+      const promoModels = await Model.find({ enabled: true, modelId: { $ne: 'omnikey-promo' } }).sort({ speedRank: 1 });
+      chainToUse = promoModels.map((model, index) => ({
+        model,
+        priority: index + 1,
+        effectivePriority: index + 1 + getPenalty(model._id.toString())
+      })).sort((a, b) => a.effectivePriority - b.effectivePriority);
+    } else {
+      const fallbackChain = await UserFallbackConfig.find({ userId })
+        .populate<{ modelId: IModel }>('modelId')
+        .sort({ priority: 1 });
+
+      chainToUse = fallbackChain.map(entry => {
+        const modelIdStr = entry.modelId?._id?.toString() || '';
+        return {
+          model: entry.modelId,
+          priority: entry.priority,
+          effectivePriority: entry.priority + getPenalty(modelIdStr)
+        };
+      }).sort((a, b) => a.effectivePriority - b.effectivePriority);
+    }
+
+    for (const item of chainToUse) {
+      const model = item.model;
       if (!model || !model.enabled) continue;
 
+      // Intercept virtual promo model in user's custom fallback chain
+      if (model.modelId === 'omnikey-promo') {
+        if (!isPromoActive) continue; // skip if promo exhausted
+
+        // Resolve funding admin IDs if not already done
+        if (fundingUserIds.length === 0) {
+          const fundingAdmins = await AdminEmail.find({ isFundingProvider: true });
+          const adminEmails = fundingAdmins.map(a => a.email);
+          const adminSettings = await UserSettings.find({ email: { $in: adminEmails } });
+          fundingUserIds = adminSettings.map(s => s.userId);
+        }
+
+        if (fundingUserIds.length === 0) continue;
+
+        // Try real models sorted by speedRank under the hood
+        const promoModels = await Model.find({ enabled: true, modelId: { $ne: 'omnikey-promo' } }).sort({ speedRank: 1 });
+        for (const pm of promoModels) {
+          const provider = getProvider(pm.platform as any);
+          if (!provider) continue;
+
+          const keys = await ApiKey.find({
+            userId: { $in: fundingUserIds },
+            platform: pm.platform,
+            enabled: true,
+            status: { $ne: 'invalid' }
+          });
+
+          if (keys.length === 0) continue;
+
+          const limits = {
+            rpm: pm.rpmLimit,
+            rpd: pm.rpdLimit,
+            tpm: pm.tpmLimit,
+            tpd: pm.tpdLimit,
+          };
+
+          const rrKey = `${pm.platform}:${pm.modelId}`;
+          let idx = roundRobinIndex.get(rrKey) ?? 0;
+
+          for (let attempt = 0; attempt < keys.length; attempt++) {
+            const key = keys[idx % keys.length];
+            idx++;
+
+            const skipId = `${pm.platform}:${pm.modelId}:${key._id}`;
+            if (skipKeys?.has(skipId)) continue;
+
+            if (isOnCooldown(pm.platform, pm.modelId, key._id.toString() as any)) continue;
+
+            if (!canMakeRequest(pm.platform, pm.modelId, key._id.toString() as any, limits)) continue;
+            if (!canUseTokens(pm.platform, pm.modelId, key._id.toString() as any, estimatedTokens, limits)) continue;
+
+            roundRobinIndex.set(rrKey, idx);
+            const decryptedKey = decrypt(key.encryptedKey, key.iv, key.authTag);
+
+            // Fetch the admin user settings to know who is funding this request
+            const adminUserSetting = await UserSettings.findOne({ userId: key.userId });
+
+            return {
+              provider,
+              modelId: pm.modelId,
+              modelDbId: pm._id.toString(),
+              apiKey: decryptedKey,
+              keyId: key._id.toString(),
+              keyLabel: key.label,
+              platform: pm.platform,
+              displayName: pm.displayName,
+              isPromo: true,
+              fundedByUserId: key.userId.toString(),
+              fundedByUserEmail: adminUserSetting?.email
+            };
+          }
+          roundRobinIndex.set(rrKey, idx);
+        }
+        continue;
+      }
+
+      // Standard model routing logic
       const provider = getProvider(model.platform as any);
       if (!provider) continue;
 
+      // Determine who to fetch keys for (could be admin if usePromo is true)
+      const targetUserId = usePromo ? { $in: fundingUserIds } : userId;
+
       const keys = await ApiKey.find({
-        userId,
+        userId: targetUserId,
         platform: model.platform,
         enabled: true,
         status: { $ne: 'invalid' }
@@ -283,6 +390,8 @@ export async function routeRequest(
         roundRobinIndex.set(rrKey, idx);
         const decryptedKey = decrypt(key.encryptedKey, key.iv, key.authTag);
 
+        const adminUserSetting = usePromo ? await UserSettings.findOne({ userId: key.userId }) : null;
+
         return {
           provider,
           modelId: model.modelId,
@@ -292,6 +401,9 @@ export async function routeRequest(
           keyLabel: key.label,
           platform: model.platform,
           displayName: model.displayName,
+          isPromo: usePromo,
+          fundedByUserId: usePromo ? key.userId.toString() : undefined,
+          fundedByUserEmail: usePromo ? adminUserSetting?.email : undefined
         };
       }
 

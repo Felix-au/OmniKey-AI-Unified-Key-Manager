@@ -77,7 +77,7 @@ modelsRouter.get('/', async (req: AuthenticatedRequest, res: Response, next) => 
           enabled: m.enabled === 1,
           priority: m.priority,
           fallbackEnabled: m.fallback_enabled === 1,
-          hasProvider: hasProvider(m.platform),
+          hasProvider: (m.platform as string) === 'omnikey' || hasProvider(m.platform),
           keyCount,
         };
       });
@@ -127,7 +127,7 @@ modelsRouter.get('/', async (req: AuthenticatedRequest, res: Response, next) => 
           enabled: m.enabled,
           priority: fallback ? fallback.priority : null,
           fallbackEnabled: fallback ? fallback.enabled : false,
-          hasProvider: hasProvider(m.platform),
+          hasProvider: (m.platform as string) === 'omnikey' || hasProvider(m.platform),
           keyCount,
         };
       });

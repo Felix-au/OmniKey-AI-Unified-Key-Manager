@@ -36,6 +36,27 @@ export async function seedMongoModels(): Promise<void> {
       console.log(`Using default catalog of ${sqliteModels.length} models for seeding.`);
     }
 
+    // Ensure virtual promo model is present in the source list for MongoDB seeding
+    const hasPromoModel = sqliteModels.some(m => m.platform === 'omnikey' && (m.model_id === 'omnikey-promo' || m.modelId === 'omnikey-promo'));
+    if (!hasPromoModel) {
+      sqliteModels.push({
+        id: 9999,
+        platform: 'omnikey',
+        model_id: 'omnikey-promo',
+        display_name: 'Promo Model',
+        intelligence_rank: 5,
+        speed_rank: 5,
+        size_label: 'OmniKey',
+        rpm_limit: null,
+        rpd_limit: null,
+        tpm_limit: null,
+        tpd_limit: null,
+        monthly_token_budget: '10M',
+        context_window: 128000,
+        enabled: 1
+      });
+    }
+
     // 3. Reconcile MongoDB models with the source models catalog
     let addedCount = 0;
     let updatedCount = 0;

@@ -73,6 +73,7 @@ const platformColors: Record<string, string> = {
   pollinations: '#a855f7',
   llm7:        '#0ea5e9',
   huggingface: '#ff9d00',
+  omnikey:     '#10b981',
 }
 
 function TokenUsageBar({ data }: { data: TokenUsageData }) {
@@ -249,8 +250,8 @@ export default function FallbackPage() {
   })
 
   const allEntries = localEntries ?? entries
-  const displayEntries = allEntries.filter(e => e.keyCount > 0)
-  const unconfiguredPlatforms = [...new Set(allEntries.filter(e => e.keyCount === 0).map(e => e.platform))]
+  const displayEntries = allEntries.filter(e => e.keyCount > 0 || e.platform === 'omnikey')
+  const unconfiguredPlatforms = [...new Set(allEntries.filter(e => e.keyCount === 0 && e.platform !== 'omnikey').map(e => e.platform))]
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -263,7 +264,7 @@ export default function FallbackPage() {
     const oldIndex = displayEntries.findIndex(e => e.modelDbId === active.id)
     const newIndex = displayEntries.findIndex(e => e.modelDbId === over.id)
     const reorderedVisible = arrayMove(displayEntries, oldIndex, newIndex)
-    const unconfigured = allEntries.filter(e => e.keyCount === 0)
+    const unconfigured = allEntries.filter(e => e.keyCount === 0 && e.platform !== 'omnikey')
     const merged = [
       ...reorderedVisible.map((e, i) => ({ ...e, priority: i + 1 })),
       ...unconfigured.map((e, i) => ({ ...e, priority: reorderedVisible.length + i + 1 })),

@@ -11,6 +11,7 @@ import { isLocalDbEnabled, dbModeStorage } from '../db/context.js';
 import { UserSettings } from '../models/UserSettings.js';
 import { RequestLog } from '../models/RequestLog.js';
 import { Model } from '../models/Model.js';
+import { PromoUser } from '../models/PromoUser.js';
 
 export const proxyRouter = Router();
 
@@ -416,21 +417,34 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
                 res.setHeader('Content-Type', 'text/event-stream');
                 res.setHeader('Cache-Control', 'no-cache');
                 res.setHeader('Connection', 'keep-alive');
-                res.setHeader('X-Routed-Via', `${route.platform}/${route.modelId}`);
-                res.setHeader('X-Key-Used', keyUsed);
+                if (route.isPromo) {
+                  res.setHeader('X-Routed-Via', 'Promo Model');
+                  res.setHeader('X-Key-Used', 'OmniKey Funded Key');
+                } else {
+                  res.setHeader('X-Routed-Via', `${route.platform}/${route.modelId}`);
+                  res.setHeader('X-Key-Used', keyUsed);
+                }
                 if (attempt > 0) res.setHeader('X-Fallback-Attempts', String(attempt));
                 streamStarted = true;
               }
               const text = chunk.choices[0]?.delta?.content ?? '';
               totalOutputTokens += Math.ceil(text.length / 4);
+              if (route.isPromo && chunk && typeof chunk === 'object') {
+                chunk.model = 'omnikey-promo';
+              }
               res.write(`data: ${JSON.stringify(chunk)}\n\n`);
             }
 
             if (!streamStarted) {
               const keyUsed = (route.keyLabel && route.keyLabel.trim()) ? route.keyLabel.trim() : `Key #${route.keyId}`;
               res.setHeader('Content-Type', 'text/event-stream');
-              res.setHeader('X-Routed-Via', `${route.platform}/${route.modelId}`);
-              res.setHeader('X-Key-Used', keyUsed);
+              if (route.isPromo) {
+                res.setHeader('X-Routed-Via', 'Promo Model');
+                res.setHeader('X-Key-Used', 'OmniKey Funded Key');
+              } else {
+                res.setHeader('X-Routed-Via', `${route.platform}/${route.modelId}`);
+                res.setHeader('X-Key-Used', keyUsed);
+              }
             }
             res.write('data: [DONE]\n\n');
             res.end();
@@ -438,7 +452,7 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
             recordTokens(route.platform, route.modelId, route.keyId as any, estimatedInputTokens + totalOutputTokens);
             recordSuccess(route.modelDbId);
             setStickyModel(messages, route.modelDbId);
-            logRequest(route.platform, route.modelId, 'success', estimatedInputTokens, totalOutputTokens, Date.now() - start, null, userId);
+            logRequest(route.platform, route.modelId, 'success', estimatedInputTokens, totalOutputTokens, Date.now() - start, null, userId, route.isPromo ? route.fundedByUserId : undefined);
             return;
           } catch (streamErr: any) {
             if (streamStarted) {
@@ -446,7 +460,7 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
               const payload = { error: { message: `Provider error (${route.displayName}): stream interrupted`, type: 'stream_error' } };
               try { res.write(`data: ${JSON.stringify(payload)}\n\n`); } catch {}
               try { res.write('data: [DONE]\n\n'); res.end(); } catch {}
-              logRequest(route.platform, route.modelId, 'error', estimatedInputTokens, totalOutputTokens, Date.now() - start, streamErr.message, userId);
+              logRequest(route.platform, route.modelId, 'error', estimatedInputTokens, totalOutputTokens, Date.now() - start, streamErr.message, userId, route.isPromo ? route.fundedByUserId : undefined);
               return;
             }
             throw streamErr;
@@ -463,16 +477,30 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
           setStickyModel(messages, route.modelDbId);
 
           const keyUsed = (route.keyLabel && route.keyLabel.trim()) ? route.keyLabel.trim() : `Key #${route.keyId}`;
-          res.setHeader('X-Routed-Via', `${route.platform}/${route.modelId}`);
-          res.setHeader('X-Key-Used', keyUsed);
+          if (route.isPromo) {
+            res.setHeader('X-Routed-Via', 'Promo Model');
+            res.setHeader('X-Key-Used', 'OmniKey Funded Key');
+          } else {
+            res.setHeader('X-Routed-Via', `${route.platform}/${route.modelId}`);
+            res.setHeader('X-Key-Used', keyUsed);
+          }
           if (attempt > 0) res.setHeader('X-Fallback-Attempts', String(attempt));
 
           if (result && typeof result === 'object') {
-            (result as any)._routed_via = {
-              platform: route.platform,
-              model: route.modelId,
-              keyUsed,
-            };
+            if (route.isPromo) {
+              result.model = 'omnikey-promo';
+              (result as any)._routed_via = {
+                platform: 'Promo Pool',
+                model: 'Promo Model',
+                keyUsed: 'OmniKey Funded Key',
+              };
+            } else {
+              (result as any)._routed_via = {
+                platform: route.platform,
+                model: route.modelId,
+                keyUsed,
+              };
+            }
           }
           res.json(result);
 
@@ -480,13 +508,14 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
             route.platform, route.modelId, 'success',
             result.usage?.prompt_tokens ?? 0,
             result.usage?.completion_tokens ?? 0,
-            Date.now() - start, null, userId
+            Date.now() - start, null, userId,
+            route.isPromo ? route.fundedByUserId : undefined
           );
           return;
         }
       } catch (err: any) {
         const latency = Date.now() - start;
-        logRequest(route!.platform, route!.modelId, 'error', estimatedInputTokens, 0, latency, err.message, userId);
+        logRequest(route!.platform, route!.modelId, 'error', estimatedInputTokens, 0, latency, err.message, userId, route!.isPromo ? route!.fundedByUserId : undefined);
 
         if (isRetryableError(err)) {
           const skipId = `${route!.platform}:${route!.modelId}:${route!.keyId}`;
@@ -525,7 +554,8 @@ function logRequest(
   outputTokens: number,
   latencyMs: number,
   error: string | null,
-  userId = 'local-dev-user-uid'
+  userId = 'local-dev-user-uid',
+  fundedByUserId?: string
 ) {
   if (isLocalDbEnabled()) {
     try {
@@ -541,6 +571,7 @@ function logRequest(
     // Run asynchronous insertion in the background
     RequestLog.create({
       userId,
+      fundedByUserId,
       platform,
       modelId,
       status,
@@ -551,5 +582,18 @@ function logRequest(
     }).catch(e => {
       console.error('Failed to log request to MongoDB:', e);
     });
+
+    if (status === 'success') {
+      PromoUser.findOne({ userId }).then(promo => {
+        if (promo && promo.tokensUsed < promo.tokensLimit) {
+          const totalTokens = inputTokens + outputTokens;
+          promo.tokensUsed = Math.min(
+            promo.tokensLimit,
+            promo.tokensUsed + totalTokens
+          );
+          promo.save().catch(err => console.error('[Promo] Failed to save PromoUser tokens usage:', err));
+        }
+      }).catch(err => console.error('[Promo] Failed to find PromoUser:', err));
+    }
   }
 }

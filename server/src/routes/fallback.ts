@@ -9,6 +9,7 @@ import { Model, IModel } from '../models/Model.js';
 import { UserFallbackConfig } from '../models/UserFallbackConfig.js';
 import { ApiKey } from '../models/ApiKey.js';
 import { RequestLog } from '../models/RequestLog.js';
+import { PromoUser } from '../models/PromoUser.js';
 
 function parseBudget(s: string): number {
   const m = s.match(/~?([\d.]+)(?:-([\d.]+))?([MK])?/);
@@ -149,10 +150,10 @@ fallbackRouter.get('/', async (req: AuthenticatedRequest, res: Response, next) =
         if (!m) return null;
 
         const penalty = penaltyMap.get(m._id.toString());
-        const keyCount = keyCountMap.get(m.platform) ?? 0;
+        const keyCount = (m.platform as string) === 'omnikey' ? 1 : (keyCountMap.get(m.platform) ?? 0);
 
-        let monthlyTokenBudget = m.monthlyTokenBudget;
-        if (keyCount > 1) {
+        let monthlyTokenBudget = (m.platform as string) === 'omnikey' ? '10M' : m.monthlyTokenBudget;
+        if ((m.platform as string) !== 'omnikey' && keyCount > 1) {
           const base = parseBudget(m.monthlyTokenBudget);
           if (base > 0) {
             monthlyTokenBudget = `~${formatBudget(base * keyCount)} (${keyCount} keys)`;
@@ -344,11 +345,21 @@ fallbackRouter.get('/token-usage', async (req: AuthenticatedRequest, res: Respon
       const keys = await ApiKey.find({ userId: req.userId, enabled: true, status: 'healthy' });
       const platformSet = new Set(keys.map(k => k.platform));
 
+      const promoUser = await PromoUser.findOne({ userId: req.userId });
+      const hasPromo = promoUser && promoUser.tokensUsed < promoUser.tokensLimit;
+
+      if (hasPromo) {
+        platformSet.add('omnikey' as any);
+      }
+
       const keyCounts = await ApiKey.aggregate([
         { $match: { userId: req.userId, enabled: true, status: 'healthy' } },
         { $group: { _id: '$platform', count: { $sum: 1 } } }
       ]);
-      const keyCountMap = new Map(keyCounts.map(k => [k._id, k.count]));
+      const keyCountMap = new Map(keyCounts.map(k => [k._id as any, k.count]));
+      if (hasPromo) {
+        keyCountMap.set('omnikey' as any, 1);
+      }
 
       // 2. Fetch models ordered by priority
       const userConfigs = await UserFallbackConfig.find({ userId: req.userId, enabled: true })
@@ -357,10 +368,10 @@ fallbackRouter.get('/token-usage', async (req: AuthenticatedRequest, res: Respon
 
       const modelBudgets = userConfigs
         .map(c => c.modelId)
-        .filter(m => m && platformSet.has(m.platform))
+        .filter(m => m && platformSet.has(m.platform as any))
         .map(m => {
-          const count = keyCountMap.get(m.platform) ?? 0;
-          const baseBudget = parseBudget(m.monthlyTokenBudget);
+          const count = (m.platform as string) === 'omnikey' ? 1 : (keyCountMap.get(m.platform as any) ?? 0);
+          const baseBudget = (m.platform as string) === 'omnikey' ? (promoUser ? promoUser.tokensLimit : 10_000_000) : parseBudget(m.monthlyTokenBudget);
           return {
             displayName: m.displayName,
             platform: m.platform,
@@ -370,18 +381,20 @@ fallbackRouter.get('/token-usage', async (req: AuthenticatedRequest, res: Respon
 
       const totalBudget = modelBudgets.reduce((s, m) => s + m.budget, 0);
 
-      // 3. Count total consumed tokens this month for this user
+      // 3. Count total consumed tokens this month for this user (or all time if promo only)
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
 
-      const usageStats = await RequestLog.aggregate([
-        {
-          $match: {
-            userId: req.userId,
+      const queryFilter = (keys.length === 0 && hasPromo)
+        ? { userId: req.userId }
+        : {
+            $or: [{ userId: req.userId }, { fundedByUserId: req.userId }],
             createdAt: { $gte: startOfMonth }
-          }
-        },
+          };
+
+      const usageStats = await RequestLog.aggregate([
+        { $match: queryFilter },
         {
           $group: {
             _id: null,
