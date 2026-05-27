@@ -54,26 +54,67 @@ interface TokenUsageData {
   totalBudget: number
   totalUsed: number
   models: { displayName: string; platform: string; budget: number }[]
+  promo?: { budget: number; used: number } | null
 }
 
 const platformColors: Record<string, string> = {
-  google:      '#4285f4',
-  groq:        '#f55036',
-  cerebras:    '#8b5cf6',
-  sambanova:   '#14b8a6',
-  nvidia:      '#76b900',
-  mistral:     '#f59e0b',
-  openrouter:  '#ec4899',
-  github:      '#6e7b8b',
-  cohere:      '#d946ef',
-  cloudflare:  '#f38020',
-  zhipu:       '#06b6d4',
-  ollama:      '#000000',
-  kilo:        '#7c3aed',
+  google: '#4285f4',
+  groq: '#f55036',
+  cerebras: '#8b5cf6',
+  sambanova: '#14b8a6',
+  nvidia: '#76b900',
+  mistral: '#f59e0b',
+  openrouter: '#ec4899',
+  github: '#6e7b8b',
+  cohere: '#d946ef',
+  cloudflare: '#f38020',
+  zhipu: '#06b6d4',
+  ollama: '#000000',
+  kilo: '#7c3aed',
   pollinations: '#a855f7',
-  llm7:        '#0ea5e9',
+  llm7: '#0ea5e9',
   huggingface: '#ff9d00',
-  omnikey:     '#10b981',
+  omnikey: '#10b981',
+}
+
+function PromoUsageBar({ promo }: { promo: { budget: number; used: number } }) {
+  const { budget, used } = promo
+  const remaining = Math.max(0, budget - used)
+  const remainingPct = budget > 0 ? Math.round((remaining / budget) * 100) : 0
+  const usedPct = budget > 0 ? Math.round((used / budget) * 100) : 0
+
+  return (
+    <section className="rounded-lg border bg-card p-5">
+      <div className="flex items-baseline justify-between mb-3">
+        <h2 className="text-sm font-semibold text-emerald-600 dark:text-emerald-450 flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
+          Promotional token pool (One-time)
+        </h2>
+        <span className="text-xs text-muted-foreground tabular-nums">
+          <span className="text-foreground font-medium">{formatTokens(remaining)}</span> remaining
+          <span className="mx-1.5">·</span>
+          {remainingPct}% of {formatTokens(budget)}
+        </span>
+      </div>
+
+      <div className="flex h-2.5 rounded-full overflow-hidden bg-muted">
+        {remaining > 0 && (
+          <div
+            title={`Promo tokens remaining — ${formatTokens(remaining)}`}
+            className="bg-emerald-500"
+            style={{ width: `${remainingPct}%` }}
+          />
+        )}
+        {used > 0 && (
+          <div
+            title={`Promo tokens used — ${formatTokens(used)}`}
+            className="bg-muted-foreground/30"
+            style={{ width: `${usedPct}%` }}
+          />
+        )}
+      </div>
+    </section>
+  )
 }
 
 function TokenUsageBar({ data }: { data: TokenUsageData }) {
@@ -93,9 +134,7 @@ function TokenUsageBar({ data }: { data: TokenUsageData }) {
   return (
     <section className="rounded-lg border bg-card p-5">
       <div className="flex items-baseline justify-between mb-3">
-        <h2 className="text-sm font-medium">
-          {models.some(m => m.platform === 'omnikey') ? 'Promotional token pool' : 'Monthly token budget'}
-        </h2>
+        <h2 className="text-sm font-medium">Monthly token budget</h2>
         <span className="text-xs text-muted-foreground tabular-nums">
           <span className="text-foreground font-medium">{formatTokens(remaining)}</span> remaining
           <span className="mx-1.5">·</span>
@@ -197,7 +236,11 @@ function SortableModelRow({
           <span>Speed #{entry.speedRank}</span>
           {entry.rpmLimit && <span>{entry.rpmLimit} rpm</span>}
           {entry.rpdLimit && <span>{entry.rpdLimit} rpd</span>}
-          <span>{entry.monthlyTokenBudget} tok/mo</span>
+          {entry.platform === 'omnikey' ? (
+            <span>{entry.monthlyTokenBudget} total (One-time)</span>
+          ) : (
+            <span>{entry.monthlyTokenBudget} tok/mo</span>
+          )}
         </div>
       </div>
       <Switch
@@ -220,7 +263,7 @@ export default function FallbackPage() {
     isOpen: false,
     title: '',
     description: '',
-    onConfirm: () => {},
+    onConfirm: () => { },
   });
 
   const { data: entries = [], isLoading } = useQuery<FallbackEntry[]>({
@@ -357,6 +400,10 @@ export default function FallbackPage() {
       />
 
       <div className="space-y-6">
+        {tokenUsage?.promo && (
+          <PromoUsageBar promo={tokenUsage.promo} />
+        )}
+
         {tokenUsage && tokenUsage.totalBudget > 0 && (
           <TokenUsageBar data={tokenUsage} />
         )}
@@ -364,8 +411,8 @@ export default function FallbackPage() {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center p-12">
             <svg className="animate-spin h-7 w-7 text-violet-500 mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
             <span className="text-xs text-muted-foreground font-medium">Loading fallback models and budgets...</span>
           </div>
