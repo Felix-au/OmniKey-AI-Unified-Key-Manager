@@ -557,7 +557,7 @@ export default function AdminPage() {
       </header>
 
       {/* Navigation tabs row */}
-      <section className="max-w-7xl mx-auto flex items-center border-b border-slate-200 dark:border-slate-800 mb-8">
+      <section className="max-w-7xl mx-auto flex justify-center items-center border-b border-slate-200 dark:border-slate-800 mb-8">
         {(['dashboard', 'models', 'logs', 'security'] as const).map(tab => (
           <button
             key={tab}
@@ -1004,7 +1004,7 @@ export default function AdminPage() {
 
         {/* -------------------- 4. SECURITY TAB -------------------- */}
         {activeTab === 'security' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+          <div className="max-w-xl mx-auto w-full space-y-8">
             {/* Whitelist Panel */}
             <section className="bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800/80 rounded-xl p-6 shadow-sm">
               <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2 mb-3">
@@ -1015,22 +1015,16 @@ export default function AdminPage() {
                 Manage which users can authenticate via Google to access the Admin Console.
               </p>
 
-              <form onSubmit={handleAddAdminEmail} className="flex gap-2.5 mb-6">
+              <form onSubmit={handleAddAdminEmail} className="mb-6">
                 <input
                   type="email"
                   value={newAdminEmail}
                   onChange={e => setNewAdminEmail(e.target.value)}
-                  className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-violet-500 transition-colors"
-                  placeholder="admin@example.com"
+                  disabled={addingEmail}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-violet-500 transition-colors"
+                  placeholder={addingEmail ? "Authorizing..." : "Type email and press Enter to authorize..."}
                   required
                 />
-                <Button
-                  type="submit"
-                  disabled={addingEmail}
-                  className="bg-violet-600 hover:bg-violet-500 text-white font-semibold rounded-xl text-xs px-4"
-                >
-                  {addingEmail ? 'Adding...' : 'Add Admin'}
-                </Button>
               </form>
 
               <div className="space-y-2">
