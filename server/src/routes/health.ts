@@ -138,7 +138,7 @@ healthRouter.post('/check/:keyId', async (req: AuthenticatedRequest, res: Respon
 // Check all keys
 healthRouter.post('/check-all', async (req: AuthenticatedRequest, res: Response, next) => {
   try {
-    await checkAllKeys();
+    await checkAllKeys(isLocalDbEnabled() ? undefined : req.userId);
     res.json({ success: true });
   } catch (err) {
     next(err);

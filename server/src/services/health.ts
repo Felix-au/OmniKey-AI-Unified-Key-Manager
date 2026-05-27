@@ -95,7 +95,7 @@ export async function checkKeyHealth(keyId: string | number): Promise<KeyStatus>
   }
 }
 
-export async function checkAllKeys(): Promise<void> {
+export async function checkAllKeys(userId?: string): Promise<void> {
   const localMode = isLocalDbEnabled();
 
   if (localMode) {
@@ -105,15 +105,18 @@ export async function checkAllKeys(): Promise<void> {
     for (const key of keys) {
       await checkKeyHealth(key.id);
     }
+    console.log(`[Health] Check complete.`);
   } else {
-    const keys = await ApiKey.find({ enabled: true });
-    console.log(`[Health] Checking ${keys.length} MongoDB cloud keys...`);
+    // Skip periodic automatic background checking for cloud keys to avoid excessive logging/network usage
+    if (!userId) return;
+
+    const keys = await ApiKey.find({ userId, enabled: true });
+    console.log(`[Health] Checking ${keys.length} MongoDB cloud keys for user ${userId}...`);
     for (const key of keys) {
       await checkKeyHealth(key._id.toString());
     }
+    console.log(`[Health] Check complete.`);
   }
-
-  console.log(`[Health] Check complete.`);
 }
 
 let intervalId: ReturnType<typeof setInterval> | null = null;
