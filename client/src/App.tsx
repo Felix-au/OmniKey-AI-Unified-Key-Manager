@@ -346,7 +346,7 @@ function DashboardLayout() {
 
         <main className="max-w-6xl mx-auto px-3 sm:px-6 py-5 sm:py-8">
           <Routes>
-            <Route path="/"           element={<Navigate to="/playground" replace />} />
+            <Route path="/"           element={<Navigate to="/keys" replace />} />
             <Route path="/playground" element={<PlaygroundPage />} />
             <Route path="/compare"    element={<ComparePage />} />
             <Route path="/debate"     element={<DebatePage />} />
@@ -355,7 +355,7 @@ function DashboardLayout() {
             <Route path="/analytics"  element={<AnalyticsPage />} />
             <Route path="/models"     element={<ModelsPage />} />
             <Route path="/dev-corner" element={<DevCornerPage />} />
-            <Route path="/test"       element={<Navigate to="/playground" replace />} />
+            <Route path="/test"       element={<Navigate to="/keys" replace />} />
             <Route path="/health"     element={<Navigate to="/keys" replace />} />
           </Routes>
         </main>

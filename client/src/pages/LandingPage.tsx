@@ -492,7 +492,7 @@ export default function LandingPage() {
               {dark ? <SunIcon /> : <MoonIcon />}
             </button>
             <button
-              onClick={() => navigate('/playground')}
+              onClick={() => navigate('/keys')}
               className="cta-btn bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-md shadow-violet-500/20"
             >
               Get Started →
@@ -515,7 +515,7 @@ export default function LandingPage() {
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
           <button
-            onClick={() => navigate('/playground')}
+            onClick={() => navigate('/keys')}
             className="cta-btn bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold px-8 py-3.5 rounded-2xl text-base shadow-lg shadow-violet-500/20"
           >
             Get Started →
