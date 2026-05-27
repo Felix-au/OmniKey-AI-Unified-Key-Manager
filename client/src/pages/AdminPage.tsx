@@ -104,6 +104,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false)
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [statsLoading, setStatsLoading] = useState(false)
+  const [removingPromoUserId, setRemovingPromoUserId] = useState<string | null>(null)
   
   // Navigation Tabs
   const [activeTab, setActiveTab] = useState<'dashboard' | 'models' | 'logs' | 'security' | 'promo'>('dashboard')
@@ -272,6 +273,33 @@ export default function AdminPage() {
       setAdminEmails(prev => prev.filter(e => e.email !== emailToRemove))
     } catch (err: any) {
       setError(err.message)
+    }
+  }
+
+  const handleRemovePromoUser = async (userIdToRemove: string) => {
+    setError(null)
+    setSuccessMsg(null)
+    setRemovingPromoUserId(userIdToRemove)
+    try {
+      const base = (import.meta.env.VITE_API_URL || import.meta.env.BASE_URL).replace(/\/$/, '')
+      const response = await fetch(`${base}/api/admin/promo/${userIdToRemove}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.error?.message || 'Failed to remove user from promo pool')
+      }
+
+      setSuccessMsg('User removed from promo pool successfully!')
+      if (token) fetchStats(token)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setRemovingPromoUserId(null)
     }
   }
 
@@ -1220,7 +1248,8 @@ export default function AdminPage() {
                           <th className="pb-3 text-center">Used (Aggregate)</th>
                           <th className="pb-3 text-center">Split (Input/Output)</th>
                           <th className="pb-3 text-center">Requests</th>
-                          <th className="pb-3 text-right pr-4">Progress</th>
+                          <th className="pb-3 text-center">Progress</th>
+                          <th className="pb-3 text-right pr-4">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1238,20 +1267,20 @@ export default function AdminPage() {
                                 <td className="py-4 text-center font-semibold text-slate-900 dark:text-white tabular-nums">
                                   {formatTokens(u.tokensLimit)}
                                 </td>
-                                <td className="py-4 text-center font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                                <td className="py-4 text-center font-semibold text-emerald-600 dark:text-emerald-450 tabular-nums">
                                   {formatTokens(remaining)}
                                 </td>
                                 <td className="py-4 text-center font-semibold text-slate-600 dark:text-slate-400 tabular-nums">
                                   {formatTokens(u.tokensUsed)}
                                 </td>
-                                <td className="py-4 text-center font-mono text-[10px] text-slate-500 dark:text-slate-400 tabular-nums">
+                                <td className="py-4 text-center font-mono text-[10px] text-slate-550 dark:text-slate-450 tabular-nums">
                                   {formatTokens(u.inputTokens)} / {formatTokens(u.outputTokens)}
                                 </td>
                                 <td className="py-4 text-center font-semibold text-slate-800 dark:text-slate-300 tabular-nums">
                                   {u.requestsCount} reqs
                                 </td>
-                                <td className="py-4 text-right pr-4">
-                                  <div className="flex items-center justify-end gap-2">
+                                <td className="py-4 text-center">
+                                  <div className="flex items-center justify-center gap-2">
                                     <div className="w-16 bg-slate-100 dark:bg-slate-950 h-1.5 rounded-full overflow-hidden">
                                       <div 
                                         className="bg-emerald-500 h-full rounded-full" 
@@ -1261,12 +1290,23 @@ export default function AdminPage() {
                                     <span className="text-[10px] font-mono w-7 text-right">{usedPct}%</span>
                                   </div>
                                 </td>
+                                <td className="py-4 text-right pr-4">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    disabled={removingPromoUserId === u.userId}
+                                    onClick={() => handleRemovePromoUser(u.userId)}
+                                    className="text-xs font-semibold text-rose-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl px-3 py-1 h-7 border border-transparent hover:border-rose-500/20"
+                                  >
+                                    {removingPromoUserId === u.userId ? 'Removing...' : 'Remove'}
+                                  </Button>
+                                </td>
                               </tr>
                             )
                           })
                         ) : (
                           <tr>
-                            <td colSpan={7} className="py-10 text-slate-550 dark:text-slate-500 text-center">No promotional user accounts.</td>
+                            <td colSpan={8} className="py-10 text-slate-550 dark:text-slate-500 text-center">No promotional user accounts.</td>
                           </tr>
                         )}
                       </tbody>

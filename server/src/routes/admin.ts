@@ -811,3 +811,21 @@ adminRouter.delete('/emails', requireAdminAuth, async (req, res, next) => {
     next(err);
   }
 });
+
+/**
+ * DELETE /api/admin/promo/:userId
+ * Secure endpoint to remove a user from the promotional pool.
+ */
+adminRouter.delete('/promo/:userId', requireAdminAuth, async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    if (isLocalDbEnabled()) {
+      res.status(400).json({ error: { message: 'Promo pool management is only available in cloud database mode' } });
+      return;
+    }
+    await PromoUser.deleteOne({ userId });
+    res.json({ success: true, message: 'User removed from promo pool successfully' });
+  } catch (err) {
+    next(err);
+  }
+});
