@@ -829,3 +829,33 @@ adminRouter.delete('/promo/:userId', requireAdminAuth, async (req, res, next) =>
     next(err);
   }
 });
+
+/**
+ * DELETE /api/admin/users/:userId
+ * Secure endpoint to completely delete a user's account and associated keys.
+ */
+adminRouter.delete('/users/:userId', requireAdminAuth, async (req: Request, res: Response, next) => {
+  try {
+    const { userId } = req.params;
+    if (isLocalDbEnabled()) {
+      res.status(400).json({ error: { message: 'User management is only available in cloud database mode' } });
+      return;
+    }
+
+    // 1. Delete database records
+    await UserSettings.deleteOne({ userId });
+    await ApiKey.deleteMany({ userId });
+    await PromoUser.deleteOne({ userId });
+
+    // 2. Delete Firebase Auth user
+    try {
+      await admin.auth().deleteUser(String(userId));
+    } catch (err: any) {
+      console.warn(`[Admin] Failed to delete Firebase Auth user ${userId}:`, err.message);
+    }
+
+    res.json({ success: true, message: 'User account and configurations deleted successfully' });
+  } catch (err) {
+    next(err);
+  }
+});

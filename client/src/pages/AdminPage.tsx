@@ -105,6 +105,7 @@ export default function AdminPage() {
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [statsLoading, setStatsLoading] = useState(false)
   const [removingPromoUserId, setRemovingPromoUserId] = useState<string | null>(null)
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null)
   
   // Navigation Tabs
   const [activeTab, setActiveTab] = useState<'dashboard' | 'models' | 'logs' | 'security' | 'promo'>('dashboard')
@@ -300,6 +301,37 @@ export default function AdminPage() {
       setError(err.message)
     } finally {
       setRemovingPromoUserId(null)
+    }
+  }
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!window.confirm("Are you sure you want to completely delete this user's account? All their configurations and whitelisted keys will be permanently deleted.")) {
+      return
+    }
+
+    setError(null)
+    setSuccessMsg(null)
+    setDeletingUserId(userId)
+    try {
+      const base = (import.meta.env.VITE_API_URL || import.meta.env.BASE_URL).replace(/\/$/, '')
+      const response = await fetch(`${base}/api/admin/users/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.error?.message || 'Failed to delete user account')
+      }
+
+      setSuccessMsg('User account deleted successfully!')
+      if (token) fetchStats(token)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setDeletingUserId(null)
     }
   }
 
@@ -914,7 +946,8 @@ export default function AdminPage() {
                       <th className="pb-3 text-center">Keys Whitelisted</th>
                       <th className="pb-3 text-center">API Requests</th>
                       <th className="pb-3 text-center">Tokens Saved</th>
-                      <th className="pb-3 text-right pr-4">Total Savings (INR)</th>
+                      <th className="pb-3 text-center">Total Savings (INR)</th>
+                      {!localDbEnabled && <th className="pb-3 text-right pr-4">Actions</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -928,12 +961,25 @@ export default function AdminPage() {
                           <td className="py-4 text-center text-slate-800 dark:text-slate-300 font-semibold">{u.keysCount} keys</td>
                           <td className="py-4 text-center text-slate-800 dark:text-slate-300 font-semibold">{u.requestsCount} reqs</td>
                           <td className="py-4 text-center text-slate-500 dark:text-slate-400 font-mono">{(u.tokensConsumed / 1000).toFixed(1)}k</td>
-                          <td className="py-4 text-right pr-4 font-bold text-emerald-600 dark:text-emerald-400">₹{(u.costSaved * 83).toFixed(2)}</td>
+                          <td className="py-4 text-center font-bold text-emerald-600 dark:text-emerald-400">₹{(u.costSaved * 83).toFixed(2)}</td>
+                          {!localDbEnabled && (
+                            <td className="py-4 text-right pr-4">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                disabled={deletingUserId === u.userId}
+                                onClick={() => handleDeleteUser(u.userId)}
+                                className="text-xs font-semibold text-rose-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl px-3 py-1 h-7 border border-transparent hover:border-rose-500/20"
+                              >
+                                {deletingUserId === u.userId ? 'Deleting...' : 'Delete'}
+                              </Button>
+                            </td>
+                          )}
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={5} className="py-10 text-slate-550 dark:text-slate-500 text-center">No active user accounts.</td>
+                        <td colSpan={localDbEnabled ? 5 : 6} className="py-10 text-slate-550 dark:text-slate-500 text-center">No active user accounts.</td>
                       </tr>
                     )}
                   </tbody>
