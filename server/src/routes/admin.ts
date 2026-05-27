@@ -11,6 +11,7 @@ import { RequestLog } from '../models/RequestLog.js';
 import { Model } from '../models/Model.js';
 import admin from 'firebase-admin';
 import { AdminEmail } from '../models/AdminEmail.js';
+import { PromoUser } from '../models/PromoUser.js';
 
 export const adminRouter = Router();
 
@@ -625,6 +626,8 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
     }
 
     let adminEmails: { email: string; isFundingProvider: boolean }[] = [];
+    let promoUsersList: any[] = [];
+
     if (isLocalDbEnabled()) {
       const db = getDb();
       const rows = db.prepare('SELECT email, is_funding_provider FROM admin_emails ORDER BY created_at DESC').all() as any[];
@@ -632,6 +635,38 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
     } else {
       const rows = await AdminEmail.find().sort({ createdAt: -1 });
       adminEmails = rows.map(r => ({ email: r.email, isFundingProvider: !!r.isFundingProvider }));
+
+      try {
+        const promoUsers = await PromoUser.find().lean();
+        const promoStats = await RequestLog.aggregate([
+          { $match: { fundedByUserId: { $ne: null } } },
+          {
+            $group: {
+              _id: '$userId',
+              inputTokens: { $sum: '$inputTokens' },
+              outputTokens: { $sum: '$outputTokens' },
+              requestsCount: { $sum: 1 }
+            }
+          }
+        ]);
+        const promoStatsMap = new Map(promoStats.map(s => [s._id?.toString() || '', s]));
+
+        promoUsersList = promoUsers.map((p: any) => {
+          const stats = promoStatsMap.get(p.userId?.toString() || '') || { inputTokens: 0, outputTokens: 0, requestsCount: 0 };
+          return {
+            userId: p.userId,
+            email: p.email,
+            tokensUsed: p.tokensUsed,
+            tokensLimit: p.tokensLimit,
+            createdAt: p.createdAt,
+            inputTokens: stats.inputTokens,
+            outputTokens: stats.outputTokens,
+            requestsCount: stats.requestsCount,
+          };
+        });
+      } catch (err) {
+        console.error('Failed to aggregate promo user stats:', err);
+      }
     }
 
     res.json({
@@ -645,7 +680,8 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
       recentLogs,
       modelsCatalog,
       users: usersList,
-      adminEmails
+      adminEmails,
+      promoUsers: promoUsersList,
     });
   } catch (error) {
     next(error);

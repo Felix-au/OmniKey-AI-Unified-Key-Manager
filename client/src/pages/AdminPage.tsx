@@ -72,6 +72,23 @@ interface AdminStats {
     costSaved: number;
   }>;
   adminEmails?: Array<{ email: string; isFundingProvider: boolean }>;
+  promoUsers?: Array<{
+    userId: string;
+    email: string;
+    tokensUsed: number;
+    tokensLimit: number;
+    createdAt: string;
+    inputTokens: number;
+    outputTokens: number;
+    requestsCount: number;
+  }>;
+}
+
+function formatTokens(n: number): string {
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1).replace(/\.0$/, '')}B`
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')}K`
+  return String(n)
 }
 
 export default function AdminPage() {
@@ -89,7 +106,7 @@ export default function AdminPage() {
   const [statsLoading, setStatsLoading] = useState(false)
   
   // Navigation Tabs
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'models' | 'logs' | 'security'>('dashboard')
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'models' | 'logs' | 'security' | 'promo'>('dashboard')
 
   // Theme support
   const [dark, setDark] = useState(() =>
@@ -585,7 +602,7 @@ export default function AdminPage() {
 
       {/* Navigation tabs row */}
       <section className="max-w-7xl mx-auto flex justify-center items-center border-b border-slate-200 dark:border-slate-800 mb-8">
-        {(['dashboard', 'models', 'logs', 'security'] as const).map(tab => (
+        {(['dashboard', 'models', 'logs', 'security', 'promo'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => {
@@ -1146,6 +1163,117 @@ export default function AdminPage() {
                   </Button>
                 </form>
               </section>
+            )}
+          </div>
+        )}
+
+        {/* -------------------- 5. PROMO TAB -------------------- */}
+        {activeTab === 'promo' && (
+          <div className="max-w-6xl mx-auto w-full space-y-6">
+            {localDbEnabled ? (
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-6 text-center">
+                <h2 className="text-sm font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-2 flex items-center justify-center gap-2">
+                  ⚠️ Cloud Feature Only
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Promotional token budgets and new user allocations are only supported in MongoDB Cloud mode.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Stats cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-sm">
+                    <div className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Promo Users</div>
+                    <div className="text-2xl font-bold text-slate-900 dark:text-white mt-1.5 tabular-nums">
+                      {stats?.promoUsers?.length ?? 0}
+                    </div>
+                  </div>
+                  <div className="bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-sm">
+                    <div className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total Consumed Promo</div>
+                    <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-450 mt-1.5 tabular-nums">
+                      {formatTokens(stats?.promoUsers?.reduce((s, u) => s + u.tokensUsed, 0) ?? 0)}
+                    </div>
+                  </div>
+                  <div className="bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-sm">
+                    <div className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total Allocated Promo</div>
+                    <div className="text-2xl font-bold text-violet-650 dark:text-violet-400 mt-1.5 tabular-nums">
+                      {formatTokens(stats?.promoUsers?.reduce((s, u) => s + u.tokensLimit, 0) ?? 0)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Main Table */}
+                <section className="bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800/80 rounded-xl p-6 shadow-sm">
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2 mb-5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                    Promotional User Accounts & Statistics
+                  </h2>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
+                          <th className="pb-3 pl-4">User Details</th>
+                          <th className="pb-3 text-center">Allocated</th>
+                          <th className="pb-3 text-center">Remaining</th>
+                          <th className="pb-3 text-center">Used (Aggregate)</th>
+                          <th className="pb-3 text-center">Split (Input/Output)</th>
+                          <th className="pb-3 text-center">Requests</th>
+                          <th className="pb-3 text-right pr-4">Progress</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {stats?.promoUsers && stats.promoUsers.length > 0 ? (
+                          stats.promoUsers.map((u) => {
+                            const remaining = Math.max(0, u.tokensLimit - u.tokensUsed)
+                            const usedPct = u.tokensLimit > 0 ? Math.min(100, Math.round((u.tokensUsed / u.tokensLimit) * 100)) : 0
+                            return (
+                              <tr key={u.userId} className="border-b border-slate-100 dark:border-slate-800/40 hover:bg-slate-50 dark:hover:bg-slate-900/10 transition-colors text-slate-700 dark:text-slate-300">
+                                <td className="py-4 pl-4 font-semibold text-slate-900 dark:text-slate-200">
+                                  <div>{u.email}</div>
+                                  <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono mt-0.5">UID: {u.userId}</div>
+                                  <div className="text-[9px] text-slate-400 dark:text-slate-500 mt-0.5">Seeded: {new Date(u.createdAt).toLocaleString()}</div>
+                                </td>
+                                <td className="py-4 text-center font-semibold text-slate-900 dark:text-white tabular-nums">
+                                  {formatTokens(u.tokensLimit)}
+                                </td>
+                                <td className="py-4 text-center font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                                  {formatTokens(remaining)}
+                                </td>
+                                <td className="py-4 text-center font-semibold text-slate-600 dark:text-slate-400 tabular-nums">
+                                  {formatTokens(u.tokensUsed)}
+                                </td>
+                                <td className="py-4 text-center font-mono text-[10px] text-slate-500 dark:text-slate-400 tabular-nums">
+                                  {formatTokens(u.inputTokens)} / {formatTokens(u.outputTokens)}
+                                </td>
+                                <td className="py-4 text-center font-semibold text-slate-800 dark:text-slate-300 tabular-nums">
+                                  {u.requestsCount} reqs
+                                </td>
+                                <td className="py-4 text-right pr-4">
+                                  <div className="flex items-center justify-end gap-2">
+                                    <div className="w-16 bg-slate-100 dark:bg-slate-950 h-1.5 rounded-full overflow-hidden">
+                                      <div 
+                                        className="bg-emerald-500 h-full rounded-full" 
+                                        style={{ width: `${usedPct}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-[10px] font-mono w-7 text-right">{usedPct}%</span>
+                                  </div>
+                                </td>
+                              </tr>
+                            )
+                          })
+                        ) : (
+                          <tr>
+                            <td colSpan={7} className="py-10 text-slate-550 dark:text-slate-500 text-center">No promotional user accounts.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              </>
             )}
           </div>
         )}
