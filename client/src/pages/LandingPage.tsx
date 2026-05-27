@@ -498,6 +498,7 @@ export default function LandingPage() {
             <span className="font-semibold text-sm tracking-tight">OmniKey AI</span>
           </div>
           <nav className="hidden md:flex items-center gap-6 ml-6 text-sm text-muted-foreground">
+            <a href="#routing" className="hover:text-foreground transition-colors">Features</a>
             <a href="#routing" className="hover:text-foreground transition-colors">Routing</a>
             <a href="#features" className="hover:text-foreground transition-colors">Playground</a>
             <a href="#arena" className="hover:text-foreground transition-colors">Arena</a>
