@@ -149,7 +149,7 @@ export default function LoginPage() {
             <img src={logoUrl} alt="OmniKey AI Logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground mb-1.5">OmniKey AI</h1>
-          <p className="text-xs text-muted-foreground font-medium">Unified Key Manager & Multi-Tenant Gateway</p>
+          <p className="text-xs text-muted-foreground font-medium">Unified Proxy Server for all LLM Providers</p>
         </div>
 
         {promoStatus?.isActive && (

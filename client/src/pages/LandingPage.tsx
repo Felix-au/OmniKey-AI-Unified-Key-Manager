@@ -498,10 +498,10 @@ export default function LandingPage() {
             <span className="font-semibold text-sm tracking-tight">OmniKey AI</span>
           </div>
           <nav className="hidden md:flex items-center gap-6 ml-6 text-sm text-muted-foreground">
-            <a href="#features" className="hover:text-foreground transition-colors">Features</a>
+            <a href="#routing" className="hover:text-foreground transition-colors">Routing</a>
+            <a href="#features" className="hover:text-foreground transition-colors">Playground</a>
             <a href="#arena" className="hover:text-foreground transition-colors">Arena</a>
             <a href="#debate" className="hover:text-foreground transition-colors">Debate</a>
-            <a href="#routing" className="hover:text-foreground transition-colors">Routing</a>
             <a href="https://github.com/Felix-au/OmniKey-AI-Unified-Key-Manager" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">GitHub</a>
           </nav>
           <div className="ml-auto flex items-center gap-3">
@@ -521,7 +521,7 @@ export default function LandingPage() {
       {/* HERO */}
       <section ref={heroRef} className="relative py-28 px-6 text-center">
         {promoStatus?.isActive ? (
-          <div 
+          <div
             onClick={() => navigate('/keys')}
             className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 text-xs font-semibold text-emerald-600 dark:text-emerald-400 mb-6 cursor-pointer transition-all duration-300 transform hover:scale-[1.02]"
           >
@@ -543,7 +543,7 @@ export default function LandingPage() {
           <span className="bg-gradient-to-r from-violet-500 to-indigo-500 bg-clip-text text-transparent">Every Model.</span>
         </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10">
-          OmniKey AI routes your requests across Gemini, Groq, Mistral, NVIDIA, Cerebras and 7 more — with automatic fallbacks, live token tracking, and a built-in AI sandbox suite.
+          OmniKey AI routes your requests across Gemini, Groq, Mistral, NVIDIA, Cerebras and more — with automatic fallbacks to ensure 100% uptime.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
           <button
@@ -587,7 +587,53 @@ export default function LandingPage() {
       </div>
 
       {/* ── SECTION: Chat Playground ── */}
-      <Section id="features" alt>
+      {/* ── SECTION: Smart Routing ── */}
+      <Section id="routing" alt>
+        <div className="grid md:grid-cols-2 gap-12 items-center">
+          <div>
+            <Pill label="Smart Routing" color="violet" />
+            <SectionHeading>Zero Downtime. Automatic Fallbacks.</SectionHeading>
+            <SectionSub>When one provider rate-limits, OmniKey silently routes to the next best option. Your app never sees an error — just seamless responses.</SectionSub>
+          </div>
+          <MockCard className="divide-y divide-border">
+            <div className="px-4 py-3 bg-muted/40 dark:bg-white/5 text-xs font-semibold text-muted-foreground">Fallback Chain — Priority Order</div>
+            {fallbackChain.map((p, i) => {
+              const isGroq = p.name === 'Groq'
+              const isCerebras = p.name === 'Cerebras'
+              const showError = isGroq && (routingPhase === 'error' || routingPhase === 'rerouting' || routingPhase === 'done')
+              const isRerouted = isCerebras && (routingPhase === 'rerouting' || routingPhase === 'done')
+              const isDragging = fallbackOrder.dragging === i
+              return (
+                <div key={i} className={`chain-row px-4 py-3.5 flex items-center gap-3 transition-colors duration-700 ${isDragging ? 'drag-hint' : ''} ${isRerouted ? 'bg-emerald-500/5' : ''}`}>
+                  <span className="text-muted-foreground select-none text-sm">⠿</span>
+                  <span className="text-xs text-muted-foreground w-4">{i + 1}</span>
+                  <span className={`w-2 h-2 rounded-full shrink-0 transition-colors duration-500 ${isRerouted ? 'bg-emerald-500 animate-pulse' :
+                    showError ? 'bg-red-500' :
+                      p.status === 'active' ? 'bg-emerald-500 animate-pulse' :
+                        'bg-slate-400'
+                    }`} />
+                  <span className="text-xs font-medium text-foreground flex-1">{p.name}</span>
+                  {isDragging && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-500 animate-fade-up">Moving ↑</span>}
+                  {showError && !isDragging && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 animate-fade-up">429</span>}
+                  {isRerouted && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 animate-fade-up">↑ Active</span>}
+                  {p.status === 'active' && !showError && !isDragging && <span className="text-[10px] text-emerald-500 font-semibold">{p.latency} avg</span>}
+                </div>
+              )
+            })}
+            <div className={`px-4 py-3 text-[10px] transition-all duration-700 ${routingPhase === 'rerouting' || routingPhase === 'done'
+              ? 'text-emerald-500 bg-emerald-500/5'
+              : 'text-muted-foreground bg-muted/20'
+              }`}>
+              {routingPhase === 'idle' ? '● Monitoring provider health...' :
+                routingPhase === 'error' ? '⚠ Groq returned 429 — initiating failover...' :
+                  '✓ Request auto-routed to Cerebras after Groq 429'}
+            </div>
+          </MockCard>
+        </div>
+      </Section>
+
+      {/* ── SECTION: Chat Playground ── */}
+      <Section id="features">
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <div>
             <Pill label="Chat Playground" color="green" />
@@ -625,7 +671,7 @@ export default function LandingPage() {
       </Section>
 
       {/* ── SECTION: Arena ── */}
-      <Section id="arena">
+      <Section id="arena" alt>
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <MockCard>
             <div className="bg-muted/40 dark:bg-white/5 px-4 py-3 border-b border-border">
@@ -668,7 +714,7 @@ export default function LandingPage() {
       </Section>
 
       {/* ── SECTION: Debate Arena ── */}
-      <Section id="debate" alt>
+      <Section id="debate">
         <div className="text-center mb-10">
           <Pill label="⚔ Debate Arena" color="rose" />
           <SectionHeading>Watch Two AIs Argue It Out</SectionHeading>
@@ -736,51 +782,6 @@ export default function LandingPage() {
             </div>
           </div>
         </MockCard>
-      </Section>
-
-      {/* ── SECTION: Smart Routing ── */}
-      <Section id="routing">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          <div>
-            <Pill label="Smart Routing" color="violet" />
-            <SectionHeading>Zero Downtime. Automatic Fallbacks.</SectionHeading>
-            <SectionSub>When one provider rate-limits, OmniKey silently routes to the next best option. Your app never sees an error — just seamless responses.</SectionSub>
-          </div>
-          <MockCard className="divide-y divide-border">
-            <div className="px-4 py-3 bg-muted/40 dark:bg-white/5 text-xs font-semibold text-muted-foreground">Fallback Chain — Priority Order</div>
-            {fallbackChain.map((p, i) => {
-              const isGroq = p.name === 'Groq'
-              const isCerebras = p.name === 'Cerebras'
-              const showError = isGroq && (routingPhase === 'error' || routingPhase === 'rerouting' || routingPhase === 'done')
-              const isRerouted = isCerebras && (routingPhase === 'rerouting' || routingPhase === 'done')
-              const isDragging = fallbackOrder.dragging === i
-              return (
-                <div key={i} className={`chain-row px-4 py-3.5 flex items-center gap-3 transition-colors duration-700 ${isDragging ? 'drag-hint' : ''} ${isRerouted ? 'bg-emerald-500/5' : ''}`}>
-                  <span className="text-muted-foreground select-none text-sm">⠿</span>
-                  <span className="text-xs text-muted-foreground w-4">{i + 1}</span>
-                  <span className={`w-2 h-2 rounded-full shrink-0 transition-colors duration-500 ${isRerouted ? 'bg-emerald-500 animate-pulse' :
-                    showError ? 'bg-red-500' :
-                      p.status === 'active' ? 'bg-emerald-500 animate-pulse' :
-                        'bg-slate-400'
-                    }`} />
-                  <span className="text-xs font-medium text-foreground flex-1">{p.name}</span>
-                  {isDragging && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-500 animate-fade-up">Moving ↑</span>}
-                  {showError && !isDragging && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 animate-fade-up">429</span>}
-                  {isRerouted && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 animate-fade-up">↑ Active</span>}
-                  {p.status === 'active' && !showError && !isDragging && <span className="text-[10px] text-emerald-500 font-semibold">{p.latency} avg</span>}
-                </div>
-              )
-            })}
-            <div className={`px-4 py-3 text-[10px] transition-all duration-700 ${routingPhase === 'rerouting' || routingPhase === 'done'
-              ? 'text-emerald-500 bg-emerald-500/5'
-              : 'text-muted-foreground bg-muted/20'
-              }`}>
-              {routingPhase === 'idle' ? '● Monitoring provider health...' :
-                routingPhase === 'error' ? '⚠ Groq returned 429 — initiating failover...' :
-                  '✓ Request auto-routed to Cerebras after Groq 429'}
-            </div>
-          </MockCard>
-        </div>
       </Section>
 
       {/* FOOTER */}
