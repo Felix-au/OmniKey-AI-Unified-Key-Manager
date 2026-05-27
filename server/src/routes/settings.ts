@@ -5,6 +5,7 @@ import { getUnifiedApiKey, regenerateUnifiedKey, getUnifiedGeminiApiKey, regener
 import { requireDashboardAuth, AuthenticatedRequest } from '../middleware/auth.js';
 import { isLocalDbEnabled } from '../db/context.js';
 import { UserSettings } from '../models/UserSettings.js';
+import { PromoUser } from '../models/PromoUser.js';
 
 export const settingsRouter = Router();
 
@@ -29,6 +30,22 @@ settingsRouter.get('/api-key', async (req: AuthenticatedRequest, res: Response, 
           unifiedApiKey: `omnikey-${crypto.randomBytes(24).toString('hex')}`,
           unifiedGeminiApiKey: `omnikey-g-${crypto.randomBytes(24).toString('hex')}`
         });
+
+        // Register in PromoUser if total promo users < 500
+        try {
+          const promoCount = await PromoUser.countDocuments();
+          if (promoCount < 500) {
+            await PromoUser.create({
+              userId: req.userId!,
+              email: req.userEmail || 'user@example.com',
+              tokensUsed: 0,
+              tokensLimit: 10000000
+            });
+            console.log(`[Promo] User ${req.userEmail} registered as promo user #${promoCount + 1}`);
+          }
+        } catch (e) {
+          console.error('[Promo] Failed to register promo user:', e);
+        }
       } else if (!userSettings.unifiedGeminiApiKey) {
         userSettings.unifiedGeminiApiKey = `omnikey-g-${crypto.randomBytes(24).toString('hex')}`;
         await userSettings.save();

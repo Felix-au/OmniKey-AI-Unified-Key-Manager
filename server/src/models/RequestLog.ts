@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IRequestLog extends Document {
   userId: string;
+  fundedByUserId?: string | null;
   platform: string;
   modelId: string;
   status: 'success' | 'error';
@@ -14,6 +15,7 @@ export interface IRequestLog extends Document {
 
 const RequestLogSchema: Schema = new Schema({
   userId: { type: String, required: true, index: true },
+  fundedByUserId: { type: String, default: null, index: true },
   platform: { type: String, required: true },
   modelId: { type: String, required: true },
   status: { type: String, required: true, enum: ['success', 'error'] },
@@ -26,5 +28,6 @@ const RequestLogSchema: Schema = new Schema({
 
 // Index by userId and createdAt for fast analytics range filters
 RequestLogSchema.index({ userId: 1, createdAt: -1 });
+RequestLogSchema.index({ fundedByUserId: 1, createdAt: -1 });
 
 export const RequestLog = mongoose.model<IRequestLog>('RequestLog', RequestLogSchema);
