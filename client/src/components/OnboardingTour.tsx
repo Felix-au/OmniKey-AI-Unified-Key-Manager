@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -23,8 +23,15 @@ export function OnboardingTour({ isOpen, onClose }: OnboardingTourProps) {
   // Step 3: Priority swap timer
   const [step3Dragged, setStep3Dragged] = useState(false)
 
-  // Step 4: Chat simulator counter
-  const [activeMsgCount, setActiveMsgCount] = useState(1)
+  // Step 4: Animated chat state
+  // Each entry: { role, content (fully revealed), typingContent (partial), state: 'user-typing'|'loading'|'done' }
+  type ChatEntry = { role: 'user' | 'assistant'; content: string; typingContent: string; streamingContent: string; state: 'user-typing' | 'loading' | 'streaming' | 'done'; meta?: { platform: string; model: string; keyUsed: string; latency: number; fallbackAttempts: number } }
+  const [chatLog, setChatLog] = useState<ChatEntry[]>([])
+  const chatScrollRef = useRef<HTMLDivElement>(null)
+
+  // Step 5: refs for scrolling
+  const consoleRef = useRef<HTMLDivElement>(null)
+  const consoleScrollRef = useRef<HTMLDivElement>(null)
 
   // Step 5: Dev Corner sandbox simulator state
   const [devFormat, setDevFormat] = useState<'openai' | 'gemini'>('openai')
@@ -129,15 +136,86 @@ export function OnboardingTour({ isOpen, onClose }: OnboardingTourProps) {
     return () => clearInterval(t)
   }, [step, isOpen])
 
-  // Manage Step 4 chat playback ticks
+  // Manage Step 4 animated chat playback
+  const chatMessages = [
+    { role: 'user' as const, content: 'Analyze user demographics in the cloud' },
+    { role: 'assistant' as const, content: 'Cloud demographics show a 42% growth rate in key markets, highly concentrated in US-East.', meta: { platform: 'groq', model: 'llama-3-70b', keyUsed: 'sk_groq_01', latency: 148, fallbackAttempts: 0 } },
+    { role: 'user' as const, content: 'Summarize top cloud integration risks' },
+    { role: 'assistant' as const, content: 'Top cloud integration risks include API latency, synchronization delays, and transient connection losses.', meta: { platform: 'google', model: 'gemini-1.5-flash', keyUsed: 'sk_gemini_03', latency: 312, fallbackAttempts: 1 } },
+    { role: 'user' as const, content: 'Write a bubble sort in Python' },
+    { role: 'assistant' as const, content: 'def bubble_sort(arr):\n  n = len(arr)\n  for i in range(n):\n    for j in range(0, n-i-1):\n      if arr[j] > arr[j+1]:\n        arr[j], arr[j+1] = arr[j+1], arr[j]', meta: { platform: 'nvidia', model: 'mixtral-8x22b', keyUsed: 'sk_nvidia_01', latency: 210, fallbackAttempts: 0 } },
+    { role: 'user' as const, content: 'Optimize it for Big-O performance' },
+    { role: 'assistant' as const, content: 'Bubble sort is O(N²). Use QuickSort or MergeSort for O(N log N) average complexity.', meta: { platform: 'cerebras', model: 'llama3.1-8b', keyUsed: 'sk_cerebras_01', latency: 125, fallbackAttempts: 1 } },
+    { role: 'user' as const, content: 'What is the worst-case space complexity?' },
+    { role: 'assistant' as const, content: 'Bubble sort uses O(1) auxiliary space — it sorts in-place with no extra data structures needed.', meta: { platform: 'mistral', model: 'codestral', keyUsed: 'sk_mistral_01', latency: 185, fallbackAttempts: 0 } },
+  ]
+
   useEffect(() => {
     if (step !== 4 || !isOpen) return
-    setActiveMsgCount(1)
-    const interval = setInterval(() => {
-      setActiveMsgCount(prev => (prev < 5 ? prev + 1 : 1))
-    }, 4800)
-    return () => clearInterval(interval)
+    setChatLog([])
+    let cancelled = false
+    let msgIdx = 0
+
+    const playNext = () => {
+      if (cancelled || msgIdx >= chatMessages.length) return
+      const msg = chatMessages[msgIdx]
+      msgIdx++
+
+      if (msg.role === 'user') {
+        let cur = ''
+        let i = 0
+        setChatLog(prev => [...prev, { role: 'user', content: msg.content, typingContent: '', streamingContent: '', state: 'user-typing' }])
+        const iv = setInterval(() => {
+          if (cancelled) { clearInterval(iv); return }
+          if (i < msg.content.length) {
+            cur += msg.content[i]; i++
+            setChatLog(prev => prev.map((e, idx) => idx === prev.length - 1 ? { ...e, typingContent: cur } : e))
+          } else {
+            clearInterval(iv)
+            setChatLog(prev => prev.map((e, idx) => idx === prev.length - 1 ? { ...e, state: 'done', typingContent: cur } : e))
+            setTimeout(playNext, 300)
+          }
+        }, 40)
+      } else {
+        // Show loading dots first
+        setChatLog(prev => [...prev, { role: 'assistant', content: msg.content, typingContent: '', streamingContent: '', state: 'loading', meta: msg.meta }])
+        const loadingDuration = 700 + Math.random() * 500
+        setTimeout(() => {
+          if (cancelled) return
+          // Switch to streaming — reveal content char by char (SSE simulation)
+          setChatLog(prev => prev.map((e, idx) => idx === prev.length - 1 ? { ...e, state: 'streaming' } : e))
+          let cur = ''
+          let i = 0
+          const streamIv = setInterval(() => {
+            if (cancelled) { clearInterval(streamIv); return }
+            if (i < msg.content.length) {
+              // Stream 1-3 chars at a time like real SSE tokens
+              const chunk = msg.content.slice(i, i + 2)
+              cur += chunk; i += chunk.length
+              setChatLog(prev => prev.map((e, idx) => idx === prev.length - 1 ? { ...e, streamingContent: cur } : e))
+            } else {
+              clearInterval(streamIv)
+              setChatLog(prev => prev.map((e, idx) => idx === prev.length - 1 ? { ...e, state: 'done' } : e))
+              setTimeout(playNext, 500)
+            }
+          }, 25)
+        }, loadingDuration)
+      }
+    }
+
+    const startDelay = setTimeout(playNext, 400)
+    return () => { cancelled = true; clearTimeout(startDelay) }
   }, [step, isOpen])
+
+  // Auto-scroll chat on new entries
+  useEffect(() => {
+    if (chatScrollRef.current) chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight
+  }, [chatLog])
+
+  // Auto-scroll console as output grows
+  useEffect(() => {
+    if (consoleScrollRef.current) consoleScrollRef.current.scrollTop = consoleScrollRef.current.scrollHeight
+  }, [devConsole])
 
   if (!isOpen) return null
 
@@ -146,6 +224,10 @@ export function OnboardingTour({ isOpen, onClose }: OnboardingTourProps) {
     if (devExecuting) return
     setDevExecuting(true)
     setDevConsole('Sending request to server...')
+    // Scroll to console panel after a short delay
+    setTimeout(() => {
+      consoleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }, 200)
 
     setTimeout(() => {
       setDevConsole(
@@ -190,53 +272,7 @@ export function OnboardingTour({ isOpen, onClose }: OnboardingTourProps) {
 
   const stepsCount = 5
 
-  const simulatedChatMessages = [
-    {
-      role: 'user',
-      content: "Analyze user demographics in the cloud"
-    },
-    {
-      role: 'assistant',
-      content: "Cloud demographics show a 42% growth rate in key markets, highly concentrated in US-East.",
-      meta: { platform: 'groq', model: 'llama-3-70b', keyUsed: 'sk_groq_01', latency: 148, fallbackAttempts: 0 }
-    },
-    {
-      role: 'user',
-      content: "Summarize top cloud integration risks"
-    },
-    {
-      role: 'assistant',
-      content: "Top cloud integration risks include API latency, synchronization delays, and transient connection losses.",
-      meta: { platform: 'google', model: 'gemini-1.5-flash', keyUsed: 'sk_gemini_03', latency: 312, fallbackAttempts: 1 }
-    },
-    {
-      role: 'user',
-      content: "Write a bubble sort algorithm in Python"
-    },
-    {
-      role: 'assistant',
-      content: "Here is your bubble sort:\n\n```python\ndef bubble_sort(arr):\n    n = len(arr)\n    for i in range(n):\n        for j in range(0, n-i-1):\n            if arr[j] > arr[j+1]:\n                arr[j], arr[j+1] = arr[j+1], arr[j]\n```",
-      meta: { platform: 'nvidia', model: 'mixtral-8x22b', keyUsed: 'sk_nvidia_01', latency: 210, fallbackAttempts: 0 }
-    },
-    {
-      role: 'user',
-      content: "Optimize it for Big-O performance"
-    },
-    {
-      role: 'assistant',
-      content: "Bubble sort has worst-case O(N^2). Optimize by keeping track of swaps or using QuickSort / MergeSort for O(N log N) time complexity.",
-      meta: { platform: 'cerebras', model: 'llama3.1-8b', keyUsed: 'sk_cerebras_01', latency: 125, fallbackAttempts: 1 }
-    },
-    {
-      role: 'user',
-      content: "What is the worst-case space complexity?"
-    },
-    {
-      role: 'assistant',
-      content: "The worst-case space complexity of bubble sort is O(1) auxiliary space, as it performs sorting in-place without copying data.",
-      meta: { platform: 'mistral', model: 'codestral', keyUsed: 'sk_mistral_01', latency: 185, fallbackAttempts: 0 }
-    }
-  ]
+
 
   const statusDot: Record<string, string> = {
     healthy: 'bg-emerald-500',
@@ -396,7 +432,7 @@ async function generateCompletion() {
 
             {/* Step 1 Simulation: Keys UI */}
             {step === 1 && (
-              <div className="space-y-4 w-full max-w-2xl mx-auto animate-in fade-in duration-300 text-left">
+              <div className="overflow-y-auto max-h-[260px] sm:max-h-[320px] space-y-4 w-full max-w-2xl mx-auto animate-in fade-in duration-300 text-left pr-1">
                 {/* Simulated Form exactly matching KeysPage */}
                 <div className="rounded-xl border border-border bg-card p-4 space-y-4">
                   <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Add a provider key</div>
@@ -590,52 +626,72 @@ async function generateCompletion() {
               </div>
             )}
 
-            {/* Step 4 Simulation: Playground UI */}
+            {/* Step 4 Simulation: Animated Chat Playground */}
             {step === 4 && (
-              <div className="w-full max-w-2xl mx-auto flex flex-col justify-end min-h-[220px] animate-in fade-in duration-300 text-left relative">
-
-                {/* Header matching PlaygroundPage */}
-
-
-                {/* Chat window list */}
-                <div className="flex-1 overflow-y-auto px-1 pt-12 pb-2 space-y-3.5 max-h-[200px] scrollbar-none">
-                  {simulatedChatMessages.map((msg, idx) => {
-                    const isVisible = idx < activeMsgCount * 2
-                    if (!isVisible) return null
-
-                    return (
-                      <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}>
-                        <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-xs leading-relaxed ${msg.role === 'user' ? 'bg-violet-600 text-white' : 'bg-muted border border-border'
-                          }`}>
-                          <p className="whitespace-pre-wrap">{msg.content}</p>
-                          {msg.meta && (
-                            <div className="flex items-center gap-1.5 mt-2 flex-wrap text-[9px] font-bold uppercase tracking-wider text-muted-foreground/80 font-mono">
-                              <span>{msg.meta.platform}</span>
-                              <span>· {msg.meta.model}</span>
-                              <span className="bg-violet-500/10 text-violet-500 px-1 py-0.5 rounded">Key: {msg.meta.keyUsed}</span>
-                              <span>· {msg.meta.latency}ms</span>
-                              {msg.meta.fallbackAttempts > 0 && (
-                                <span className="bg-amber-500/10 text-amber-500 px-1 py-0.5 rounded flex items-center gap-1">
-                                  <span className="size-1 rounded-full bg-amber-500 animate-pulse" />
-                                  {msg.meta.fallbackAttempts} fallback
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
+              <div className="w-full max-w-2xl mx-auto flex flex-col min-h-[220px] animate-in fade-in duration-300 text-left">
+                {/* Playground header */}
+                <div className="shrink-0 px-3 py-2 bg-muted/40 border border-border rounded-t-xl flex items-center justify-between mb-0">
+                  <span className="text-[10px] font-bold text-muted-foreground">Playground — Auto Routing Active</span>
+                  <span className="text-[9px] px-2 py-0.5 rounded bg-violet-500/10 text-violet-500 font-bold uppercase">SSE Streaming</span>
+                </div>
+                {/* Chat window */}
+                <div ref={chatScrollRef} className="flex-1 overflow-y-auto px-2 py-3 space-y-3 border border-t-0 border-border rounded-b-xl bg-background/50 max-h-[240px]">
+                  {chatLog.map((entry, idx) => (
+                    <div key={idx} className={`flex ${entry.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-1 duration-200`}>
+                      <div className={`max-w-[82%] rounded-2xl px-3 py-2 text-xs leading-relaxed ${
+                        entry.role === 'user' ? 'bg-violet-600 text-white' : 'bg-muted border border-border'
+                      }`}>
+                        {entry.state === 'user-typing' ? (
+                          <p className="whitespace-pre-wrap">
+                            {entry.typingContent}
+                            <span className="inline-block w-0.5 h-3 bg-white/80 ml-0.5 animate-pulse align-middle" />
+                          </p>
+                        ) : entry.state === 'loading' ? (
+                          <span className="flex items-center gap-1 text-muted-foreground">
+                            <span className="size-1.5 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <span className="size-1.5 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <span className="size-1.5 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: '300ms' }} />
+                          </span>
+                        ) : entry.state === 'streaming' ? (
+                          <p className="whitespace-pre-wrap">
+                            {entry.streamingContent}
+                            <span className="inline-block w-0.5 h-3 bg-muted-foreground/60 ml-0.5 animate-pulse align-middle" />
+                          </p>
+                        ) : (
+                          <>
+                            <p className="whitespace-pre-wrap">{entry.content}</p>
+                            {entry.meta && (
+                              <div className="flex items-center gap-1.5 mt-1.5 flex-wrap text-[9px] font-bold uppercase tracking-wider text-muted-foreground/80 font-mono">
+                                <span>{entry.meta.platform}</span>
+                                <span>· {entry.meta.model}</span>
+                                <span className="bg-violet-500/10 text-violet-500 px-1 py-0.5 rounded">Key: {entry.meta.keyUsed}</span>
+                                <span>· {entry.meta.latency}ms</span>
+                                {entry.meta.fallbackAttempts > 0 && (
+                                  <span className="bg-amber-500/10 text-amber-500 px-1 py-0.5 rounded flex items-center gap-1">
+                                    <span className="size-1 rounded-full bg-amber-500 animate-pulse" />
+                                    {entry.meta.fallbackAttempts} fallback
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        )}
                       </div>
-                    )
-                  })}
+                    </div>
+                  ))}
+                  {chatLog.length === 0 && (
+                    <div className="text-center text-muted-foreground text-xs py-6">Starting simulation...</div>
+                  )}
                 </div>
               </div>
             )}
 
             {/* Step 5 Simulation: Dev Corner UI */}
             {step === 5 && (
-              <div className="w-full max-w-3xl mx-auto animate-in fade-in duration-300 text-left grid grid-cols-1 lg:grid-cols-2 gap-4 overflow-y-auto max-h-[300px] sm:max-h-[350px] pr-1.5 scrollbar-thin">
+              <div className="w-full max-w-3xl mx-auto animate-in fade-in duration-300 text-left flex flex-col lg:grid lg:grid-cols-2 gap-4 overflow-y-auto max-h-[320px] sm:max-h-[380px] pr-1">
 
-                {/* Left panel: Config and sandbox button */}
-                <div className="bg-card border rounded-xl p-3.5 space-y-3">
+                {/* Left: Config panel */}
+                <div className="bg-card border rounded-xl p-3.5 space-y-3 shrink-0">
                   <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Request Configuration</div>
 
                   <div className="space-y-2 text-[10px] font-semibold text-muted-foreground">
@@ -646,17 +702,14 @@ async function generateCompletion() {
                         <option value="gemini">Gemini Format (/v1beta/...)</option>
                       </select>
                     </div>
-
                     <div>
                       <label className="block text-[8px] uppercase font-bold text-slate-500 mb-1">Unified key</label>
                       <Input value={apiKey} readOnly className="w-full font-mono text-[9px] bg-muted/40 h-6 px-2" />
                     </div>
-
                     <div>
                       <label className="block text-[8px] uppercase font-bold text-slate-500 mb-1">Target Endpoint</label>
                       <Input value={completionEndpoint} readOnly className="w-full font-mono text-[9px] bg-muted/40 h-6 px-2" />
                     </div>
-
                     <div>
                       <label className="block text-[8px] uppercase font-bold text-slate-500 mb-1">User Conversation Prompt</label>
                       <textarea
@@ -677,27 +730,31 @@ async function generateCompletion() {
                   </Button>
                 </div>
 
-                {/* Right panel: Live response output console */}
-                <div className="space-y-3 flex flex-col min-h-0">
-                  <div className="bg-card border rounded-xl p-3 flex flex-col flex-1 h-[120px] overflow-hidden">
-                    <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 shrink-0">Dynamic SDK Code Snippet</div>
-                    <div className="flex-1 min-h-0 bg-slate-50 dark:bg-slate-950 rounded-lg p-2 overflow-auto border border-border">
-                      <pre className="text-[8px] font-mono leading-relaxed text-indigo-950 dark:text-indigo-200 whitespace-pre scrollbar-none">
-                        {jsCodeSnippet}
-                      </pre>
+                {/* Right: SDK snippet + console (stacked within right column) */}
+                <div className="flex flex-col gap-3 min-h-0">
+                  {/* SDK snippet */}
+                  <div className="bg-card border rounded-xl p-3 shrink-0">
+                    <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Dynamic SDK Code Snippet</div>
+                    <div className="bg-slate-50 dark:bg-slate-950 rounded-lg p-2 overflow-auto border border-border max-h-[130px]">
+                      <pre className="text-[8px] font-mono leading-relaxed text-indigo-950 dark:text-indigo-200 whitespace-pre">{jsCodeSnippet}</pre>
                     </div>
                   </div>
 
-                  <div className="bg-card border rounded-xl p-3 flex flex-col flex-1 h-[100px] overflow-hidden">
-                    <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 shrink-0 flex items-center justify-between">
+                  {/* Execution console */}
+                  <div ref={consoleRef} className="bg-card border rounded-xl p-3 shrink-0">
+                    <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center justify-between">
                       <span>Execution Console</span>
                       {devExecuting && <span className="text-[8px] text-emerald-500 animate-pulse font-bold lowercase">Streaming SSE...</span>}
                     </div>
-                    <div className="flex-1 min-h-0 bg-slate-50 dark:bg-slate-950 rounded-lg p-2.5 overflow-auto border border-border font-mono text-[9px] text-emerald-700 dark:text-emerald-400 leading-relaxed whitespace-pre-wrap scrollbar-none">
+                    <div
+                      ref={consoleScrollRef}
+                      className="bg-slate-50 dark:bg-slate-950 rounded-lg p-2.5 overflow-auto border border-border font-mono text-[9px] text-emerald-700 dark:text-emerald-400 leading-relaxed whitespace-pre-wrap h-[120px] sm:h-[140px]"
+                    >
                       {devConsole}
                     </div>
                   </div>
                 </div>
+
               </div>
             )}
           </div>
