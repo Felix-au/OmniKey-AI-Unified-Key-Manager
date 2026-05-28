@@ -260,7 +260,7 @@ async function generateCompletion() {
       body: JSON.stringify({
         model: 'auto',
         messages: [
-          { role: 'user', content: 'What is quantum computing?' }
+          { role: 'user', content: 'Explain the advantages of OmniKey\\'s smart fallback routing system.' }
         ],
         stream: true
       })
@@ -284,7 +284,7 @@ async function generateCompletion() {
       },
       body: JSON.stringify({
         contents: [
-          { role: 'user', parts: [{ text: 'What is quantum computing?' }] }
+          { role: 'user', parts: [{ text: 'Explain the advantages of OmniKey\\'s smart fallback routing system.' }] }
         ]
       })
     });
@@ -655,6 +655,16 @@ async function generateCompletion() {
                     <div>
                       <label className="block text-[8px] uppercase font-bold text-slate-500 mb-1">Target Endpoint</label>
                       <Input value={completionEndpoint} readOnly className="w-full font-mono text-[9px] bg-muted/40 h-6 px-2" />
+                    </div>
+
+                    <div>
+                      <label className="block text-[8px] uppercase font-bold text-slate-500 mb-1">User Conversation Prompt</label>
+                      <textarea
+                        rows={2}
+                        value="Explain the advantages of OmniKey's smart fallback routing system."
+                        readOnly
+                        className="w-full bg-background border rounded-lg px-2 py-1 text-[9px] font-medium bg-muted/20 focus:outline-none resize-none font-mono"
+                      />
                     </div>
                   </div>
 
