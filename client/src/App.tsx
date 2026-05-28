@@ -22,6 +22,12 @@ import { Analytics } from '@vercel/analytics/react'
 const queryClient = new QueryClient()
 
 // ── Icons ────────────────────────────────────────────────────────────────────
+const IconHome = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+    <polyline points="9 22 9 12 15 12 15 22"/>
+  </svg>
+)
 const IconChat = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -114,6 +120,7 @@ function SideNavItem({ to, icon, label, collapsed }: { to: string; icon: React.R
   return (
     <NavLink
       to={to}
+      end={to === '/'}
       title={collapsed ? label : undefined}
       className={({ isActive }) =>
         `flex items-center gap-3 rounded-lg text-sm transition-colors ${
@@ -252,6 +259,7 @@ function DashboardLayout() {
 
         {/* Nav links */}
         <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-2 space-y-0.5" onClick={() => mobile && setMobileOpen(false)}>
+          <SideNavItem to="/" icon={<IconHome />} label="Home" collapsed={collapsed && !mobile} />
           <SectionLabel label="Chat" collapsed={collapsed && !mobile} />
           <SideNavItem to="/playground" icon={<IconChat />} label="Chat"  collapsed={collapsed && !mobile} />
           <SideNavItem to="/compare"   icon={<IconArena />}  label="Arena"  collapsed={collapsed && !mobile} />
