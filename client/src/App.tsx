@@ -17,6 +17,7 @@ import DebatePage from '@/pages/DebatePage'
 import LandingPage from '@/pages/LandingPage'
 import EmailVerificationPage from '@/pages/EmailVerificationPage'
 import { OnboardingTour } from '@/components/OnboardingTour'
+import { Analytics } from '@vercel/analytics/react'
 
 const queryClient = new QueryClient()
 
@@ -407,6 +408,7 @@ function App() {
           </Routes>
         </BrowserRouter>
       </AuthProvider>
+      <Analytics />
     </QueryClientProvider>
   )
 }
