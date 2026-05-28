@@ -1,0 +1,20 @@
+{
+  "short_name": "OmniKey AI",
+  "name": "OmniKey AI · Unified Key Manager & Gateway",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/favicon.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#020817",
+  "theme_color": "#020817",
+  "display": "standalone"
+}
