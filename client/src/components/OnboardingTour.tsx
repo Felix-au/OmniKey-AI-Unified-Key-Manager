@@ -41,7 +41,7 @@ export function OnboardingTour({ isOpen, onClose }: OnboardingTourProps) {
   const base = (import.meta.env.VITE_API_URL || import.meta.env.BASE_URL || '').replace(/\/$/, '')
   const baseApiUrl = base.startsWith('http') ? base : `${window.location.origin}${base}`
 
-  const apiKey = (devFormat === 'openai' ? keyData?.apiKey : keyData?.geminiApiKey) || 
+  const apiKey = (devFormat === 'openai' ? keyData?.apiKey : keyData?.geminiApiKey) ||
     (devFormat === 'openai' ? 'omnikey-75dd7a2bc61b53f320ef4be8eb08e4cb8c' : 'omnikey-g-973867cbb322d1daf301f886e260c2df2')
 
   const completionEndpoint = devFormat === 'openai'
@@ -351,7 +351,7 @@ async function generateCompletion() {
               <div key={s} className="space-y-1.5">
                 <div className={`h-1 rounded-full transition-colors duration-500 ${s <= step ? 'bg-violet-600' : 'bg-muted'}`} />
                 <span className={`hidden sm:inline-block text-[9px] font-bold uppercase tracking-wider ${s === step ? 'text-violet-600 dark:text-violet-400' : 'text-muted-foreground'}`}>
-                  {s === 1 ? '1. Add Keys' : s === 2 ? '2. Budgets' : s === 3 ? '3. Priority' : s === 4 ? '4. Playback' : '5. Dev Corner'}
+                  {s === 1 ? '1. Add Keys' : s === 2 ? '2. Budgets' : s === 3 ? '3. Priority' : s === 4 ? '4. Demonstration' : '5. Dev Corner'}
                 </span>
               </div>
             ))}
@@ -379,7 +379,7 @@ async function generateCompletion() {
             )}
             {step === 4 && (
               <>
-                <h3 className="text-base sm:text-lg font-bold text-foreground">Step 4: Smart Failover Showcase</h3>
+                <h3 className="text-base sm:text-lg font-bold text-foreground">Step 4: Smart Failover Demo</h3>
                 <p className="text-xs text-muted-foreground">Consecutive prompts automatically reroute past rate-limits (429) and gateway errors (502) silently.</p>
               </>
             )}
@@ -475,7 +475,7 @@ async function generateCompletion() {
                   <div className="flex items-baseline justify-between">
                     <h2 className="text-xs font-bold text-emerald-600 dark:text-emerald-450 flex items-center gap-1.5 uppercase tracking-wider">
                       <span className="h-2 w-2 rounded-full bg-emerald-500 anim-mock-pulse flex-shrink-0" />
-                      Promotional token pool (One-time)
+                      Promotional token pool
                     </h2>
                     <span className="text-[10px] text-muted-foreground tabular-nums font-bold">
                       <span className="text-foreground">9.2M</span> remaining <span className="mx-1">·</span> 92% of 10M
@@ -517,7 +517,7 @@ async function generateCompletion() {
             {step === 3 && (
               <div className="space-y-3 w-full max-w-xl mx-auto animate-in fade-in duration-300 text-left">
                 <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider text-center mb-1">
-                  Active Fallback Pools List (Sorted by Rank)
+                  Active Fallback Order
                 </div>
 
                 <div className="rounded-xl border border-border divide-y bg-card overflow-hidden">
@@ -738,7 +738,7 @@ async function generateCompletion() {
                 onClick={handleFinish}
                 className="step-transition bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 animate-pulse shadow-md shadow-emerald-600/20"
               >
-                Got it! Finish Onboarding
+                Got it!
               </Button>
             )}
           </div>
