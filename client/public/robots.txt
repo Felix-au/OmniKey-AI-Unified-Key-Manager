@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /$
+Disallow: /admin
+Disallow: /playground
+Disallow: /compare
+Disallow: /debate
+Disallow: /models
+Disallow: /keys
+Disallow: /fallback
+Disallow: /analytics
+Disallow: /dev-corner
+
+Sitemap: https://omni-key-ai.vercel.app/sitemap.xml
