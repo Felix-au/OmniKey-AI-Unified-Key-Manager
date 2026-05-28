@@ -48,7 +48,16 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- SEO Fallback Content for Crawlers (replaced dynamically by React) -->
+      <main style="max-width: 800px; margin: 0 auto; padding: 2rem; font-family: system-ui, -apple-system, sans-serif; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh;">
+        <h1 style="font-size: 2.2rem; font-weight: 800; line-height: 1.2; color: #0f172a; margin-bottom: 1rem; font-family: inherit;">OmniKey AI · Unified Key Manager & High-Performance AI Gateway</h1>
+        <p style="font-size: 1.1rem; line-height: 1.6; color: #475569; max-width: 600px; margin-bottom: 2rem; font-family: inherit;">
+          Access Google Gemini, Groq, Mistral, Cerebras, and SambaNova with a single key. Leverage automatic failovers, 100% uptime, and get 10M free tokens.
+        </p>
+        <div style="font-size: 0.9rem; font-weight: 500; color: #6366f1;">Loading OmniKey AI Gateway...</div>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
