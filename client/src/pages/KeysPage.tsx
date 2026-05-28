@@ -93,13 +93,11 @@ function UnifiedKeySection() {
   const maskedOpenAi = apiKey ? apiKey.slice(0, 13) + '•'.repeat(32) : '…'
   const maskedGemini = geminiApiKey ? geminiApiKey.slice(0, 15) + '•'.repeat(32) : '…'
 
-  const openAiBaseUrl = import.meta.env.DEV
-    ? `http://${window.location.hostname}:${__SERVER_PORT__}/v1`
-    : `${window.location.origin}/v1`
+  const base = (import.meta.env.VITE_API_URL || import.meta.env.BASE_URL || '').replace(/\/$/, '')
+  const baseApiUrl = base.startsWith('http') ? base : `${window.location.origin}${base}`
 
-  const geminiBaseUrl = import.meta.env.DEV
-    ? `http://${window.location.hostname}:${__SERVER_PORT__}/v1beta`
-    : `${window.location.origin}/v1beta`
+  const openAiBaseUrl = `${baseApiUrl}/v1`
+  const geminiBaseUrl = `${baseApiUrl}/v1beta`
 
   function copyOpenAi() {
     navigator.clipboard.writeText(apiKey)
