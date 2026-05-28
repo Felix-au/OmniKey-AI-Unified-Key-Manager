@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { apiFetch } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
@@ -10,7 +12,7 @@ interface OnboardingTourProps {
 
 export function OnboardingTour({ isOpen, onClose }: OnboardingTourProps) {
   const [step, setStep] = useState(1)
-  
+
   // Step 1: Simulated Adding Keys State
   const [step1State, setStep1State] = useState<'idle' | 'typing1' | 'added1' | 'typing2' | 'added2'>('idle')
   const [platformInput, setPlatformInput] = useState('Google AI Studio')
@@ -28,6 +30,23 @@ export function OnboardingTour({ isOpen, onClose }: OnboardingTourProps) {
   const [devFormat, setDevFormat] = useState<'openai' | 'gemini'>('openai')
   const [devExecuting, setDevExecuting] = useState(false)
   const [devConsole, setDevConsole] = useState('Console idle. Click "Run Proxy Sandbox Request" to execute dynamic request blocks.')
+
+  // Fetch current unified API key dynamically
+  const { data: keyData } = useQuery<{ apiKey: string; geminiApiKey: string }>({
+    queryKey: ['unified-key'],
+    queryFn: () => apiFetch('/api/settings/api-key'),
+    enabled: isOpen
+  })
+
+  const base = (import.meta.env.VITE_API_URL || import.meta.env.BASE_URL || '').replace(/\/$/, '')
+  const baseApiUrl = base.startsWith('http') ? base : `${window.location.origin}${base}`
+
+  const apiKey = (devFormat === 'openai' ? keyData?.apiKey : keyData?.geminiApiKey) || 
+    (devFormat === 'openai' ? 'omnikey-75dd7a2bc61b53f320ef4be8eb08e4cb8c' : 'omnikey-g-973867cbb322d1daf301f886e260c2df2')
+
+  const completionEndpoint = devFormat === 'openai'
+    ? `${baseApiUrl}/v1/chat/completions`
+    : `${baseApiUrl}/v1beta/models/auto:generateContent`
 
   // Manage Step 1 typing simulations
   useEffect(() => {
@@ -131,7 +150,7 @@ export function OnboardingTour({ isOpen, onClose }: OnboardingTourProps) {
     setTimeout(() => {
       setDevConsole(
         `[System] Hitting proxy sandbox gateway...\n` +
-        `[System] Target URL: https://omnikey.ai/v1/chat/completions\n` +
+        `[System] Target URL: ${completionEndpoint}\n` +
         `[System] Status: 200 OK\n` +
         `[System] Rerouted: Google (gemini-2.5-flash) via KeyPool-B (sk_gemini_03)\n` +
         `[System] Response size: 485 bytes | Latency: 165ms\n\n` +
@@ -148,7 +167,7 @@ export function OnboardingTour({ isOpen, onClose }: OnboardingTourProps) {
           cur += responseText[idx]
           setDevConsole(
             `[System] Hitting proxy sandbox gateway...\n` +
-            `[System] Target URL: https://omnikey.ai/v1/chat/completions\n` +
+            `[System] Target URL: ${completionEndpoint}\n` +
             `[System] Status: 200 OK\n` +
             `[System] Rerouted: Google (gemini-2.5-flash) via KeyPool-B (sk_gemini_03)\n` +
             `[System] Response size: 485 bytes | Latency: 165ms\n\n` +
@@ -225,9 +244,10 @@ export function OnboardingTour({ isOpen, onClose }: OnboardingTourProps) {
     invalid: 'bg-rose-500',
   }
 
-  const jsCodeSnippet = `// OmniKey AI Unified Request Example
-const apiKey = 'omnikey-75dd7a2bc61b53f320ef4be8eb08e4cb8c...';
-const endpoint = 'https://omnikey.ai/v1/chat/completions';
+  const jsCodeSnippet = devFormat === 'openai'
+    ? `// OmniKey AI Unified Request Example
+const apiKey = '${apiKey}';
+const endpoint = '${completionEndpoint}';
 
 async function generateCompletion() {
   try {
@@ -250,10 +270,34 @@ async function generateCompletion() {
     console.error('Request failed:', err);
   }
 }`
+    : `// OmniKey AI Unified Request Example (Gemini Format)
+const apiKey = '${apiKey}';
+const endpoint = '${baseApiUrl}/v1beta/models/auto:generateContent';
+
+async function generateCompletion() {
+  try {
+    const url = \`\${endpoint}?key=\${apiKey}\`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [
+          { role: 'user', parts: [{ text: 'What is quantum computing?' }] }
+        ]
+      })
+    });
+    const data = await response.json();
+    console.log(data);
+  } catch (err) {
+    console.error('Request failed:', err);
+  }
+}`
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-background/85 backdrop-blur-md overflow-y-auto animate-in fade-in duration-300">
-      
+
       <style>{`
         @keyframes mock-pulse {
           0%, 100% { opacity: 0.3; transform: scale(1); }
@@ -276,7 +320,7 @@ async function generateCompletion() {
 
       {/* Onboarding Wizard Panel */}
       <div className="w-full max-w-4xl bg-card border border-border shadow-2xl rounded-3xl overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[88vh] relative">
-        
+
         {/* Colorful visual backdrop accents */}
         <div className="absolute top-[-10%] left-[-10%] w-[35%] h-[35%] rounded-full bg-violet-600/10 dark:bg-violet-600/5 blur-[90px] pointer-events-none" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[35%] h-[35%] rounded-full bg-emerald-600/10 dark:bg-emerald-600/5 blur-[90px] pointer-events-none" />
@@ -290,8 +334,8 @@ async function generateCompletion() {
             </span>
             <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Onboarding tour</span>
           </div>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="text-xs text-muted-foreground hover:text-foreground font-semibold py-1 px-2.5 rounded-lg hover:bg-muted transition-colors"
           >
             Skip Tour
@@ -300,7 +344,7 @@ async function generateCompletion() {
 
         {/* Primary Container */}
         <div className="p-4 sm:p-6 overflow-y-auto flex-1 flex flex-col min-h-0 space-y-4">
-          
+
           {/* Progress track */}
           <div className="grid grid-cols-5 gap-2 shrink-0">
             {[1, 2, 3, 4, 5].map(s => (
@@ -317,31 +361,31 @@ async function generateCompletion() {
           <div className="shrink-0 space-y-0.5 text-center sm:text-left mt-1">
             {step === 1 && (
               <>
-                <h3 className="text-base sm:text-lg font-bold text-foreground">Step 1: Adding Provider Keys (Keys UI)</h3>
-                <p className="text-xs text-muted-foreground">Exactly like the live Keys dashboard. Input platform credentials, add custom labels, and check statuses in real time.</p>
+                <h3 className="text-base sm:text-lg font-bold text-foreground">Step 1: Add Provider Keys (at /keys)</h3>
+                <p className="text-xs text-muted-foreground">Input platform credentials, add custom labels, and check statuses in real time.</p>
               </>
             )}
             {step === 2 && (
               <>
-                <h3 className="text-base sm:text-lg font-bold text-foreground">Step 2: Checking monthly budgets (Fallback UI)</h3>
-                <p className="text-xs text-muted-foreground">Shield your budget from runaway token consumption. Inspect segmented monthly allocations and your one-time Promotional Pool.</p>
+                <h3 className="text-base sm:text-lg font-bold text-foreground">Step 2: Check monthly budgets (at /fallback)</h3>
+                <p className="text-xs text-muted-foreground">Shield your budget from runaway token consumption. Inspect segmented monthly allocations and your one-time Promotional Pool (if allocated).</p>
               </>
             )}
             {step === 3 && (
               <>
-                <h3 className="text-base sm:text-lg font-bold text-foreground">Step 3: Deciding model priority (Fallback UI)</h3>
+                <h3 className="text-base sm:text-lg font-bold text-foreground">Step 3: Decide model priority (at /fallback)</h3>
                 <p className="text-xs text-muted-foreground">Adjust platform priority rankings. When a key or model fails, the router seamlessly fails over to the next option in the chain.</p>
               </>
             )}
             {step === 4 && (
               <>
-                <h3 className="text-base sm:text-lg font-bold text-foreground">Step 4: Smart Failover chat playback (Playground UI)</h3>
-                <p className="text-xs text-muted-foreground">See how consecutive Playground prompts automatically reroute past rate-limits (429) and gateway errors (502) silently.</p>
+                <h3 className="text-base sm:text-lg font-bold text-foreground">Step 4: Smart Failover Showcase</h3>
+                <p className="text-xs text-muted-foreground">Consecutive prompts automatically reroute past rate-limits (429) and gateway errors (502) silently.</p>
               </>
             )}
             {step === 5 && (
               <>
-                <h3 className="text-base sm:text-lg font-bold text-foreground">Step 5: Dynamic API Sandbox (Dev Corner UI)</h3>
+                <h3 className="text-base sm:text-lg font-bold text-foreground">Step 5: Dynamic API Sandbox (at /dev-corner)</h3>
                 <p className="text-xs text-muted-foreground">Access dynamic SDK scripts, copy endpoints/keys, and click "Run Proxy sandbox request" below to simulate live gateway connections.</p>
               </>
             )}
@@ -349,19 +393,19 @@ async function generateCompletion() {
 
           {/* Interactive Screen Simulation Canvas */}
           <div className="flex-1 min-h-[260px] bg-muted/20 border border-border rounded-2xl p-4 flex flex-col justify-center relative overflow-hidden text-xs sm:text-sm">
-            
+
             {/* Step 1 Simulation: Keys UI */}
             {step === 1 && (
               <div className="space-y-4 w-full max-w-2xl mx-auto animate-in fade-in duration-300 text-left">
                 {/* Simulated Form exactly matching KeysPage */}
                 <div className="rounded-xl border border-border bg-card p-4 space-y-4">
                   <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Add a provider key</div>
-                  
+
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
                     <div className="space-y-1.5">
                       <label className="text-xs font-medium">Platform</label>
-                      <select 
-                        value={platformInput} 
+                      <select
+                        value={platformInput}
                         disabled
                         className="w-full sm:w-[200px] bg-background border rounded-lg h-8 px-3 text-xs"
                       >
@@ -376,13 +420,13 @@ async function generateCompletion() {
                         type="password"
                         value={keyInput}
                         readOnly
-                        placeholder="paste key here"
+                        placeholder="Input Key"
                         className="font-mono text-xs w-full h-8"
                       />
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-xs font-medium">Label</label>
+                      <label className="text-xs font-medium">Label </label>
                       <Input
                         value={labelInput}
                         readOnly
@@ -477,11 +521,10 @@ async function generateCompletion() {
                 </div>
 
                 <div className="rounded-xl border border-border divide-y bg-card overflow-hidden">
-                  
+
                   {/* Row 1 */}
-                  <div className={`flex items-center gap-3 px-4 py-3 transition-all duration-700 ${
-                    step3Dragged ? 'bg-violet-500/[0.03] border-violet-500/20' : 'bg-card'
-                  }`}>
+                  <div className={`flex items-center gap-3 px-4 py-3 transition-all duration-700 ${step3Dragged ? 'bg-violet-500/[0.03] border-violet-500/20' : 'bg-card'
+                    }`}>
                     <button className="cursor-grab text-muted-foreground/60 select-none text-xs">⠿</button>
                     <span className="text-xs font-mono text-violet-600 dark:text-violet-400 font-bold w-4 text-center">
                       {step3Dragged ? '1' : '2'}
@@ -540,9 +583,8 @@ async function generateCompletion() {
                 </div>
 
                 {/* Animated cursor overlay */}
-                <div className={`absolute left-[12%] pointer-events-none transition-all duration-1000 flex items-center justify-center ${
-                  step3Dragged ? 'top-[44%] opacity-0 scale-75' : 'top-[22%] opacity-100 scale-110'
-                }`}>
+                <div className={`absolute left-[12%] pointer-events-none transition-all duration-1000 flex items-center justify-center ${step3Dragged ? 'top-[44%] opacity-0 scale-75' : 'top-[22%] opacity-100 scale-110'
+                  }`}>
                   <div className="size-6 rounded-full border-2 border-violet-600 bg-violet-600/35 anim-mock-pulse" />
                 </div>
               </div>
@@ -551,12 +593,9 @@ async function generateCompletion() {
             {/* Step 4 Simulation: Playground UI */}
             {step === 4 && (
               <div className="w-full max-w-2xl mx-auto flex flex-col justify-end min-h-[220px] animate-in fade-in duration-300 text-left relative">
-                
+
                 {/* Header matching PlaygroundPage */}
-                <div className="absolute top-0 left-0 right-0 p-2.5 bg-muted/40 border-b border-border flex items-center justify-between rounded-t-xl shrink-0 z-10">
-                  <span className="text-[10px] font-bold text-muted-foreground">Playground Sandbox — Auto routing Active</span>
-                  <span className="text-[9px] px-2 py-0.5 rounded bg-violet-500/10 text-violet-500 font-bold uppercase">SSE Streaming enabled</span>
-                </div>
+
 
                 {/* Chat window list */}
                 <div className="flex-1 overflow-y-auto px-1 pt-12 pb-2 space-y-3.5 max-h-[200px] scrollbar-none">
@@ -566,9 +605,8 @@ async function generateCompletion() {
 
                     return (
                       <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}>
-                        <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-xs leading-relaxed ${
-                          msg.role === 'user' ? 'bg-violet-600 text-white' : 'bg-muted border border-border'
-                        }`}>
+                        <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-xs leading-relaxed ${msg.role === 'user' ? 'bg-violet-600 text-white' : 'bg-muted border border-border'
+                          }`}>
                           <p className="whitespace-pre-wrap">{msg.content}</p>
                           {msg.meta && (
                             <div className="flex items-center gap-1.5 mt-2 flex-wrap text-[9px] font-bold uppercase tracking-wider text-muted-foreground/80 font-mono">
@@ -594,12 +632,12 @@ async function generateCompletion() {
 
             {/* Step 5 Simulation: Dev Corner UI */}
             {step === 5 && (
-              <div className="w-full max-w-3xl mx-auto animate-in fade-in duration-300 text-left grid grid-cols-1 lg:grid-cols-2 gap-4">
-                
+              <div className="w-full max-w-3xl mx-auto animate-in fade-in duration-300 text-left grid grid-cols-1 lg:grid-cols-2 gap-4 overflow-y-auto max-h-[300px] sm:max-h-[350px] pr-1.5 scrollbar-thin">
+
                 {/* Left panel: Config and sandbox button */}
                 <div className="bg-card border rounded-xl p-3.5 space-y-3">
                   <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Request Configuration</div>
-                  
+
                   <div className="space-y-2 text-[10px] font-semibold text-muted-foreground">
                     <div>
                       <label className="block text-[8px] uppercase font-bold text-slate-500 mb-1">API Key Format</label>
@@ -611,17 +649,17 @@ async function generateCompletion() {
 
                     <div>
                       <label className="block text-[8px] uppercase font-bold text-slate-500 mb-1">Unified key</label>
-                      <Input value="omnikey-75dd7a2bc61b53f320ef4be8eb08e4cb..." readOnly className="w-full font-mono text-[9px] bg-muted/40 h-6 px-2" />
+                      <Input value={apiKey} readOnly className="w-full font-mono text-[9px] bg-muted/40 h-6 px-2" />
                     </div>
 
                     <div>
                       <label className="block text-[8px] uppercase font-bold text-slate-500 mb-1">Target Endpoint</label>
-                      <Input value="https://omnikey.ai/v1/chat/completions" readOnly className="w-full font-mono text-[9px] bg-muted/40 h-6 px-2" />
+                      <Input value={completionEndpoint} readOnly className="w-full font-mono text-[9px] bg-muted/40 h-6 px-2" />
                     </div>
                   </div>
 
-                  <Button 
-                    onClick={runSimulatedDevRequest} 
+                  <Button
+                    onClick={runSimulatedDevRequest}
                     disabled={devExecuting}
                     className="w-full py-3 h-auto bg-violet-600 hover:bg-violet-500 text-[10px] font-bold text-white shadow shadow-violet-500/10 active:scale-[0.98] transition-all rounded-lg"
                   >
@@ -659,9 +697,9 @@ async function generateCompletion() {
         <div className="px-6 py-4.5 border-t border-border bg-card/60 backdrop-blur-sm flex items-center justify-between shrink-0">
           <div className="flex gap-2">
             {step > 1 && (
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setStep(prev => prev - 1)}
                 className="step-transition px-4"
               >
@@ -669,24 +707,24 @@ async function generateCompletion() {
               </Button>
             )}
           </div>
-          
+
           <div className="flex gap-2 items-center">
             <span className="text-[11px] text-muted-foreground mr-1">
               Step {step} of {stepsCount}
             </span>
             {step < stepsCount ? (
-              <Button 
-                variant="default" 
-                size="sm" 
+              <Button
+                variant="default"
+                size="sm"
                 onClick={() => setStep(prev => prev + 1)}
                 className="step-transition bg-violet-600 hover:bg-violet-500 text-white font-bold px-4"
               >
                 Next
               </Button>
             ) : (
-              <Button 
-                variant="default" 
-                size="sm" 
+              <Button
+                variant="default"
+                size="sm"
                 onClick={handleFinish}
                 className="step-transition bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 animate-pulse shadow-md shadow-emerald-600/20"
               >
