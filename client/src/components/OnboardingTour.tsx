@@ -421,8 +421,8 @@ async function generateCompletion() {
             )}
             {step === 5 && (
               <>
-                <h3 className="text-base sm:text-lg font-bold text-foreground">Step 5: Dynamic API Sandbox (at /dev-corner)</h3>
-                <p className="text-xs text-muted-foreground">Access dynamic SDK scripts, copy endpoints/keys, and click "Run Proxy sandbox request" below to simulate live gateway connections.</p>
+                <h3 className="text-base sm:text-lg font-bold text-foreground">Step 5: API Sandbox (at /dev-corner)</h3>
+                <p className="text-xs text-muted-foreground">Access SDK scripts, copy endpoints/keys, and click "Run Proxy sandbox request" below to simulate API calls.</p>
               </>
             )}
           </div>
@@ -638,9 +638,8 @@ async function generateCompletion() {
                 <div ref={chatScrollRef} className="flex-1 overflow-y-auto px-2 py-3 space-y-3 border border-t-0 border-border rounded-b-xl bg-background/50 max-h-[240px]">
                   {chatLog.map((entry, idx) => (
                     <div key={idx} className={`flex ${entry.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-1 duration-200`}>
-                      <div className={`max-w-[82%] rounded-2xl px-3 py-2 text-xs leading-relaxed ${
-                        entry.role === 'user' ? 'bg-violet-600 text-white' : 'bg-muted border border-border'
-                      }`}>
+                      <div className={`max-w-[82%] rounded-2xl px-3 py-2 text-xs leading-relaxed ${entry.role === 'user' ? 'bg-violet-600 text-white' : 'bg-muted border border-border'
+                        }`}>
                         {entry.state === 'user-typing' ? (
                           <p className="whitespace-pre-wrap">
                             {entry.typingContent}
