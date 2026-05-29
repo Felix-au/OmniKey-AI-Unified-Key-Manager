@@ -324,7 +324,7 @@ function useDebateConfig() {
 }
 
 // ── Count-up hook ─────────────────────────────────────────────────────────────
-function useCountUp(target: number, duration = 1200) {
+function useCountUp(target: number, duration = 1200, decimals = 0) {
   const [val, setVal] = useState(0)
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -335,14 +335,16 @@ function useCountUp(target: number, duration = 1200) {
       const start = performance.now()
       const tick = (now: number) => {
         const p = Math.min((now - start) / duration, 1)
-        setVal(Math.round(p * target))
+        const raw = p * target
+        const factor = Math.pow(10, decimals)
+        setVal(Math.round(raw * factor) / factor)
         if (p < 1) requestAnimationFrame(tick)
       }
       requestAnimationFrame(tick)
     }, { threshold: 0.5 })
     obs.observe(el)
     return () => obs.disconnect()
-  }, [target, duration])
+  }, [target, duration, decimals])
   return { val, ref }
 }
 
@@ -464,9 +466,17 @@ export default function LandingPage() {
   const fallbackOrder = useFallbackOrder()
   const debateCfg = useDebateConfig()
   const heroRef = useRef<HTMLElement>(null)
+  const [routedRequestsTarget, setRoutedRequestsTarget] = useState(850.00)
+  const [tokensChanneledTarget, setTokensChanneledTarget] = useState(100.00)
+  const [successRateTarget, setSuccessRateTarget] = useState(99.98)
+  const [requestsUnit, setRequestsUnit] = useState('K+')
+  const [tokensUnit, setTokensUnit] = useState('M+')
+  const [successUnit, setSuccessUnit] = useState('%')
+
   const stat1 = useCountUp(100)
-  const stat2 = useCountUp(1000)
-  const stat3 = useCountUp(12)
+  const stat4 = useCountUp(routedRequestsTarget, 1200, 2)
+  const stat5 = useCountUp(tokensChanneledTarget, 1200, 2)
+  const stat6 = useCountUp(successRateTarget, 1200, 2)
   const [promoStatus, setPromoStatus] = useState<{ activePromoUsers: number; totalPromoLimit: number; remainingSlots: number; isActive: boolean } | null>(null)
 
   useEffect(() => {
@@ -482,7 +492,36 @@ export default function LandingPage() {
         console.warn('Failed to fetch promo status:', err)
       }
     }
+    const fetchPublicStats = async () => {
+      try {
+        const base = (import.meta.env.VITE_API_URL || import.meta.env.BASE_URL).replace(/\/$/, '')
+        const res = await fetch(`${base}/api/public/stats`)
+        if (res.ok) {
+          const data = await res.json()
+          
+          const totalReqs = data.totalRequests || 0
+          setRoutedRequestsTarget(Math.round((totalReqs / 1000) * 100) / 100)
+          setRequestsUnit('K+')
+
+          const totalToks = data.tokensChanneled || 0
+          setTokensChanneledTarget(Math.round((totalToks / 1_000_000) * 100) / 100)
+          setTokensUnit('M+')
+
+          const rawSuccess = data.successRate !== undefined ? data.successRate : 100
+          if (rawSuccess >= 100) {
+            setSuccessRateTarget(100)
+          } else {
+            setSuccessRateTarget(Math.floor(rawSuccess * 100) / 100)
+          }
+          setSuccessUnit('%')
+        }
+      } catch (err) {
+        console.warn('Failed to fetch public stats:', err)
+      }
+    }
+
     fetchPromoStatus()
+    fetchPublicStats()
   }, [])
 
   return (
@@ -575,13 +614,16 @@ export default function LandingPage() {
 
       {/* STATS */}
       <div className="max-w-4xl mx-auto px-6 mb-8">
-        <div className="grid grid-cols-3 divide-x divide-border rounded-2xl border border-border bg-card/60 backdrop-blur">
-          {[{ ref: stat1.ref, val: `${stat1.val}+`, label: 'Models Available' },
-          { ref: stat2.ref, val: stat2.val >= 1000 ? '1B+' : `${stat2.val}M+`, label: 'Free Tokens / Month' },
-          { ref: stat3.ref, val: `${stat3.val}`, label: 'Free Providers' }].map(({ ref, val, label }) => (
-            <div key={label} ref={ref} className="py-6 text-center stat-animate">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border/60 rounded-2xl border border-border/80 bg-card/60 backdrop-blur overflow-hidden">
+          {[
+            { ref: stat1.ref, val: `${stat1.val.toLocaleString()}+`, label: 'Models Available' },
+            { ref: stat4.ref, val: `${stat4.val.toFixed(2)}${requestsUnit}`, label: 'Requests Processed' },
+            { ref: stat5.ref, val: `${stat5.val.toFixed(2)}${tokensUnit}`, label: 'Tokens Channeled' },
+            { ref: stat6.ref, val: `${stat6.val.toFixed(2)}${successUnit}`, label: 'Routing Success Rate' }
+          ].map(({ ref, val, label }) => (
+            <div key={label} ref={ref} className="py-6 text-center stat-animate bg-card/40 dark:bg-slate-900/40 backdrop-blur-md">
               <div className="text-3xl font-extrabold text-foreground stat-num">{val}</div>
-              <div className="text-xs text-muted-foreground mt-1">{label}</div>
+              <div className="text-xs text-muted-foreground mt-1 px-2">{label}</div>
             </div>
           ))}
         </div>

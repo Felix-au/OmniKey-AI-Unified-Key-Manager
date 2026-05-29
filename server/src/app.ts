@@ -119,6 +119,65 @@ export function createApp() {
     }
   });
 
+  // Public statistics endpoint (for landing page showcase)
+  app.get('/api/public/stats', async (_req, res, next) => {
+    try {
+      if (isLocalDbEnabled()) {
+        const { getDb } = await import('./db/index.js');
+        const db = getDb();
+        const usageRow = db.prepare(`
+          SELECT 
+            COUNT(*) as totalRequests, 
+            SUM(CASE WHEN status='success' THEN 1 ELSE 0 END) as successfulRequests,
+            SUM(input_tokens) as totalInputTokens, 
+            SUM(output_tokens) as totalOutputTokens
+          FROM requests
+        `).get() as any;
+
+        const totalRequests = usageRow?.totalRequests || 0;
+        const successfulRequests = usageRow?.successfulRequests || 0;
+        const totalInput = usageRow?.totalInputTokens || 0;
+        const totalOutput = usageRow?.totalOutputTokens || 0;
+
+        res.json({
+          totalRequests,
+          tokensChanneled: totalInput + totalOutput,
+          successRate: totalRequests > 0 ? (successfulRequests / totalRequests) * 100 : 100
+        });
+        return;
+      }
+
+      // MongoDB Cloud Mode
+      const { RequestLog } = await import('./models/RequestLog.js');
+      const requestStats = await RequestLog.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalRequests: { $sum: 1 },
+            successfulRequests: { $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] } },
+            totalInputTokens: { $sum: '$inputTokens' },
+            totalOutputTokens: { $sum: '$outputTokens' }
+          }
+        }
+      ]);
+      const globalUsage = requestStats[0] || {
+        totalRequests: 0,
+        successfulRequests: 0,
+        totalInputTokens: 0,
+        totalOutputTokens: 0
+      };
+
+      const totalRequests = globalUsage.totalRequests;
+      res.json({
+        totalRequests,
+        tokensChanneled: globalUsage.totalInputTokens + globalUsage.totalOutputTokens,
+        successRate: totalRequests > 0 ? (globalUsage.successfulRequests / totalRequests) * 100 : 100
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+
   // Error handler (for API routes)
   app.use(errorHandler);
 
