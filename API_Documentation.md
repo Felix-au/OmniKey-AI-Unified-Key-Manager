@@ -34,6 +34,9 @@ Client requests to the proxy server are authenticated using one of two master un
 ```http
 Authorization: Bearer omnikey-your-unified-openai-key-here
 ```
+* **Base URL targets**:
+  * **Local**: `http://localhost:3001/v1`
+  * **Production**: `https://omnikey-ai-unified-key-manager.onrender.com/v1`
 
 ### 2. Gemini-Compatible Format
 * **Key Prefix**: `omnikey-g-[32-byte-hex-string]`
