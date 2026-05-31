@@ -127,7 +127,7 @@ export function createApp() {
         const db = getDb();
         const usageRow = db.prepare(`
           SELECT 
-            COUNT(*) as totalRequests, 
+            SUM(CASE WHEN status IN ('success', 'error') THEN 1 ELSE 0 END) as totalRequests, 
             SUM(CASE WHEN status='success' THEN 1 ELSE 0 END) as successfulRequests,
             SUM(input_tokens) as totalInputTokens, 
             SUM(output_tokens) as totalOutputTokens
@@ -153,7 +153,7 @@ export function createApp() {
         {
           $group: {
             _id: null,
-            totalRequests: { $sum: 1 },
+            totalRequests: { $sum: { $cond: [{ $in: ['$status', ['success', 'error']] }, 1, 0] } },
             successfulRequests: { $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] } },
             totalInputTokens: { $sum: '$inputTokens' },
             totalOutputTokens: { $sum: '$outputTokens' }

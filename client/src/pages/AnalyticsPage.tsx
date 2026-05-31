@@ -230,14 +230,24 @@ export default function AnalyticsPage() {
                     <TableRow>
                       <TableHead className="pl-4">Provider</TableHead>
                       <TableHead>Message</TableHead>
+                      <TableHead className="text-center">Status</TableHead>
                       <TableHead className="text-right pr-4">Time</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {errors.slice(0, 20).map((e: any) => (
                       <TableRow key={e.id}>
-                        <TableCell className="pl-4 text-xs">{e.platform}</TableCell>
-                        <TableCell className="text-xs max-w-[200px] truncate">{e.error}</TableCell>
+                        <TableCell className="pl-4 text-xs font-medium">{e.platform}</TableCell>
+                        <TableCell className="text-xs max-w-[200px] truncate" title={e.error}>{e.error}</TableCell>
+                        <TableCell className="text-center">
+                          <span className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded ${
+                            e.status === 'fallback'
+                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/10'
+                              : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/10'
+                          }`}>
+                            {e.status || 'error'}
+                          </span>
+                        </TableCell>
                         <TableCell className="text-right text-xs text-muted-foreground tabular-nums pr-4">
                           {parseUtcDate(e.createdAt)?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}
                         </TableCell>

@@ -5,7 +5,7 @@ export interface IRequestLog extends Document {
   fundedByUserId?: string | null;
   platform: string;
   modelId: string;
-  status: 'success' | 'error';
+  status: 'success' | 'error' | 'fallback';
   inputTokens: number;
   outputTokens: number;
   latencyMs: number;
@@ -18,7 +18,7 @@ const RequestLogSchema: Schema = new Schema({
   fundedByUserId: { type: String, default: null, index: true },
   platform: { type: String, required: true },
   modelId: { type: String, required: true },
-  status: { type: String, required: true, enum: ['success', 'error'] },
+  status: { type: String, required: true, enum: ['success', 'error', 'fallback'] },
   inputTokens: { type: Number, default: 0 },
   outputTokens: { type: Number, default: 0 },
   latencyMs: { type: Number, required: true },

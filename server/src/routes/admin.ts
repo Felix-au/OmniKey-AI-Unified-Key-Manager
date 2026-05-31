@@ -236,7 +236,7 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
       
       const usageRow = db.prepare(`
         SELECT 
-          COUNT(*) as totalRequests, 
+          SUM(CASE WHEN status IN ('success', 'error') THEN 1 ELSE 0 END) as totalRequests, 
           SUM(CASE WHEN status='success' THEN 1 ELSE 0 END) as successfulRequests,
           SUM(input_tokens) as totalInputTokens, 
           SUM(output_tokens) as totalOutputTokens, 
@@ -310,7 +310,7 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
       const times = db.prepare(`
         SELECT 
           strftime('%Y-%m-%d', created_at) as _id, 
-          COUNT(*) as requests, 
+          SUM(CASE WHEN status IN ('success', 'error') THEN 1 ELSE 0 END) as requests, 
           SUM(CASE WHEN status='success' THEN 1 ELSE 0 END) as success 
         FROM requests 
         GROUP BY _id 
@@ -345,7 +345,7 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
       const errors = db.prepare(`
         SELECT error as errorVal, COUNT(*) as cnt 
         FROM requests 
-        WHERE status='error' AND error IS NOT NULL AND error != ''
+        WHERE status IN ('error', 'fallback') AND error IS NOT NULL AND error != ''
         GROUP BY errorVal 
         ORDER BY cnt DESC 
         LIMIT 5
@@ -414,7 +414,7 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
         {
           $group: {
             _id: null,
-            totalRequests: { $sum: 1 },
+            totalRequests: { $sum: { $cond: [{ $in: ['$status', ['success', 'error']] }, 1, 0] } },
             successfulRequests: { $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] } },
             totalInputTokens: { $sum: '$inputTokens' },
             totalOutputTokens: { $sum: '$outputTokens' },
@@ -497,7 +497,7 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
             _id: {
               $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
             },
-            requests: { $sum: 1 },
+            requests: { $sum: { $cond: [{ $in: ['$status', ['success', 'error']] }, 1, 0] } },
             success: { $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] } }
           }
         },
@@ -526,7 +526,7 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
       latencyDistribution = latencyStats[0] || { fast: 0, normal: 0, slow: 0, verySlow: 0 };
 
       const errList = await RequestLog.aggregate([
-        { $match: { status: 'error', error: { $nin: [null, ''] } } },
+        { $match: { status: { $in: ['error', 'fallback'] }, error: { $nin: [null, ''] } } },
         { $group: { _id: '$error', count: { $sum: 1 } } },
         { $sort: { count: -1 } },
         { $limit: 5 }

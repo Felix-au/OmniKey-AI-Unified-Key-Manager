@@ -34,7 +34,7 @@ analyticsRouter.get('/summary', async (req: AuthenticatedRequest, res: Response,
       const db = getDb();
       const stats = db.prepare(`
         SELECT
-          COUNT(*) as total_requests,
+          SUM(CASE WHEN status IN ('success', 'error') THEN 1 ELSE 0 END) as total_requests,
           SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success_count,
           SUM(input_tokens) as total_input_tokens,
           SUM(output_tokens) as total_output_tokens,
@@ -64,7 +64,7 @@ analyticsRouter.get('/summary', async (req: AuthenticatedRequest, res: Response,
         {
           $group: {
             _id: null,
-            totalRequests: { $sum: 1 },
+            totalRequests: { $sum: { $cond: [{ $in: ['$status', ['success', 'error']] }, 1, 0] } },
             successCount: { $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] } },
             totalInputTokens: { $sum: '$inputTokens' },
             totalOutputTokens: { $sum: '$outputTokens' },
@@ -256,7 +256,7 @@ analyticsRouter.get('/timeline', async (req: AuthenticatedRequest, res: Response
       const rows = db.prepare(`
         SELECT
           strftime('${dateFormat}', datetime(created_at, '+5 hours', '30 minutes')) as timestamp,
-          COUNT(*) as requests,
+          SUM(CASE WHEN status IN ('success', 'error') THEN 1 ELSE 0 END) as requests,
           SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success_count,
           SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) as failure_count
         FROM requests
@@ -281,7 +281,7 @@ analyticsRouter.get('/timeline', async (req: AuthenticatedRequest, res: Response
         {
           $group: {
             _id: { $dateToString: { format: format, date: '$createdAt', timezone: '+05:30' } },
-            requests: { $sum: 1 },
+            requests: { $sum: { $cond: [{ $in: ['$status', ['success', 'error']] }, 1, 0] } },
             successCount: { $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] } },
             failureCount: { $sum: { $cond: [{ $eq: ['$status', 'error'] }, 1, 0] } }
           }
@@ -328,7 +328,7 @@ analyticsRouter.get('/error-distribution', async (req: AuthenticatedRequest, res
           END as error_category,
           COUNT(*) as count
         FROM requests
-        WHERE status = 'error' AND created_at >= ?
+        WHERE status IN ('error', 'fallback') AND created_at >= ?
         GROUP BY platform, error_category
         ORDER BY count DESC
       `).all(since) as any[];
@@ -347,7 +347,7 @@ analyticsRouter.get('/error-distribution', async (req: AuthenticatedRequest, res
           END as category,
           COUNT(*) as count
         FROM requests
-        WHERE status = 'error' AND created_at >= ?
+        WHERE status IN ('error', 'fallback') AND created_at >= ?
         GROUP BY category
         ORDER BY count DESC
       `).all(since) as any[];
@@ -355,7 +355,7 @@ analyticsRouter.get('/error-distribution', async (req: AuthenticatedRequest, res
       const byPlatform = db.prepare(`
         SELECT platform, COUNT(*) as count
         FROM requests
-        WHERE status = 'error' AND created_at >= ?
+        WHERE status IN ('error', 'fallback') AND created_at >= ?
         GROUP BY platform
         ORDER BY count DESC
       `).all(since) as any[];
@@ -368,7 +368,7 @@ analyticsRouter.get('/error-distribution', async (req: AuthenticatedRequest, res
     } else {
       const errorLogs = await RequestLog.find({
         $or: [{ userId: req.userId }, { fundedByUserId: req.userId }],
-        status: 'error',
+        status: { $in: ['error', 'fallback'] },
         createdAt: { $gte: new Date(since) }
       });
 
@@ -451,9 +451,9 @@ analyticsRouter.get('/errors', async (req: AuthenticatedRequest, res: Response, 
     if (isLocalDbEnabled()) {
       const db = getDb();
       const rows = db.prepare(`
-        SELECT id, platform, model_id, error, latency_ms, created_at
+        SELECT id, platform, model_id, status, error, latency_ms, created_at
         FROM requests
-        WHERE status = 'error' AND created_at >= ?
+        WHERE status IN ('error', 'fallback') AND created_at >= ?
         ORDER BY created_at DESC
         LIMIT 50
       `).all(since) as any[];
@@ -462,6 +462,7 @@ analyticsRouter.get('/errors', async (req: AuthenticatedRequest, res: Response, 
         id: r.id.toString(),
         platform: r.platform,
         modelId: r.model_id,
+        status: r.status,
         error: r.error,
         latencyMs: r.latency_ms,
         createdAt: r.created_at,
@@ -471,7 +472,7 @@ analyticsRouter.get('/errors', async (req: AuthenticatedRequest, res: Response, 
     } else {
       const rows = await RequestLog.find({
         $or: [{ userId: req.userId }, { fundedByUserId: req.userId }],
-        status: 'error',
+        status: { $in: ['error', 'fallback'] },
         createdAt: { $gte: new Date(since) }
       })
       .sort({ createdAt: -1 })
@@ -481,6 +482,7 @@ analyticsRouter.get('/errors', async (req: AuthenticatedRequest, res: Response, 
         id: r._id.toString(),
         platform: r.platform,
         modelId: r.modelId,
+        status: r.status,
         error: r.error,
         latencyMs: r.latencyMs,
         createdAt: r.createdAt.toISOString(),

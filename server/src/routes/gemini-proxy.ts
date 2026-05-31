@@ -172,7 +172,7 @@ function translateToGeminiStreamChunk(openaiChunk: any): any {
 function logRequest(
   platform: string,
   modelId: string,
-  status: 'success' | 'error',
+  status: 'success' | 'error' | 'fallback',
   inputTokens: number,
   outputTokens: number,
   latencyMs: number,
@@ -663,9 +663,9 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
         }
       } catch (err: any) {
         const latency = Date.now() - start;
-        logRequest(route!.platform, route!.modelId, 'error', estimatedInputTokens, 0, latency, err.message, userId, route!.isPromo ? route!.fundedByUserId : undefined);
 
-        if (isRetryableError(err)) {
+        if (isRetryableError(err) && attempt < MAX_RETRIES - 1) {
+          logRequest(route!.platform, route!.modelId, 'fallback', estimatedInputTokens, 0, latency, err.message, userId, route!.isPromo ? route!.fundedByUserId : undefined);
           const skipId = `${route!.platform}:${route!.modelId}:${route!.keyId}`;
           skipKeys.add(skipId);
           setCooldown(route!.platform, route!.modelId, route!.keyId as any, 120_000);
@@ -675,6 +675,7 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
           continue;
         }
 
+        logRequest(route!.platform, route!.modelId, 'error', estimatedInputTokens, 0, latency, err.message, userId, route!.isPromo ? route!.fundedByUserId : undefined);
         return res.status(502).json({
           error: {
             code: 502,
