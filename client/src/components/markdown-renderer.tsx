@@ -125,7 +125,7 @@ export function MarkdownRenderer({ content, className, compact }: MarkdownRender
   return (
     <div
       className={cn(
-        'markdown-body leading-relaxed',
+        'chat-markdown leading-relaxed',
         compact ? 'text-xs' : 'text-sm',
         className
       )}

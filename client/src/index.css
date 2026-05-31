@@ -176,64 +176,64 @@ html:not(.dark) {
 /* ── Markdown Renderer — Theme-Aware Highlight.js ── */
 
 /* Light mode: pre uses GitHub light bg (#f6f8fa) — matches github.css theme */
-html:not(.dark) .markdown-body pre {
+html:not(.dark) :is(.markdown-body, .chat-markdown) pre {
     background-color: #f6f8fa;
     border-color: #d0d7de;
 }
 
 /* Light mode: inline code uses cool-gray instead of muted */
-html:not(.dark) .markdown-body code:not([class*="language-"]):not([class*="hljs"]) {
+html:not(.dark) :is(.markdown-body, .chat-markdown) code:not([class*="language-"]):not([class*="hljs"]) {
     background-color: oklch(0.88 0.01 240);
     color: oklch(0.10 0.015 260);
     border-color: oklch(0.78 0.01 240);
 }
 
 /* Both modes: hljs bg should be transparent so the pre bg shows */
-.markdown-body .hljs {
+:is(.markdown-body, .chat-markdown) .hljs {
     background: transparent;
     padding: 0;
 }
 
 /* Dark mode: switch to GitHub Dark token colors */
-.dark .markdown-body pre {
+.dark :is(.markdown-body, .chat-markdown) pre {
     background-color: #0d1117;
     border-color: #30363d;
 }
-.dark .markdown-body .hljs                              { color: #c9d1d9; }
-.dark .markdown-body .hljs-doctag,
-.dark .markdown-body .hljs-keyword,
-.dark .markdown-body .hljs-template-tag,
-.dark .markdown-body .hljs-template-variable,
-.dark .markdown-body .hljs-type,
-.dark .markdown-body .hljs-variable.language_           { color: #ff7b72; }
-.dark .markdown-body .hljs-title,
-.dark .markdown-body .hljs-title.class_,
-.dark .markdown-body .hljs-title.function_              { color: #d2a8ff; }
-.dark .markdown-body .hljs-attr,
-.dark .markdown-body .hljs-attribute,
-.dark .markdown-body .hljs-literal,
-.dark .markdown-body .hljs-number,
-.dark .markdown-body .hljs-operator,
-.dark .markdown-body .hljs-variable                    { color: #79c0ff; }
-.dark .markdown-body .hljs-meta .hljs-string,
-.dark .markdown-body .hljs-regexp,
-.dark .markdown-body .hljs-string                      { color: #a5d6ff; }
-.dark .markdown-body .hljs-built_in,
-.dark .markdown-body .hljs-symbol                      { color: #ffa657; }
-.dark .markdown-body .hljs-code,
-.dark .markdown-body .hljs-comment,
-.dark .markdown-body .hljs-formula                     { color: #8b949e; }
-.dark .markdown-body .hljs-name,
-.dark .markdown-body .hljs-quote,
-.dark .markdown-body .hljs-selector-tag               { color: #7ee787; }
-.dark .markdown-body .hljs-section                    { color: #1f6feb; font-weight: 700; }
-.dark .markdown-body .hljs-bullet                     { color: #f2cc60; }
-.dark .markdown-body .hljs-strong                     { color: #c9d1d9; font-weight: 700; }
-.dark .markdown-body .hljs-emphasis                   { color: #c9d1d9; font-style: italic; }
-.dark .markdown-body .hljs-addition                   { color: #aff5b4; background-color: #033a16; }
-.dark .markdown-body .hljs-deletion                   { color: #ffdcd7; background-color: #67060c; }
+.dark :is(.markdown-body, .chat-markdown) .hljs                              { color: #c9d1d9; }
+.dark :is(.markdown-body, .chat-markdown) .hljs-doctag,
+.dark :is(.markdown-body, .chat-markdown) .hljs-keyword,
+.dark :is(.markdown-body, .chat-markdown) .hljs-template-tag,
+.dark :is(.markdown-body, .chat-markdown) .hljs-template-variable,
+.dark :is(.markdown-body, .chat-markdown) .hljs-type,
+.dark :is(.markdown-body, .chat-markdown) .hljs-variable.language_           { color: #ff7b72; }
+.dark :is(.markdown-body, .chat-markdown) .hljs-title,
+.dark :is(.markdown-body, .chat-markdown) .hljs-title.class_,
+.dark :is(.markdown-body, .chat-markdown) .hljs-title.function_              { color: #d2a8ff; }
+.dark :is(.markdown-body, .chat-markdown) .hljs-attr,
+.dark :is(.markdown-body, .chat-markdown) .hljs-attribute,
+.dark :is(.markdown-body, .chat-markdown) .hljs-literal,
+.dark :is(.markdown-body, .chat-markdown) .hljs-number,
+.dark :is(.markdown-body, .chat-markdown) .hljs-operator,
+.dark :is(.markdown-body, .chat-markdown) .hljs-variable                    { color: #79c0ff; }
+.dark :is(.markdown-body, .chat-markdown) .hljs-meta .hljs-string,
+.dark :is(.markdown-body, .chat-markdown) .hljs-regexp,
+.dark :is(.markdown-body, .chat-markdown) .hljs-string                      { color: #a5d6ff; }
+.dark :is(.markdown-body, .chat-markdown) .hljs-built_in,
+.dark :is(.markdown-body, .chat-markdown) .hljs-symbol                      { color: #ffa657; }
+.dark :is(.markdown-body, .chat-markdown) .hljs-code,
+.dark :is(.markdown-body, .chat-markdown) .hljs-comment,
+.dark :is(.markdown-body, .chat-markdown) .hljs-formula                     { color: #8b949e; }
+.dark :is(.markdown-body, .chat-markdown) .hljs-name,
+.dark :is(.markdown-body, .chat-markdown) .hljs-quote,
+.dark :is(.markdown-body, .chat-markdown) .hljs-selector-tag               { color: #7ee787; }
+.dark :is(.markdown-body, .chat-markdown) .hljs-section                    { color: #1f6feb; font-weight: 700; }
+.dark :is(.markdown-body, .chat-markdown) .hljs-bullet                     { color: #f2cc60; }
+.dark :is(.markdown-body, .chat-markdown) .hljs-strong                     { color: #c9d1d9; font-weight: 700; }
+.dark :is(.markdown-body, .chat-markdown) .hljs-emphasis                   { color: #c9d1d9; font-style: italic; }
+.dark :is(.markdown-body, .chat-markdown) .hljs-addition                   { color: #aff5b4; background-color: #033a16; }
+.dark :is(.markdown-body, .chat-markdown) .hljs-deletion                   { color: #ffdcd7; background-color: #67060c; }
 
 /* Table: light-mode row hover uses our cool-gray accent */
-html:not(.dark) .markdown-body table tbody tr:hover {
+html:not(.dark) :is(.markdown-body, .chat-markdown) table tbody tr:hover {
     background-color: oklch(0.90 0.01 240);
 }
