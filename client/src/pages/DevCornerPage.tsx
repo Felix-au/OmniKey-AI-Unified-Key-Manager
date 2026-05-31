@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PageHeader } from '@/components/page-header'
+import { MessageSquare, Eye, Mic, Volume2, Upload, X } from 'lucide-react'
 
 interface FallbackEntry {
   modelDbId: number
@@ -15,6 +16,7 @@ interface FallbackEntry {
 }
 
 export default function DevCornerPage() {
+  const [mode, setMode] = useState<'chat' | 'vision' | 'stt' | 'tts'>('chat')
   const [selectedModel, setSelectedModel] = useState('auto')
   const [temperature, setTemperature] = useState(0.7)
   const [maxTokens, setMaxTokens] = useState('')
@@ -26,6 +28,9 @@ export default function DevCornerPage() {
   const [executing, setExecuting] = useState(false)
   const [copied, setCopied] = useState(false)
   const [apiFormat, setApiFormat] = useState<'openai' | 'gemini'>('openai')
+  const [file, setFile] = useState<File | null>(null)
+  const [filePreview, setFilePreview] = useState<string>('')
+  const [audioOutputUrl, setAudioOutputUrl] = useState<string>('')
 
   // Fetch current unified API key
   const { data: keyData } = useQuery<{ apiKey: string; geminiApiKey: string }>({
@@ -42,15 +47,93 @@ export default function DevCornerPage() {
   const availableModels = fallbackEntries.filter(e => e.keyCount > 0 && e.enabled)
   const apiKey = (apiFormat === 'openai' ? keyData?.apiKey : keyData?.geminiApiKey) || (apiFormat === 'openai' ? 'omnikey-placeholder-key' : 'omnikey-g-placeholder-key')
 
+  // Filter models based on modality rules
+  const filteredModels = mode === 'chat'
+    ? availableModels
+    : availableModels.filter(m => m.platform === 'google')
+
   const base = (import.meta.env.VITE_API_URL || import.meta.env.BASE_URL).replace(/\/$/, '')
   const baseApiUrl = base.startsWith('http') ? base : `${window.location.origin}${base}`
-  const completionEndpoint = apiFormat === 'openai'
-    ? `${baseApiUrl}/v1/chat/completions`
-    : `${baseApiUrl}/v1beta/models/${selectedModel}:${stream ? 'streamGenerateContent' : 'generateContent'}`
+  
+  // Resolve endpoints
+  let completionEndpoint = `${baseApiUrl}/v1/chat/completions`
+  if (mode === 'stt') {
+    completionEndpoint = `${baseApiUrl}/v1/audio/transcriptions`
+  } else if (mode === 'tts') {
+    completionEndpoint = `${baseApiUrl}/v1/audio/speech`
+  } else if (mode === 'vision' && apiFormat === 'gemini') {
+    completionEndpoint = `${baseApiUrl}/v1beta/models/${selectedModel}:generateContent`
+  } else if (mode === 'chat' && apiFormat === 'gemini') {
+    completionEndpoint = `${baseApiUrl}/v1beta/models/${selectedModel}:${stream ? 'streamGenerateContent' : 'generateContent'}`
+  }
 
-  // Dynamically compile JavaScript request snippet
-  const jsCodeSnippet = apiFormat === 'openai'
-    ? `// OmniKey AI Unified Request Example
+  // Auto lock to OpenAI format for STT & TTS
+  useEffect(() => {
+    if (mode === 'stt' || mode === 'tts') {
+      setApiFormat('openai')
+    }
+  }, [mode])
+
+  // Revoke blob URL on change/unmount to avoid memory leaks
+  useEffect(() => {
+    return () => {
+      if (audioOutputUrl) {
+        URL.revokeObjectURL(audioOutputUrl)
+      }
+    }
+  }, [audioOutputUrl])
+
+  // Handle switching model on modality change
+  useEffect(() => {
+    if (selectedModel !== 'auto' && !filteredModels.some(m => m.modelId === selectedModel)) {
+      setSelectedModel('auto')
+    }
+  }, [mode, filteredModels, selectedModel])
+
+  const handleModeChange = (newMode: 'chat' | 'vision' | 'stt' | 'tts') => {
+    setMode(newMode)
+    setFile(null)
+    setFilePreview('')
+    setResponseOutput('')
+    if (audioOutputUrl) {
+      URL.revokeObjectURL(audioOutputUrl)
+      setAudioOutputUrl('')
+    }
+    
+    // Set smart defaults
+    if (newMode === 'chat') {
+      setUserPrompt('Hello, tell me a quick developer joke about AI!')
+    } else if (newMode === 'vision') {
+      setUserPrompt('What is in this image? Describe it in one short sentence.')
+    } else if (newMode === 'stt') {
+      setUserPrompt('')
+    } else if (newMode === 'tts') {
+      setUserPrompt('Welcome to the OmniKey AI Developer Corner.')
+    }
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0]
+    if (selectedFile) {
+      setFile(selectedFile)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setFilePreview(reader.result as string)
+      }
+      reader.readAsDataURL(selectedFile)
+    }
+  }
+
+  const clearFile = () => {
+    setFile(null)
+    setFilePreview('')
+  }
+
+  // Compile dynamic JavaScript snippets
+  let jsCodeSnippet = ''
+  if (mode === 'chat') {
+    jsCodeSnippet = apiFormat === 'openai'
+      ? `// OmniKey AI Unified Request Example
 const apiKey = '${apiKey}';
 const endpoint = '${completionEndpoint}';
 
@@ -105,9 +188,9 @@ async function generateCompletion() {
 }
 
 generateCompletion();`
-    : `// OmniKey AI Unified Request Example (Gemini Format)
+      : `// OmniKey AI Unified Request Example (Gemini Format)
 const apiKey = '${apiKey}';
-const endpoint = '${baseApiUrl}/v1beta/models/${selectedModel}:${stream ? 'streamGenerateContent' : 'generateContent'}';
+const endpoint = '${completionEndpoint}';
 
 async function generateCompletion() {
   try {
@@ -158,7 +241,152 @@ async function generateCompletion() {
   }
 }
 
-generateCompletion();`;
+generateCompletion();`
+  } else if (mode === 'vision') {
+    jsCodeSnippet = apiFormat === 'openai'
+      ? `// OmniKey AI Unified Vision Request Example
+const apiKey = '${apiKey}';
+const endpoint = '${completionEndpoint}';
+
+async function generateVisionCompletion() {
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': \`Bearer \${apiKey}\`,
+        'X-Required-Modality': 'vision'
+      },
+      body: JSON.stringify({
+        model: '${selectedModel}',
+        messages: [
+          ${systemPrompt ? `{ role: 'system', content: '${systemPrompt.replace(/'/g, "\\'")}' },` : ''}
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: '${userPrompt.replace(/'/g, "\\'")}' },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: 'data:image/jpeg;base64,...' // Base64 image payload
+                }
+              }
+            ]
+          }
+        ],
+        temperature: ${temperature}
+      })
+    });
+
+    const data = await response.json();
+    console.log('Response content:', data.choices[0].message.content);
+  } catch (error) {
+    console.error('Vision request failed:', error);
+  }
+}
+
+generateVisionCompletion();`
+      : `// OmniKey AI Unified Vision Request Example (Gemini Format)
+const apiKey = '${apiKey}';
+const endpoint = '${completionEndpoint}';
+
+async function generateVisionCompletion() {
+  try {
+    const url = \`\${endpoint}?key=\${apiKey}\`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Required-Modality': 'vision'
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              { text: '${userPrompt.replace(/'/g, "\\'")}' },
+              {
+                inlineData: {
+                  mimeType: 'image/jpeg',
+                  data: '...' // Base64 image data payload
+                }
+              }
+            ]
+          }
+        ],
+        ${systemPrompt ? `systemInstruction: { parts: [{ text: '${systemPrompt.replace(/'/g, "\\'")}' }] },` : ''}
+        generationConfig: {
+          temperature: ${temperature}
+        }
+      })
+    });
+
+    const data = await response.json();
+    console.log('Response content:', data.candidates?.[0]?.content?.parts?.[0]?.text);
+  } catch (error) {
+    console.error('Vision request failed:', error);
+  }
+}
+
+generateVisionCompletion();`
+  } else if (mode === 'stt') {
+    jsCodeSnippet = `// OmniKey AI Speech-to-Text (STT) Request Example
+const apiKey = '${apiKey}';
+const endpoint = '${completionEndpoint}';
+
+async function transcribeAudio(audioBlob) {
+  try {
+    const formData = new FormData();
+    formData.append('file', audioBlob, 'speech.wav');
+    formData.append('model', '${selectedModel === 'auto' ? 'gemini-2.5-flash' : selectedModel}');
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Authorization': \`Bearer \${apiKey}\`
+      },
+      body: formData
+    });
+
+    const data = await response.json();
+    console.log('Transcription:', data.text);
+  } catch (error) {
+    console.error('Transcription failed:', error);
+  }
+}`
+  } else if (mode === 'tts') {
+    jsCodeSnippet = `// OmniKey AI Text-to-Speech (TTS) Request Example
+const apiKey = '${apiKey}';
+const endpoint = '${completionEndpoint}';
+
+async function generateSpeech() {
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': \`Bearer \${apiKey}\`
+      },
+      body: JSON.stringify({
+        model: '${selectedModel === 'auto' ? 'gemini-2.5-flash-preview-tts' : selectedModel}',
+        input: '${userPrompt.replace(/'/g, "\\'")}',
+        voice: 'alloy'
+      })
+    });
+
+    const audioBlob = await response.blob();
+    const audioUrl = URL.createObjectURL(audioBlob);
+    
+    // Play audio in browser
+    const audio = new Audio(audioUrl);
+    audio.play();
+  } catch (error) {
+    console.error('Speech generation failed:', error);
+  }
+}
+
+generateSpeech();`
+  }
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(jsCodeSnippet)
@@ -166,63 +394,142 @@ generateCompletion();`;
     setTimeout(() => setCopied(false), 2000)
   }
 
-  // Execute interactive API request directly from the dashboard
+  // Execute sandbox API requests
   const handleExecuteRequest = async () => {
     setExecuting(true)
     setResponseOutput('Sending request to server...')
+    if (audioOutputUrl) {
+      URL.revokeObjectURL(audioOutputUrl)
+      setAudioOutputUrl('')
+    }
 
     try {
       let res: Response
-      if (apiFormat === 'openai') {
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        }
+      if (mode === 'chat') {
+        if (apiFormat === 'openai') {
+          const body: any = {
+            model: selectedModel,
+            messages: [
+              ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+              { role: 'user', content: userPrompt }
+            ],
+            temperature,
+            stream
+          }
+          if (maxTokens) body.max_tokens = parseInt(maxTokens)
+          if (topP < 1.0) body.top_p = topP
 
-        const body: any = {
-          model: selectedModel,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          temperature,
-          stream
-        }
-        if (maxTokens) body.max_tokens = parseInt(maxTokens)
-        if (topP < 1.0) body.top_p = topP
+          res = await fetch(`${base}/v1/chat/completions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify(body)
+          })
+        } else {
+          const body: any = {
+            contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+            generationConfig: { temperature }
+          }
+          if (systemPrompt) {
+            body.systemInstruction = { parts: [{ text: systemPrompt }] }
+          }
+          if (maxTokens) body.generationConfig.maxOutputTokens = parseInt(maxTokens)
+          if (topP < 1.0) body.generationConfig.topP = topP
 
-        res = await fetch(`${base}/v1/chat/completions`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(body)
-        })
-      } else {
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json'
+          const url = `${base}/v1beta/models/${selectedModel}:${stream ? 'streamGenerateContent' : 'generateContent'}?key=${apiKey}${stream ? '&alt=sse' : ''}`
+          res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          })
         }
-
-        const body: any = {
-          contents: [
-            { role: 'user', parts: [{ text: userPrompt }] }
-          ],
-          generationConfig: {
+      } else if (mode === 'vision') {
+        if (!file) {
+          throw new Error('Please select or drop an image file first.')
+        }
+        const base64Data = filePreview.split('base64,')[1]
+        if (apiFormat === 'openai') {
+          const body: any = {
+            model: selectedModel,
+            messages: [
+              ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: userPrompt },
+                  { type: 'image_url', image_url: { url: filePreview } }
+                ]
+              }
+            ],
             temperature
           }
-        }
-        if (systemPrompt) {
-          body.systemInstruction = {
-            parts: [{ text: systemPrompt }]
+          res = await fetch(`${base}/v1/chat/completions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`,
+              'X-Required-Modality': 'vision'
+            },
+            body: JSON.stringify(body)
+          })
+        } else {
+          const body: any = {
+            contents: [
+              {
+                role: 'user',
+                parts: [
+                  { text: userPrompt },
+                  {
+                    inlineData: {
+                      mimeType: file.type || 'image/jpeg',
+                      data: base64Data
+                    }
+                  }
+                ]
+              }
+            ],
+            generationConfig: { temperature }
           }
+          if (systemPrompt) {
+            body.systemInstruction = { parts: [{ text: systemPrompt }] }
+          }
+          res = await fetch(`${base}/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Required-Modality': 'vision'
+            },
+            body: JSON.stringify(body)
+          })
         }
-        if (maxTokens) body.generationConfig.maxOutputTokens = parseInt(maxTokens)
-        if (topP < 1.0) body.generationConfig.topP = topP
+      } else if (mode === 'stt') {
+        if (!file) {
+          throw new Error('Please select or drop an audio file first.')
+        }
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('model', selectedModel === 'auto' ? 'gemini-2.5-flash' : selectedModel)
 
-        const url = `${base}/v1beta/models/${selectedModel}:${stream ? 'streamGenerateContent' : 'generateContent'}?key=${apiKey}${stream ? '&alt=sse' : ''}`
-
-        res = await fetch(url, {
+        res = await fetch(`${base}/v1/audio/transcriptions`, {
           method: 'POST',
-          headers,
-          body: JSON.stringify(body)
+          headers: { 'Authorization': `Bearer ${apiKey}` },
+          body: formData
+        })
+      } else {
+        // TTS Mode
+        res = await fetch(`${base}/v1/audio/speech`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: selectedModel === 'auto' ? 'gemini-2.5-flash-preview-tts' : selectedModel,
+            input: userPrompt,
+            voice: 'alloy'
+          })
         })
       }
 
@@ -233,7 +540,12 @@ generateCompletion();`;
         return
       }
 
-      if (stream) {
+      if (mode === 'tts') {
+        const blob = await res.blob()
+        const url = URL.createObjectURL(blob)
+        setAudioOutputUrl(url)
+        setResponseOutput('Audio synthesized successfully. Click the player below to listen to your generated voice output.')
+      } else if (stream && mode === 'chat') {
         setResponseOutput('')
         const reader = res.body?.getReader()
         const decoder = new TextDecoder('utf-8')
@@ -287,25 +599,78 @@ generateCompletion();`;
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* API Parameter Configuration Panel */}
         <div className="bg-card border rounded-2xl p-6 shadow-sm space-y-6">
-          <div className="space-y-1">
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Request Configuration</h3>
-            <p className="text-xs text-muted-foreground">Adjust request properties to compile dynamic scripts and run proxy tests.</p>
+          <div className="flex flex-col sm:flex-row justify-between gap-3 items-start sm:items-center">
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Request Configuration</h3>
+              <p className="text-xs text-muted-foreground">Adjust parameters and execute proxy requests.</p>
+            </div>
+            
+            {/* Mode selection tabs */}
+            <div className="flex bg-muted p-1 rounded-xl border border-border/40 shrink-0">
+              <button
+                onClick={() => handleModeChange('chat')}
+                className={`flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-all duration-200 ${
+                  mode === 'chat'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/25'
+                }`}
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                Chat
+              </button>
+              <button
+                onClick={() => handleModeChange('vision')}
+                className={`flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-all duration-200 ${
+                  mode === 'vision'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/25'
+                }`}
+              >
+                <Eye className="w-3.5 h-3.5" />
+                Vision
+              </button>
+              <button
+                onClick={() => handleModeChange('stt')}
+                className={`flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-all duration-200 ${
+                  mode === 'stt'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/25'
+                }`}
+              >
+                <Mic className="w-3.5 h-3.5" />
+                STT
+              </button>
+              <button
+                onClick={() => handleModeChange('tts')}
+                className={`flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-all duration-200 ${
+                  mode === 'tts'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/25'
+                }`}
+              >
+                <Volume2 className="w-3.5 h-3.5" />
+                TTS
+              </button>
+            </div>
           </div>
 
           <div className="space-y-4">
-            <div>
-              <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
-                API Key Format / Type
-              </label>
-              <select
-                value={apiFormat}
-                onChange={e => setApiFormat(e.target.value as 'openai' | 'gemini')}
-                className="w-full bg-background border rounded-lg h-8 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
-              >
-                <option value="openai">OpenAI Format (Bearer Token, /v1/...)</option>
-                <option value="gemini">Gemini Format (Query Param, /v1beta/...)</option>
-              </select>
-            </div>
+            {/* API Format Selection (only relevant for Chat / Vision) */}
+            {(mode === 'chat' || mode === 'vision') && (
+              <div>
+                <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                  API Key Format / Type
+                </label>
+                <select
+                  value={apiFormat}
+                  onChange={e => setApiFormat(e.target.value as 'openai' | 'gemini')}
+                  className="w-full bg-background border rounded-lg h-8 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                >
+                  <option value="openai">OpenAI Format (Bearer Token, /v1/...)</option>
+                  <option value="gemini">Gemini Format (Query Param, /v1beta/...)</option>
+                </select>
+              </div>
+            )}
 
             <div>
               <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
@@ -342,7 +707,7 @@ generateCompletion();`;
                   className="w-full bg-background border rounded-lg h-8 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   <option value="auto">auto (best intelligent model)</option>
-                  {availableModels.map(m => (
+                  {filteredModels.map(m => (
                     <option key={m.modelDbId} value={m.modelId}>
                       {m.displayName} ({m.platform})
                     </option>
@@ -355,15 +720,53 @@ generateCompletion();`;
                   Execution Output Mode
                 </label>
                 <select
-                  value={stream ? 'true' : 'false'}
+                  disabled={mode !== 'chat'}
+                  value={stream && mode === 'chat' ? 'true' : 'false'}
                   onChange={e => setStream(e.target.value === 'true')}
-                  className="w-full bg-background border rounded-lg h-8 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="w-full bg-background border rounded-lg h-8 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
                 >
                   <option value="false">Standard JSON (blocking)</option>
                   <option value="true">Streaming Events (SSE)</option>
                 </select>
               </div>
             </div>
+
+            {/* Sandbox Media Upload Area */}
+            {(mode === 'vision' || mode === 'stt') && (
+              <div>
+                <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                  Sandbox Payload ({mode === 'vision' ? 'Image' : 'Audio'})
+                </label>
+                <div className="border border-dashed border-border rounded-xl p-4 flex flex-col items-center justify-center gap-2 bg-muted/10 hover:bg-muted/20 transition-all relative min-h-[100px]">
+                  <input
+                    type="file"
+                    accept={mode === 'vision' ? 'image/*' : 'audio/*'}
+                    onChange={handleFileChange}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  />
+                  {file ? (
+                    <div className="text-center relative z-20 w-full">
+                      <button
+                        onClick={clearFile}
+                        className="absolute top-0 right-0 p-1 bg-background border rounded-full text-muted-foreground hover:text-foreground hover:shadow-sm"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                      <p className="text-xs font-semibold truncate max-w-[240px] mx-auto">{file.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
+                      {mode === 'vision' && filePreview && (
+                        <img src={filePreview} alt="Preview" className="mt-2 h-20 object-contain rounded-lg border mx-auto shadow-sm" />
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center space-y-1">
+                      <Upload className="w-6 h-6 text-muted-foreground mx-auto" />
+                      <p className="text-xs text-muted-foreground">Click or drag {mode === 'vision' ? 'image' : 'audio'} file here</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-3 gap-4">
               <div>
@@ -375,9 +778,10 @@ generateCompletion();`;
                   min="0"
                   max="2"
                   step="0.1"
+                  disabled={mode === 'stt'}
                   value={temperature}
                   onChange={e => setTemperature(parseFloat(e.target.value))}
-                  className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-violet-600"
+                  className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-violet-600 disabled:opacity-50"
                 />
               </div>
 
@@ -387,10 +791,11 @@ generateCompletion();`;
                 </label>
                 <input
                   type="number"
-                  placeholder="Catalog Limit"
+                  placeholder="Limit"
+                  disabled={mode === 'stt' || mode === 'tts'}
                   value={maxTokens}
                   onChange={e => setMaxTokens(e.target.value)}
-                  className="w-full bg-background border rounded-lg px-3 h-8 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="w-full bg-background border rounded-lg px-3 h-8 text-xs focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
                 />
               </div>
 
@@ -403,38 +808,43 @@ generateCompletion();`;
                   step="0.05"
                   min="0"
                   max="1"
+                  disabled={mode === 'stt' || mode === 'tts'}
                   value={topP}
                   onChange={e => setTopP(parseFloat(e.target.value))}
-                  className="w-full bg-background border rounded-lg px-3 h-8 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="w-full bg-background border rounded-lg px-3 h-8 text-xs focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
                 />
               </div>
             </div>
 
-            <div>
-              <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
-                Developer System Prompt
-              </label>
-              <textarea
-                rows={2}
-                value={systemPrompt}
-                onChange={e => setSystemPrompt(e.target.value)}
-                placeholder="Initialize global AI constraints here..."
-                className="w-full bg-background border rounded-lg px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring resize-none"
-              />
-            </div>
+            {mode !== 'stt' && mode !== 'tts' && (
+              <div>
+                <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                  Developer System Prompt
+                </label>
+                <textarea
+                  rows={2}
+                  value={systemPrompt}
+                  onChange={e => setSystemPrompt(e.target.value)}
+                  placeholder="Initialize global AI constraints here..."
+                  className="w-full bg-background border rounded-lg px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+                />
+              </div>
+            )}
 
-            <div>
-              <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
-                User Conversation Prompt
-              </label>
-              <textarea
-                rows={3}
-                value={userPrompt}
-                onChange={e => setUserPrompt(e.target.value)}
-                placeholder="Ask your router whatever you need..."
-                className="w-full bg-background border rounded-lg px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring resize-none"
-              />
-            </div>
+            {mode !== 'stt' && (
+              <div>
+                <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                  {mode === 'tts' ? 'Speech Input Text' : 'User Conversation Prompt'}
+                </label>
+                <textarea
+                  rows={3}
+                  value={userPrompt}
+                  onChange={e => setUserPrompt(e.target.value)}
+                  placeholder="Enter text payload..."
+                  className="w-full bg-background border rounded-lg px-3.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+                />
+              </div>
+            )}
 
             <Button
               onClick={handleExecuteRequest}
@@ -450,7 +860,7 @@ generateCompletion();`;
                   Processing request...
                 </span>
               ) : (
-                'Run Proxy Sandbox Request'
+                `Run ${mode.toUpperCase()} Sandbox Request`
               )}
             </Button>
           </div>
@@ -485,10 +895,18 @@ generateCompletion();`;
           <div className="bg-card border rounded-2xl p-6 shadow-sm flex flex-col h-[280px]">
             <div className="space-y-1 mb-3 shrink-0">
               <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Interactive Execution Console</h4>
-              <p className="text-[10px] text-muted-foreground">Real-time parsed output response from the gateway router.</p>
+              <p className="text-[10px] text-muted-foreground">Real-time response output from the gateway router.</p>
             </div>
-            <div className="flex-1 min-h-0 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-900 overflow-auto p-4 text-left font-mono text-[11px] text-emerald-700 dark:text-emerald-400 leading-relaxed whitespace-pre-wrap select-all cursor-text">
-              {responseOutput || 'Console idle. Click "Run Proxy Sandbox Request" to execute dynamic request blocks.'}
+            <div className="flex-1 min-h-0 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-900 p-4 text-left font-mono text-[11px] text-emerald-700 dark:text-emerald-400 leading-relaxed overflow-y-auto flex flex-col justify-between select-all cursor-text">
+              <div className="whitespace-pre-wrap">
+                {responseOutput || 'Console idle. Click the run request button to execute sandbox payload.'}
+              </div>
+              {audioOutputUrl && (
+                <div className="mt-4 p-3 bg-card border rounded-xl flex flex-col gap-2 shrink-0">
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Audio Playback Console</span>
+                  <audio src={audioOutputUrl} controls className="w-full h-8" />
+                </div>
+              )}
             </div>
           </div>
         </div>
