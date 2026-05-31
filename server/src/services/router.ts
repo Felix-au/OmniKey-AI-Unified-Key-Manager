@@ -322,6 +322,11 @@ export async function routeRequest(
             const key = keys[idx % keys.length];
             idx++;
 
+            // Block promo/funding keys from using Vision/TTS/STT
+            if (requiredModality && key.userId.toString() !== userId) {
+              continue;
+            }
+
             const skipId = `${pm.platform}:${pm.modelId}:${key._id}`;
             if (skipKeys?.has(skipId)) continue;
 
@@ -385,6 +390,11 @@ export async function routeRequest(
         const key = keys[idx % keys.length];
         idx++;
 
+        // Block promo/funding keys from using Vision/TTS/STT
+        if (requiredModality && key.userId.toString() !== userId) {
+          continue;
+        }
+
         const skipId = `${model.platform}:${model.modelId}:${key._id}`;
         if (skipKeys?.has(skipId)) continue;
 
@@ -414,6 +424,15 @@ export async function routeRequest(
       }
 
       roundRobinIndex.set(rrKey, idx);
+    }
+  }
+
+  if (requiredModality && !isLocalDbEnabled()) {
+    const hasKeys = await ApiKey.exists({ userId, enabled: true, status: { $ne: 'invalid' } });
+    if (!hasKeys) {
+      const err = new Error('Multimodal capabilities (Vision, STT, TTS) are not available on the free promo tier. Please add your own API key under Keys page to use these features.') as any;
+      err.status = 403;
+      throw err;
     }
   }
 

@@ -468,7 +468,22 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
       }
     }
 
-    const requiredModality = req.headers['x-required-modality'] as string | undefined;
+    let requiredModality = req.headers['x-required-modality'] as string | undefined;
+
+    // Detect dynamic multimodal content in parts (e.g. inlineData) if header not present
+    if (!requiredModality && req.body && Array.isArray(req.body.contents)) {
+      for (const content of req.body.contents) {
+        if (Array.isArray(content.parts)) {
+          for (const part of content.parts) {
+            if (part.inlineData) {
+              requiredModality = 'vision';
+              break;
+            }
+          }
+        }
+        if (requiredModality) break;
+      }
+    }
 
     const MAX_RETRIES = 20;
     const skipKeys = new Set<string>();

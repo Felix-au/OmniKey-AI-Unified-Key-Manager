@@ -433,7 +433,26 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
       preferredModel = getStickyModel(messages);
     }
 
-    const requiredModality = req.headers['x-required-modality'] as string | undefined;
+    let requiredModality = req.headers['x-required-modality'] as string | undefined;
+
+    // Detect dynamic multimodal content in message payload if header not present
+    if (!requiredModality && Array.isArray(messages)) {
+      for (const m of messages) {
+        if (Array.isArray(m.content)) {
+          for (const block of m.content) {
+            if (block.type === 'image_url') {
+              requiredModality = 'vision';
+              break;
+            }
+            if (block.type === 'input_audio') {
+              requiredModality = 'audio_input';
+              break;
+            }
+          }
+        }
+        if (requiredModality) break;
+      }
+    }
 
     // 4. Retry scheduling loop
     const skipKeys = new Set<string>();
@@ -642,7 +661,7 @@ proxyRouter.post('/audio/transcriptions', upload.single('file'), async (req: Req
         return;
       }
 
-      const route = await routeRequest(5000, undefined, preferredModelId, auth.userId);
+      const route = await routeRequest(5000, undefined, preferredModelId, auth.userId, 'audio_input');
       recordRequest(route.platform, route.modelId, route.keyId as any);
 
       const base64Audio = req.file.buffer.toString('base64');
@@ -751,7 +770,7 @@ proxyRouter.post('/audio/speech', async (req: Request, res: Response) => {
       }
 
       const estimatedTokens = Math.ceil(input.length / 4) + 1000;
-      const route = await routeRequest(estimatedTokens, undefined, preferredModelId, auth.userId);
+      const route = await routeRequest(estimatedTokens, undefined, preferredModelId, auth.userId, 'audio_output');
       recordRequest(route.platform, route.modelId, route.keyId as any);
 
       const body = {
