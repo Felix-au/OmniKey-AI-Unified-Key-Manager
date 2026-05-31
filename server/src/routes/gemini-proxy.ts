@@ -468,6 +468,8 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
       }
     }
 
+    const requiredModality = req.headers['x-required-modality'] as string | undefined;
+
     const MAX_RETRIES = 20;
     const skipKeys = new Set<string>();
     let lastError: any = null;
@@ -475,7 +477,7 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       let route: RouteResult;
       try {
-        route = await routeRequest(estimatedTotal, skipKeys.size > 0 ? skipKeys : undefined, preferredModel, userId);
+        route = await routeRequest(estimatedTotal, skipKeys.size > 0 ? skipKeys : undefined, preferredModel, userId, requiredModality);
       } catch (err: any) {
         if (lastError) {
           return res.status(429).json({

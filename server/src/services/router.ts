@@ -139,7 +139,8 @@ export async function routeRequest(
   estimatedTokens = 1000, 
   skipKeys?: Set<string>, 
   preferredModelDbId?: number | string,
-  userId = 'local-dev-user-uid'
+  userId = 'local-dev-user-uid',
+  requiredModality?: string
 ): Promise<RouteResult> {
   
   if (isLocalDbEnabled()) {
@@ -173,6 +174,8 @@ export async function routeRequest(
 
       const model = db.prepare('SELECT * FROM models WHERE id = ? AND enabled = 1').get(entry.model_db_id) as ModelRow | undefined;
       if (!model) continue;
+
+      if (requiredModality && model.platform !== 'google') continue;
 
       const provider = getProvider(model.platform as any);
       if (!provider) continue;
@@ -273,6 +276,8 @@ export async function routeRequest(
       const model = item.model;
       if (!model || !model.enabled) continue;
 
+      if (requiredModality && model.platform !== 'google') continue;
+
       // Intercept virtual promo model in user's custom fallback chain
       if (model.modelId === 'omnikey-promo') {
         if (!isPromoActive) continue; // skip if promo exhausted
@@ -290,6 +295,7 @@ export async function routeRequest(
         // Try real models sorted by speedRank under the hood
         const promoModels = await Model.find({ enabled: true, modelId: { $ne: 'omnikey-promo' } }).sort({ speedRank: 1 });
         for (const pm of promoModels) {
+          if (requiredModality && pm.platform !== 'google') continue;
           const provider = getProvider(pm.platform as any);
           if (!provider) continue;
 

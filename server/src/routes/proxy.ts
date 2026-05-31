@@ -433,6 +433,8 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
       preferredModel = getStickyModel(messages);
     }
 
+    const requiredModality = req.headers['x-required-modality'] as string | undefined;
+
     // 4. Retry scheduling loop
     const skipKeys = new Set<string>();
     let lastError: any = null;
@@ -440,7 +442,7 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       let route: RouteResult;
       try {
-        route = await routeRequest(estimatedTotal, skipKeys.size > 0 ? skipKeys : undefined, preferredModel, userId);
+        route = await routeRequest(estimatedTotal, skipKeys.size > 0 ? skipKeys : undefined, preferredModel, userId, requiredModality);
       } catch (err: any) {
         if (lastError) {
           res.status(429).json({
