@@ -16,6 +16,7 @@ import ComparePage from '@/pages/ComparePage'
 import DebatePage from '@/pages/DebatePage'
 import LandingPage from '@/pages/LandingPage'
 import EmailVerificationPage from '@/pages/EmailVerificationPage'
+import DocsPage from '@/pages/DocsPage'
 import { OnboardingTour } from '@/components/OnboardingTour'
 import { Analytics } from '@vercel/analytics/react'
 
@@ -411,6 +412,7 @@ function App() {
         <BrowserRouter basename={import.meta.env.BASE_URL}>
           <Routes>
             <Route path="/"       element={<LandingPage />} />
+            <Route path="/docs"  element={<DocsPage />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/*"     element={<DashboardLayout />} />
           </Routes>

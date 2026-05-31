@@ -542,6 +542,14 @@ export default function LandingPage() {
             <a href="#features" className="hover:text-foreground transition-colors">Playground</a>
             <a href="#arena" className="hover:text-foreground transition-colors">Arena</a>
             <a href="#debate" className="hover:text-foreground transition-colors">Debate</a>
+            <a
+              href="/docs"
+              onClick={e => { e.preventDefault(); navigate('/docs') }}
+              className="hover:text-foreground transition-colors flex items-center gap-1"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Docs
+            </a>
             <a href="https://github.com/Felix-au/OmniKey-AI-Unified-Key-Manager" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">GitHub</a>
           </nav>
           <div className="ml-auto flex items-center gap-3">
