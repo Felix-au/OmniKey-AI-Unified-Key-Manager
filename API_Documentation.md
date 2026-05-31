@@ -321,8 +321,12 @@ OmniKey AI supports multimodal Vision inputs via both OpenAI and Gemini compatib
 
 ### 1. OpenAI Vision Format
 * **Endpoint**: `POST /v1/chat/completions`
+* **Full URLs**:
+  * **Local**: `http://localhost:3001/v1/chat/completions`
+  * **Production**: `https://omnikey-ai-unified-key-manager.onrender.com/v1/chat/completions`
+* **Auth**: `Authorization: Bearer omnikey-your-unified-openai-key-here`
 * **Format**: Send the image inside the `content` array of a message block as a base64-encoded URL.
-* **Header flag (Optional)**: `X-Required-Modality: vision` (Note: The gateway automatically inspects the message payloads to detect vision modality if headers are stripped).
+* **Header flag (Optional)**: `X-Required-Modality: vision` (The gateway auto-detects vision from payload if header is stripped).
 
 #### Request Example:
 ```json
@@ -346,7 +350,10 @@ OmniKey AI supports multimodal Vision inputs via both OpenAI and Gemini compatib
 ```
 
 ### 2. Gemini Vision Format
-* **Endpoint**: `POST /v1beta/models/:model:generateContent?key=...`
+* **Endpoint**: `POST /v1beta/models/:model:generateContent?key=omnikey-g-your-key`
+* **Full URLs**:
+  * **Local**: `http://localhost:3001/v1beta/models/gemini-2.5-flash:generateContent?key=omnikey-g-your-key`
+  * **Production**: `https://omnikey-ai-unified-key-manager.onrender.com/v1beta/models/gemini-2.5-flash:generateContent?key=omnikey-g-your-key`
 * **Format**: Send image as `inlineData` within the `parts` list of a contents turn.
 
 #### Request Example:
@@ -375,10 +382,16 @@ OmniKey AI supports multimodal Vision inputs via both OpenAI and Gemini compatib
 
 The STT endpoint allows developers to transcribe audio files to text.
 
+> [!NOTE]
+> STT uses the **OpenAI-compatible format only**. There is no Gemini-native equivalent endpoint for audio transcription.
+
 * **Endpoint**: `POST /v1/audio/transcriptions`
+* **Full URLs**:
+  * **Local**: `http://localhost:3001/v1/audio/transcriptions`
+  * **Production**: `https://omnikey-ai-unified-key-manager.onrender.com/v1/audio/transcriptions`
+* **Auth**: `Authorization: Bearer omnikey-your-unified-openai-key-here`
 * **Content-Type**: `multipart/form-data`
-* **Authorization**: Standard unified API key header (`Authorization: Bearer omnikey-...`)
-* **Modality Requirement**: `audio_input` (Automatically routed and enforced)
+* **Modality Requirement**: `audio_input` (Automatically routed and enforced. Requires a personal Gemini key — promo tier blocked.)
 
 ### Request Parameters
 
@@ -400,10 +413,16 @@ The STT endpoint allows developers to transcribe audio files to text.
 
 The TTS endpoint allows developers to synthesize text input into high-quality speech output.
 
+> [!NOTE]
+> TTS uses the **OpenAI-compatible format only**. There is no Gemini-native equivalent endpoint for speech synthesis.
+
 * **Endpoint**: `POST /v1/audio/speech`
+* **Full URLs**:
+  * **Local**: `http://localhost:3001/v1/audio/speech`
+  * **Production**: `https://omnikey-ai-unified-key-manager.onrender.com/v1/audio/speech`
+* **Auth**: `Authorization: Bearer omnikey-your-unified-openai-key-here`
 * **Content-Type**: `application/json`
-* **Authorization**: Standard unified API key header (`Authorization: Bearer omnikey-...`)
-* **Modality Requirement**: `audio_output` (Automatically routed and enforced)
+* **Modality Requirement**: `audio_output` (Automatically routed and enforced. Requires a personal Gemini key — promo tier blocked.)
 
 ### Request Payload Parameters
 ```json
@@ -660,6 +679,42 @@ curl http://localhost:3001/v1/chat/completions \
   -d '{
     "model": "auto",
     "messages": [{"role": "user", "content": "Hello world!"}]
+  }'
+```
+
+### cURL (OpenAI Vision — Image Description)
+```bash
+# Local: http://localhost:3001/v1/chat/completions
+# Production: https://omnikey-ai-unified-key-manager.onrender.com/v1/chat/completions
+curl http://localhost:3001/v1/chat/completions \
+  -H "Authorization: Bearer omnikey-your-unified-openai-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gemini-2.5-flash",
+    "messages": [{
+      "role": "user",
+      "content": [
+        {"type": "text", "text": "Describe this image."},
+        {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,/9j/4AAQ..."}}
+      ]
+    }]
+  }'
+```
+
+### cURL (Gemini Vision — Image Description)
+```bash
+# Local: http://localhost:3001/v1beta/models/gemini-2.5-flash:generateContent?key=...
+# Production: https://omnikey-ai-unified-key-manager.onrender.com/v1beta/models/gemini-2.5-flash:generateContent?key=...
+curl -X POST "http://localhost:3001/v1beta/models/gemini-2.5-flash:generateContent?key=omnikey-g-your-unified-gemini-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contents": [{
+      "role": "user",
+      "parts": [
+        {"text": "Describe this image."},
+        {"inlineData": {"mimeType": "image/jpeg", "data": "/9j/4AAQ..."}}
+      ]
+    }]
   }'
 ```
 
