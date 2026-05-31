@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
+import multer from 'multer';
 import type { ChatMessage } from '@omnikey-ai/shared/types.js';
 import { routeRequest, recordRateLimitHit, recordSuccess, type RouteResult } from '../services/router.js';
 import { recordRequest, recordTokens, setCooldown } from '../services/ratelimit.js';
@@ -14,6 +15,46 @@ import { Model } from '../models/Model.js';
 import { PromoUser } from '../models/PromoUser.js';
 
 export const proxyRouter = Router();
+
+const upload = multer({ limits: { fileSize: 25 * 1024 * 1024 } });
+
+async function authenticateRequest(req: Request): Promise<{ authenticated: boolean; userId: string; isLocal: boolean }> {
+  const token = req.headers.authorization?.replace(/^Bearer\s+/i, '');
+  if (!token) {
+    return { authenticated: false, userId: '', isLocal: false };
+  }
+
+  let isLocal = !process.env.MONGODB_URI;
+  let authenticated = false;
+  let userId = 'local-dev-user-uid';
+
+  if (process.env.MONGODB_URI && token.startsWith('omnikey-')) {
+    try {
+      const settings = await UserSettings.findOne({ unifiedApiKey: token });
+      if (settings) {
+        userId = settings.userId;
+        isLocal = false;
+        authenticated = true;
+      }
+    } catch (e) {
+      console.warn('[Proxy] Failed to query MongoDB key:', e);
+    }
+  }
+
+  if (!authenticated) {
+    try {
+      const unifiedKey = getUnifiedApiKey();
+      if (timingSafeStringEqual(token, unifiedKey)) {
+        isLocal = true;
+        authenticated = true;
+      }
+    } catch (e) {
+      console.warn('[Proxy] Failed to query SQLite key:', e);
+    }
+  }
+
+  return { authenticated, userId, isLocal };
+}
 
 // Virtual "auto" model.
 const AUTO_MODEL_ID = 'auto';
@@ -327,8 +368,25 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
     });
 
     const estimatedInputTokens = messages.reduce((sum, m) => {
-      const text = contentToString(m.content);
-      return sum + Math.ceil(text.length / 4);
+      let textLen = 0;
+      let mediaTokens = 0;
+      if (typeof m.content === 'string') {
+        textLen = m.content.length;
+      } else if (Array.isArray(m.content)) {
+        for (const block of m.content) {
+          if (block && typeof block === 'object') {
+            const b = block as any;
+            if (b.type === 'text' && typeof b.text === 'string') {
+              textLen += b.text.length;
+            } else if (b.type === 'image_url') {
+              mediaTokens += 258;
+            } else if (b.type === 'input_audio') {
+              mediaTokens += 500;
+            }
+          }
+        }
+      }
+      return sum + Math.ceil(textLen / 4) + mediaTokens;
     }, 0);
     const estimatedTotal = estimatedInputTokens + (max_tokens ?? 1000);
 
@@ -543,6 +601,223 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
         type: 'rate_limit_error',
       },
     });
+  });
+});
+
+proxyRouter.post('/audio/transcriptions', upload.single('file'), async (req: Request, res: Response) => {
+  const start = Date.now();
+  const auth = await authenticateRequest(req);
+  if (!auth.authenticated) {
+    res.status(401).json({
+      error: { message: 'Invalid or missing API key', type: 'authentication_error' },
+    });
+    return;
+  }
+
+  await dbModeStorage.run(auth.isLocal ? 'local' : 'cloud', async () => {
+    try {
+      if (!req.file) {
+        res.status(400).json({
+          error: { message: 'Missing audio file in multipart form upload', type: 'invalid_request_error' },
+        });
+        return;
+      }
+
+      let preferredModelId: string | number | undefined;
+      if (isLocalDbEnabled()) {
+        const db = getDb();
+        const model = db.prepare("SELECT id FROM models WHERE platform = 'google' AND enabled = 1 LIMIT 1").get() as { id: number } | undefined;
+        if (model) preferredModelId = model.id;
+      } else {
+        const model = await Model.findOne({ platform: 'google', enabled: true });
+        if (model) preferredModelId = model._id.toString();
+      }
+
+      if (!preferredModelId) {
+        res.status(400).json({
+          error: { message: 'No enabled Google models found to process audio', type: 'invalid_request_error' },
+        });
+        return;
+      }
+
+      const route = await routeRequest(5000, undefined, preferredModelId, auth.userId);
+      recordRequest(route.platform, route.modelId, route.keyId as any);
+
+      const base64Audio = req.file.buffer.toString('base64');
+      const mimeType = req.file.mimetype || 'audio/wav';
+
+      const body = {
+        contents: [
+          {
+            parts: [
+              {
+                inlineData: {
+                  mimeType,
+                  data: base64Audio,
+                },
+              },
+              {
+                text: 'Transcribe the audio. Output only the verbatim transcription text, do not add any explanations, commentary, or formatting.',
+              },
+            ],
+          },
+        ],
+      };
+
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${route.modelId}:generateContent?key=${route.apiKey}`;
+      const apiRes = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (!apiRes.ok) {
+        const err = await apiRes.json().catch(() => ({}));
+        throw new Error(`Google API error ${apiRes.status}: ${(err as any).error?.message ?? apiRes.statusText}`);
+      }
+
+      const data = await apiRes.json() as any;
+      const transcription = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+
+      const promptTokens = data.usageMetadata?.promptTokenCount || 1000;
+      const completionTokens = data.usageMetadata?.candidatesTokenCount || 200;
+      recordTokens(route.platform, route.modelId, route.keyId as any, promptTokens + completionTokens);
+      recordSuccess(route.modelDbId);
+
+      logRequest(
+        route.platform, route.modelId, 'success',
+        promptTokens, completionTokens,
+        Date.now() - start, null, auth.userId,
+        route.isPromo ? route.fundedByUserId : undefined
+      );
+
+      res.json({ text: transcription });
+    } catch (err: any) {
+      console.error('[Proxy] Audio transcription error:', err);
+      res.status(502).json({
+        error: { message: `Provider error: ${err.message}`, type: 'provider_error' },
+      });
+    }
+  });
+});
+
+proxyRouter.post('/audio/speech', async (req: Request, res: Response) => {
+  const start = Date.now();
+  const auth = await authenticateRequest(req);
+  if (!auth.authenticated) {
+    res.status(401).json({
+      error: { message: 'Invalid or missing API key', type: 'authentication_error' },
+    });
+    return;
+  }
+
+  await dbModeStorage.run(auth.isLocal ? 'local' : 'cloud', async () => {
+    try {
+      const { input, voice } = req.body;
+      if (!input || typeof input !== 'string') {
+        res.status(400).json({
+          error: { message: 'Missing or invalid input text', type: 'invalid_request_error' },
+        });
+        return;
+      }
+
+      const voiceMap: Record<string, string> = {
+        alloy: 'Kore',
+        echo: 'Fenrir',
+        fable: 'Aoede',
+        onyx: 'Charon',
+        nova: 'Puck',
+        shimmer: 'Aoede',
+      };
+      const voiceName = voiceMap[String(voice).toLowerCase()] || 'Kore';
+
+      let preferredModelId: string | number | undefined;
+      if (isLocalDbEnabled()) {
+        const db = getDb();
+        const dbModel = db.prepare("SELECT id FROM models WHERE platform = 'google' AND enabled = 1 LIMIT 1").get() as { id: number } | undefined;
+        if (dbModel) preferredModelId = dbModel.id;
+      } else {
+        const dbModel = await Model.findOne({ platform: 'google', enabled: true });
+        if (dbModel) preferredModelId = dbModel._id.toString();
+      }
+
+      if (!preferredModelId) {
+        res.status(400).json({
+          error: { message: 'No enabled Google models found to process speech', type: 'invalid_request_error' },
+        });
+        return;
+      }
+
+      const estimatedTokens = Math.ceil(input.length / 4) + 1000;
+      const route = await routeRequest(estimatedTokens, undefined, preferredModelId, auth.userId);
+      recordRequest(route.platform, route.modelId, route.keyId as any);
+
+      const body = {
+        contents: [
+          {
+            parts: [
+              {
+                text: input,
+              },
+            ],
+          },
+        ],
+        generationConfig: {
+          responseModalities: ['AUDIO'],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: {
+                voiceName,
+              },
+            },
+          },
+        },
+      };
+
+      const targetModelId = 'gemini-2.5-flash-preview-tts';
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${targetModelId}:generateContent?key=${route.apiKey}`;
+      const apiRes = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (!apiRes.ok) {
+        const err = await apiRes.json().catch(() => ({}));
+        throw new Error(`Google API error ${apiRes.status}: ${(err as any).error?.message ?? apiRes.statusText}`);
+      }
+
+      const data = await apiRes.json() as any;
+      const candidatePart = data.candidates?.[0]?.content?.parts?.[0];
+      
+      if (!candidatePart?.inlineData?.data) {
+        throw new Error('Gemini API did not return audio inlineData.');
+      }
+
+      const audioBuffer = Buffer.from(candidatePart.inlineData.data, 'base64');
+      const mimeType = candidatePart.inlineData.mimeType || 'audio/mpeg';
+
+      const promptTokens = data.usageMetadata?.promptTokenCount || Math.ceil(input.length / 4);
+      const completionTokens = data.usageMetadata?.candidatesTokenCount || 500;
+      recordTokens(route.platform, route.modelId, route.keyId as any, promptTokens + completionTokens);
+      recordSuccess(route.modelDbId);
+
+      logRequest(
+        route.platform, route.modelId, 'success',
+        promptTokens, completionTokens,
+        Date.now() - start, null, auth.userId,
+        route.isPromo ? route.fundedByUserId : undefined
+      );
+
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Content-Length', audioBuffer.length);
+      res.send(audioBuffer);
+    } catch (err: any) {
+      console.error('[Proxy] Audio speech synthesis error:', err);
+      res.status(502).json({
+        error: { message: `Provider error: ${err.message}`, type: 'provider_error' },
+      });
+    }
   });
 });
 

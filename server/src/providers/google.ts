@@ -25,6 +25,10 @@ interface GeminiPart {
     name?: string;
     response?: unknown;
   };
+  inlineData?: {
+    mimeType: string;
+    data: string;
+  };
 }
 
 interface GeminiCandidate {
@@ -132,7 +136,7 @@ function toGeminiToolConfig(toolChoice?: ChatToolChoice): { functionCallingConfi
 // Translate OpenAI messages to Gemini format. Content may arrive as a string,
 // null, or the OpenAI multimodal array envelope — flatten to string first so
 // system/user/tool messages all surface as `parts: [{ text }]` for Gemini.
-function toGeminiContents(messages: ChatMessage[]) {
+async function toGeminiContents(messages: ChatMessage[]) {
   const systemMessages = messages
     .filter(m => m.role === 'system')
     .map(m => contentToString(m.content))
@@ -145,9 +149,9 @@ function toGeminiContents(messages: ChatMessage[]) {
     }
   }
 
-  const contents = messages
+  const contentPromises = messages
     .filter(m => m.role !== 'system')
-    .map((m): { role: 'user' | 'model'; parts: GeminiPart[] } | null => {
+    .map(async (m): Promise<{ role: 'user' | 'model'; parts: GeminiPart[] } | null> => {
       if (m.role === 'assistant') {
         const parts: GeminiPart[] = [];
 
@@ -193,12 +197,70 @@ function toGeminiContents(messages: ChatMessage[]) {
         };
       }
 
+      const parts: GeminiPart[] = [];
+      if (typeof m.content === 'string') {
+        parts.push({ text: m.content });
+      } else if (m.content == null) {
+        // Empty content
+      } else if (Array.isArray(m.content)) {
+        for (const block of m.content) {
+          if (typeof block === 'string') {
+            parts.push({ text: block });
+          } else if (block && typeof block === 'object') {
+            const b = block as any;
+            if (b.type === 'text' && typeof b.text === 'string') {
+              parts.push({ text: b.text });
+            } else if (b.type === 'image_url' && b.image_url && typeof b.image_url.url === 'string') {
+              const url = b.image_url.url;
+              const match = url.match(/^data:([^;]+);base64,(.+)$/);
+              if (match) {
+                parts.push({
+                  inlineData: {
+                    mimeType: match[1],
+                    data: match[2],
+                  },
+                });
+              } else if (url.startsWith('http://') || url.startsWith('https://')) {
+                try {
+                  const res = await fetch(url);
+                  if (res.ok) {
+                    const buffer = await res.arrayBuffer();
+                    const base64 = Buffer.from(buffer).toString('base64');
+                    const mimeType = res.headers.get('content-type') || 'image/jpeg';
+                    parts.push({
+                      inlineData: {
+                        mimeType,
+                        data: base64,
+                      },
+                    });
+                  }
+                } catch (err) {
+                  console.error('Failed to fetch remote image:', err);
+                }
+              }
+            } else if (b.type === 'input_audio' && b.input_audio && typeof b.input_audio === 'object') {
+              const audio = b.input_audio;
+              const format = audio.format === 'mp3' ? 'audio/mp3' : audio.format === 'wav' ? 'audio/wav' : `audio/${audio.format}`;
+              parts.push({
+                inlineData: {
+                  mimeType: format,
+                  data: audio.data,
+                },
+              });
+            }
+          }
+        }
+      }
+
+      if (parts.length === 0) return null;
       return {
         role: 'user',
-        parts: [{ text: contentToString(m.content) }],
+        parts,
       };
-    })
-    .filter((entry): entry is { role: 'user' | 'model'; parts: GeminiPart[] } => entry !== null);
+    });
+
+  const resolvedContents = await Promise.all(contentPromises);
+  const contents = resolvedContents.filter((entry): entry is { role: 'user' | 'model'; parts: GeminiPart[] } => entry !== null);
 
   return {
     contents,
@@ -249,7 +311,7 @@ export class GoogleProvider extends BaseProvider {
     modelId: string,
     options?: CompletionOptions,
   ): Promise<ChatCompletionResponse> {
-    const { contents, systemInstruction } = toGeminiContents(messages);
+    const { contents, systemInstruction } = await toGeminiContents(messages);
 
     const body: Record<string, unknown> = {
       contents,
@@ -312,7 +374,7 @@ export class GoogleProvider extends BaseProvider {
     modelId: string,
     options?: CompletionOptions,
   ): AsyncGenerator<ChatCompletionChunk> {
-    const { contents, systemInstruction } = toGeminiContents(messages);
+    const { contents, systemInstruction } = await toGeminiContents(messages);
 
     const body: Record<string, unknown> = {
       contents,

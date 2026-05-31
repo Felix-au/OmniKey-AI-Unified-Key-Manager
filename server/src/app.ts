@@ -60,7 +60,7 @@ export function createApp() {
     },
     exposedHeaders: ['X-Routed-Via', 'X-Fallback-Attempts', 'X-Key-Used'],
   }));
-  app.use(express.json({ limit: '1mb' }));
+  app.use(express.json({ limit: '25mb' }));
 
   // API routes
   app.use('/api/keys', keysRouter);

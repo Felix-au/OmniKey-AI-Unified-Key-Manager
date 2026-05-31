@@ -50,11 +50,45 @@ function translateGeminiRequest(body: any): {
   if (Array.isArray(body.contents)) {
     for (const content of body.contents) {
       const role = content.role === 'model' ? 'assistant' : 'user';
-      const text = (content.parts || []).map((p: any) => p.text || '').join('\n');
-      messages.push({
-        role,
-        content: text,
-      });
+      const parts = content.parts || [];
+
+      if (parts.length === 1 && typeof parts[0].text === 'string') {
+        messages.push({
+          role,
+          content: parts[0].text,
+        });
+      } else {
+        const contentBlocks: any[] = [];
+        for (const part of parts) {
+          if (typeof part.text === 'string' && part.text) {
+            contentBlocks.push({ type: 'text', text: part.text });
+          } else if (part.inlineData && typeof part.inlineData === 'object') {
+            const mimeType = String(part.inlineData.mimeType || '');
+            const data = String(part.inlineData.data || '');
+            if (mimeType.startsWith('image/')) {
+              contentBlocks.push({
+                type: 'image_url',
+                image_url: {
+                  url: `data:${mimeType};base64,${data}`,
+                },
+              });
+            } else if (mimeType.startsWith('audio/')) {
+              const format = mimeType.split('/')[1] || 'wav';
+              contentBlocks.push({
+                type: 'input_audio',
+                input_audio: {
+                  format,
+                  data,
+                },
+              });
+            }
+          }
+        }
+        messages.push({
+          role,
+          content: contentBlocks,
+        });
+      }
     }
   }
 
@@ -370,8 +404,25 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
     const isStream = method === 'streamGenerateContent';
 
     const estimatedInputTokens = messages.reduce((sum, m) => {
-      const text = contentToString(m.content);
-      return sum + Math.ceil(text.length / 4);
+      let textLen = 0;
+      let mediaTokens = 0;
+      if (typeof m.content === 'string') {
+        textLen = m.content.length;
+      } else if (Array.isArray(m.content)) {
+        for (const block of m.content) {
+          if (block && typeof block === 'object') {
+            const b = block as any;
+            if (b.type === 'text' && typeof b.text === 'string') {
+              textLen += b.text.length;
+            } else if (b.type === 'image_url') {
+              mediaTokens += 258;
+            } else if (b.type === 'input_audio') {
+              mediaTokens += 500;
+            }
+          }
+        }
+      }
+      return sum + Math.ceil(textLen / 4) + mediaTokens;
     }, 0);
     const estimatedTotal = estimatedInputTokens + (max_tokens ?? 1000);
 
