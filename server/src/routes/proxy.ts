@@ -796,8 +796,14 @@ proxyRouter.post('/audio/speech', async (req: Request, res: Response) => {
         throw new Error('Gemini API did not return audio inlineData.');
       }
 
-      const audioBuffer = Buffer.from(candidatePart.inlineData.data, 'base64');
-      const mimeType = candidatePart.inlineData.mimeType || 'audio/mpeg';
+      let audioBuffer = Buffer.from(candidatePart.inlineData.data, 'base64');
+      let mimeType = candidatePart.inlineData.mimeType || 'audio/mpeg';
+
+      if (mimeType.includes('codec=pcm') || mimeType.includes('audio/L16')) {
+        const wavHeader = writeWavHeader(audioBuffer.length, 24000, 1, 16);
+        audioBuffer = Buffer.concat([wavHeader, audioBuffer]);
+        mimeType = 'audio/wav';
+      }
 
       const promptTokens = data.usageMetadata?.promptTokenCount || Math.ceil(input.length / 4);
       const completionTokens = data.usageMetadata?.candidatesTokenCount || 500;
@@ -873,4 +879,22 @@ function logRequest(
       }).catch(err => console.error('[Promo] Failed to find PromoUser:', err));
     }
   }
+}
+
+function writeWavHeader(pcmLength: number, sampleRate: number, numChannels: number, bitsPerSample: number): Buffer {
+  const header = Buffer.alloc(44);
+  header.write('RIFF', 0);
+  header.writeUInt32LE(36 + pcmLength, 4);
+  header.write('WAVE', 8);
+  header.write('fmt ', 12);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(numChannels, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(sampleRate * numChannels * (bitsPerSample / 8), 28);
+  header.writeUInt16LE(numChannels * (bitsPerSample / 8), 32);
+  header.writeUInt16LE(bitsPerSample, 34);
+  header.write('data', 36);
+  header.writeUInt32LE(pcmLength, 40);
+  return header;
 }
