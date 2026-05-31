@@ -136,13 +136,13 @@ export function getAllPenalties(): Array<{ modelDbId: string; count: number; pen
  * Route a request to the best available model.
  */
 export async function routeRequest(
-  estimatedTokens = 1000, 
-  skipKeys?: Set<string>, 
+  estimatedTokens = 1000,
+  skipKeys?: Set<string>,
   preferredModelDbId?: number | string,
   userId = 'local-dev-user-uid',
   requiredModality?: string
 ): Promise<RouteResult> {
-  
+
   if (isLocalDbEnabled()) {
     const db = getDb();
 
@@ -236,7 +236,7 @@ export async function routeRequest(
     if (isPromoActive) {
       const hasKeys = await ApiKey.exists({ userId, enabled: true, status: { $ne: 'invalid' } });
       const requestedPromo = preferredModelDbId === 'omnikey-promo' || preferredModelDbId === 'promo';
-      
+
       if (requestedPromo || !hasKeys) {
         usePromo = true;
         // Resolve all active funding admin IDs
@@ -430,7 +430,7 @@ export async function routeRequest(
   if (requiredModality && !isLocalDbEnabled()) {
     const hasKeys = await ApiKey.exists({ userId, enabled: true, status: { $ne: 'invalid' } });
     if (!hasKeys) {
-      const err = new Error('Multimodal capabilities (Vision, STT, TTS) are not available on the free promo tier. Please add your own API key under Keys page to use these features.') as any;
+      const err = new Error('Multimodal capabilities (Vision, STT, TTS) are not available on the free promo tier. Please add your own Gemini API key under Keys page to use these features.') as any;
       err.status = 403;
       throw err;
     }
