@@ -31,6 +31,7 @@ export default function DevCornerPage() {
   const [file, setFile] = useState<File | null>(null)
   const [filePreview, setFilePreview] = useState<string>('')
   const [audioOutputUrl, setAudioOutputUrl] = useState<string>('')
+  const [voice, setVoice] = useState<string>('alloy')
 
   // Fetch current unified API key
   const { data: keyData } = useQuery<{ apiKey: string; geminiApiKey: string }>({
@@ -370,7 +371,7 @@ async function generateSpeech() {
       body: JSON.stringify({
         model: '${selectedModel === 'auto' ? 'gemini-2.5-flash-preview-tts' : selectedModel}',
         input: '${userPrompt.replace(/'/g, "\\'")}',
-        voice: 'alloy'
+        voice: '${voice}'
       })
     });
 
@@ -528,7 +529,7 @@ generateSpeech();`
           body: JSON.stringify({
             model: selectedModel === 'auto' ? 'gemini-2.5-flash-preview-tts' : selectedModel,
             input: userPrompt,
-            voice: 'alloy'
+            voice: voice
           })
         })
       }
@@ -765,6 +766,25 @@ generateSpeech();`
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+            {mode === 'tts' && (
+              <div>
+                <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                  Voice Model
+                </label>
+                <select
+                  value={voice}
+                  onChange={e => setVoice(e.target.value)}
+                  className="w-full bg-background border rounded-lg h-8 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                >
+                  <option value="alloy">alloy (Kore - default)</option>
+                  <option value="echo">echo (Fenrir)</option>
+                  <option value="fable">fable (Aoede)</option>
+                  <option value="onyx">onyx (Charon)</option>
+                  <option value="nova">nova (Puck)</option>
+                  <option value="shimmer">shimmer (Aoede)</option>
+                </select>
               </div>
             )}
 
