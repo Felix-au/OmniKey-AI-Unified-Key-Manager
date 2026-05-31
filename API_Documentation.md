@@ -11,12 +11,15 @@
 - [Chat Completions Request Format](#chat-completions-request-format)
 - [Chat Completions Response Format](#chat-completions-response-format)
 - [Streaming Completions](#streaming-completions)
+- [Models Endpoint](#models-endpoint)
+- [Gemini-Compatible Request/Response Format](#gemini-compatible-requestresponse-format)
+- [Gemini Streaming Completions](#gemini-streaming-completions)
 - [Vision Modality (Multimodal)](#vision-modality-multimodal)
 - [Speech-to-Text (STT) Transcription](#speech-to-text-stt-transcription)
 - [Text-to-Speech (TTS) Synthesis](#text-to-speech-tts-synthesis)
-- [Promo Tier Restrictions \& Modalities](#promo-tier-restrictions-and-modalities)
-- [Models Endpoint](#models-endpoint)
+- [Promo Tier Restrictions & Modalities](#promo-tier-restrictions-and-modalities)
 - [Dashboard Management APIs](#dashboard-management-apis)
+- [Admin Console APIs](#admin-console-apis)
 - [Integration Examples](#integration-examples)
 
 ---
@@ -145,6 +148,32 @@ Returns a standard OpenAI completion envelope:
 }
 ```
 
+### Error Responses
+
+#### `401 Unauthorized`
+Unified key is missing or incorrect.
+```json
+{
+  "error": {
+    "message": "Unauthorized: Invalid API key",
+    "type": "invalid_request_error",
+    "code": "invalid_api_key"
+  }
+}
+```
+
+#### `429 Too Many Requests`
+All available provider keys are exhausted or rate-limited.
+```json
+{
+  "error": {
+    "message": "All providers exhausted or rate-limited for this model",
+    "type": "rate_limit_error",
+    "code": "model_rate_limited"
+  }
+}
+```
+
 ---
 
 ## Streaming Completions
@@ -157,6 +186,124 @@ data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288
 data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1677652288,"model":"auto","choices":[{"index":0,"delta":{"content":"!"},"finish_reason":"stop"}]}
 
 data: [DONE]
+```
+
+---
+
+## Models Endpoint
+
+**Endpoint:** `GET /v1/models`
+
+Returns list of all models currently active in your configuration.
+
+### Example Response
+
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "gemini-2.5-flash",
+      "object": "model",
+      "created": 1677652288,
+      "owned_by": "google"
+    },
+    {
+      "id": "llama-3.3-70b-versatile",
+      "object": "model",
+      "created": 1677652288,
+      "owned_by": "groq"
+    },
+    {
+      "id": "auto",
+      "object": "model",
+      "created": 1677652288,
+      "owned_by": "omnikey"
+    }
+  ]
+}
+```
+
+---
+
+## Gemini-Compatible Request/Response Format
+
+**Endpoint:** `POST /v1beta/models/:model:generateContent?key=omnikey-g-your-unified-gemini-key-here`
+
+### Request Body (JSON)
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `contents` | Array | Yes | Array of content objects representing message turns. |
+| `generationConfig` | Object | No | Configuration settings for model parameters (e.g. `temperature`, `maxOutputTokens`). |
+| `systemInstruction` | Object | No | System instruction to guide model responses. |
+
+### Contents Turn Structure
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `role` | String | Yes | Author role: `"user"` or `"model"`. |
+| `parts` | Array | Yes | List of part objects. Each part must contain a `"text"` property. |
+
+### Example Gemini Request Payload
+
+```json
+{
+  "contents": [
+    {
+      "role": "user",
+      "parts": [{"text": "Write a python function to compute fibonacci."}]
+    }
+  ],
+  "generationConfig": {
+    "temperature": 0.7,
+    "maxOutputTokens": 150
+  },
+  "systemInstruction": {
+    "parts": [{"text": "You are a helpful programming assistant."}]
+  }
+}
+```
+
+### Success Response (`200 OK`)
+
+Returns the normalized Gemini response structure:
+
+```json
+{
+  "candidates": [
+    {
+      "content": {
+        "role": "model",
+        "parts": [
+          {
+            "text": "Here is the fibonacci function:\n\n```python\ndef fib(n):\n    return n if n <= 1 else fib(n-1) + fib(n-2)\n```"
+          }
+        ]
+      },
+      "finishReason": "STOP"
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 25,
+    "candidatesTokenCount": 42,
+    "totalTokenCount": 67
+  }
+}
+```
+
+---
+
+## Gemini Streaming Completions
+
+**Endpoint:** `POST /v1beta/models/:model:streamGenerateContent?key=omnikey-g-your-unified-gemini-key-here`
+
+If requesting streaming, the response is delivered as a Server-Sent Events (SSE) stream of JSON candidate objects or a comma-separated array stream. Example SSE data chunk:
+
+```text
+data: {"candidates":[{"content":{"role":"model","parts":[{"text":"Hello"}]},"finishReason":null}],"usageMetadata":{"promptTokenCount":25,"candidatesTokenCount":5,"totalTokenCount":30}}
+
+data: {"candidates":[{"content":{"role":"model","parts":[{"text":"!"}]},"finishReason":"STOP"}],"usageMetadata":{"promptTokenCount":25,"candidatesTokenCount":6,"totalTokenCount":31}}
 ```
 
 ---
@@ -294,42 +441,6 @@ To prevent exhaustion of pooled admin resources, strict modality-based authoriza
 
 ---
 
-## Models Endpoint
-
-**Endpoint:** `GET /v1/models`
-
-Returns list of all models currently active in your configuration.
-
-### Example Response
-
-```json
-{
-  "object": "list",
-  "data": [
-    {
-      "id": "gemini-2.5-flash",
-      "object": "model",
-      "created": 1677652288,
-      "owned_by": "google"
-    },
-    {
-      "id": "llama-3.3-70b-versatile",
-      "object": "model",
-      "created": 1677652288,
-      "owned_by": "groq"
-    },
-    {
-      "id": "auto",
-      "object": "model",
-      "created": 1677652288,
-      "owned_by": "omnikey"
-    }
-  ]
-}
-```
-
----
-
 ## Dashboard Management APIs
 
 These local endpoints are used by the React frontend to update key databases and configurations:
@@ -360,6 +471,110 @@ A public endpoint used to ping the server to keep it active (e.g. preventing Ren
   "dbMode": "local"
 }
 ```
+
+### 4. Configuration Capability Discovery (`GET /api/config`)
+Retrieves capabilities of the host server environment configuration at runtime.
+**Response Shape (`200 OK`):**
+```json
+{
+  "cloudDbAvailable": true,
+  "defaultLocalMode": false
+}
+```
+
+### 5. Client-Side Multi-Agent Orchestration (Debate Arena)
+The frontend Debate Arena orchestrates multi-agent debates entirely on the client side using standard sequential calls to `/v1/chat/completions`. Under the hood, the client dynamically maps and sanitizes prompt arrays to satisfy strict provider requirements (e.g., merging consecutive identical roles into a single message, ensuring alternating `user`/`assistant` structures, and forcing the history list to end with a `user` role).
+
+---
+
+## Admin Console APIs (`/api/admin`)
+
+These endpoints manage administrative actions and overall dashboard statistics:
+
+### 1. Admin Login (`POST /api/admin/login`)
+Verify credentials and create an in-memory session token.
+* **Payload:**
+```json
+{
+  "username": "admin",
+  "password": "your-password"
+}
+```
+* **Response Shape (`200 OK`):**
+```json
+{
+  "success": true,
+  "token": "admin-session-token-uuid"
+}
+```
+
+### 2. Admin Overall Statistics (`GET /api/admin/stats`)
+Fetch comprehensive stats on platform usage, latency distribution, top errors, model catalogs, and active developer records. Requires header `Authorization: Bearer <admin-session-token-uuid>`.
+* **Response Shape (`200 OK`):**
+```json
+{
+  "success": true,
+  "system": {
+    "totalUsers": 2,
+    "totalKeys": 5,
+    "activeKeys": 4,
+    "totalRequests": 1200,
+    "successRate": 99.2,
+    "overallCostSaved": 4.524,
+    "averageCostSavedPerRequest": 0.00377,
+    "averageLatencyMs": 420
+  },
+  "platformBreakdown": [
+    {
+      "platform": "google",
+      "totalRequests": 800,
+      "successRate": 99.5,
+      "tokensProcessed": 1200000,
+      "avgLatencyMs": 350,
+      "costSaved": 3.25
+    }
+  ],
+  "recentLogs": [
+    {
+      "createdAt": "2026-05-24T18:43:00.000Z",
+      "platform": "google",
+      "modelId": "gemini-2.5-flash",
+      "status": "success",
+      "latencyMs": 320,
+      "inputTokens": 1000,
+      "outputTokens": 2000,
+      "error": null,
+      "userId": "user-uid",
+      "userEmail": "developer@example.com"
+    }
+  ]
+}
+```
+*Note: The frontend dashboard converts and renders the `overallCostSaved` and `averageCostSavedPerRequest` values to INR (Rupees ₹) at a rate of 83 INR/USD.*
+
+### 3. Update Admin Credentials (`POST /api/admin/change-credentials`)
+Updates admin login credentials. Passwords are deterministic HMAC-SHA256 hashed on persistence. Requires Bearer Admin Token.
+* **Payload:**
+```json
+{
+  "newUsername": "admin",
+  "newPassword": "newPassword123"
+}
+```
+
+### 4. Toggle Model Status (`POST /api/admin/toggle-model`)
+Enables or disables a model globally across proxy routers. Requires Bearer Admin Token.
+* **Payload:**
+```json
+{
+  "platform": "google",
+  "modelId": "gemini-2.5-flash",
+  "enabled": false
+}
+```
+
+### 5. Flush Logs (`POST /api/admin/flush-logs`)
+Wipes audit log directory. Requires Bearer Admin Token.
 
 ---
 
@@ -405,6 +620,35 @@ fs.writeFileSync('speech.wav', buffer);
 console.log('Audio file saved to speech.wav');
 ```
 
+### Node.js (Google Gen AI SDK)
+```javascript
+import { GoogleGenAI } from '@google/genai';
+
+const ai = new GoogleGenAI({
+  apiKey: 'omnikey-g-your-unified-gemini-key-here',
+  // Configure endpoint to point to the local proxy
+  baseUrl: 'http://localhost:3001'
+});
+
+const response = await ai.models.generateContent({
+  model: 'gemini-2.5-flash',
+  contents: 'Explain APIs like I am five.',
+});
+
+console.log(response.text);
+```
+
+### cURL (OpenAI Compatible Text Chat)
+```bash
+curl http://localhost:3001/v1/chat/completions \
+  -H "Authorization: Bearer omnikey-your-unified-openai-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "auto",
+    "messages": [{"role": "user", "content": "Hello world!"}]
+  }'
+```
+
 ### cURL (Speech-to-Text Audio Transcription)
 ```bash
 curl http://localhost:3001/v1/audio/transcriptions \
@@ -413,8 +657,22 @@ curl http://localhost:3001/v1/audio/transcriptions \
   -F "model=gemini-2.5-flash"
 ```
 
+### cURL (Gemini Compatible)
+```bash
+curl -X POST "http://localhost:3001/v1beta/models/gemini-2.5-flash:generateContent?key=omnikey-g-your-unified-gemini-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contents": [
+      {
+        "role": "user",
+        "parts": [{"text": "Hello world!"}]
+      }
+    ]
+  }'
+```
+
 ---
 
 <p align="center">
-  <sub>Built for developers who want a single, smart API key for high-performance AI routing.</sub>
+  <sub>Built for developers who want a single, smart API key for a billion free LLM tokens.</sub>
 </p>
