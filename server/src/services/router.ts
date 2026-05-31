@@ -272,6 +272,16 @@ export async function routeRequest(
       }).sort((a, b) => a.effectivePriority - b.effectivePriority);
     }
 
+    // Sticky session (Cloud Mode)
+    if (preferredModelDbId) {
+      const preferredStr = preferredModelDbId.toString();
+      const idx = chainToUse.findIndex(item => item.model?._id?.toString() === preferredStr);
+      if (idx > 0) {
+        const [preferred] = chainToUse.splice(idx, 1);
+        chainToUse.unshift(preferred);
+      }
+    }
+
     for (const item of chainToUse) {
       const model = item.model;
       if (!model || !model.enabled) continue;
