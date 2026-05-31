@@ -38,9 +38,9 @@ Authorization: Bearer omnikey-your-unified-openai-key-here
 ### 2. Gemini-Compatible Format
 * **Key Prefix**: `omnikey-g-[32-byte-hex-string]`
 * **Method**: Pass as the `key` query-string parameter.
-```text
-http://localhost:3001/v1beta/models/...:generateContent?key=omnikey-g-your-unified-gemini-key-here
-```
+* **Examples**:
+  * **Local**: `http://localhost:3001/v1beta/models/...:generateContent?key=omnikey-g-your-key`
+  * **Production**: `https://omnikey-ai-unified-key-manager.onrender.com/v1beta/models/...:generateContent?key=omnikey-g-your-key`
 
 > [!WARNING]
 > Requests without a valid API key, or containing an incorrect token, will receive a `401 Unauthorized` response.
@@ -48,6 +48,10 @@ http://localhost:3001/v1beta/models/...:generateContent?key=omnikey-g-your-unifi
 ---
 
 ## Endpoints
+
+### Base URL Endpoints
+* **Local Development**: `http://localhost:3001`
+* **Online Production Deployment**: `https://omnikey-ai-unified-key-manager.onrender.com`
 
 | HTTP Method | Path | Description | Access | Modality Code |
 |---|---|---|---|---|
@@ -586,6 +590,8 @@ import OpenAI from 'openai';
 
 const openai = new OpenAI({
   apiKey: 'omnikey-your-unified-openai-key-here',
+  // Local: 'http://localhost:3001/v1'
+  // Production: 'https://omnikey-ai-unified-key-manager.onrender.com/v1'
   baseURL: 'http://localhost:3001/v1'
 });
 
@@ -602,6 +608,8 @@ console.log(chatCompletion.choices[0].message.content);
 import fetch from 'node-fetch';
 import fs from 'fs';
 
+// Local: 'http://localhost:3001/v1/audio/speech'
+// Production: 'https://omnikey-ai-unified-key-manager.onrender.com/v1/audio/speech'
 const response = await fetch('http://localhost:3001/v1/audio/speech', {
   method: 'POST',
   headers: {
@@ -626,7 +634,8 @@ import { GoogleGenAI } from '@google/genai';
 
 const ai = new GoogleGenAI({
   apiKey: 'omnikey-g-your-unified-gemini-key-here',
-  // Configure endpoint to point to the local proxy
+  // Local: 'http://localhost:3001'
+  // Production: 'https://omnikey-ai-unified-key-manager.onrender.com'
   baseUrl: 'http://localhost:3001'
 });
 
@@ -640,6 +649,8 @@ console.log(response.text);
 
 ### cURL (OpenAI Compatible Text Chat)
 ```bash
+# Local: http://localhost:3001/v1/chat/completions
+# Production: https://omnikey-ai-unified-key-manager.onrender.com/v1/chat/completions
 curl http://localhost:3001/v1/chat/completions \
   -H "Authorization: Bearer omnikey-your-unified-openai-key-here" \
   -H "Content-Type: application/json" \
@@ -651,6 +662,8 @@ curl http://localhost:3001/v1/chat/completions \
 
 ### cURL (Speech-to-Text Audio Transcription)
 ```bash
+# Local: http://localhost:3001/v1/audio/transcriptions
+# Production: https://omnikey-ai-unified-key-manager.onrender.com/v1/audio/transcriptions
 curl http://localhost:3001/v1/audio/transcriptions \
   -H "Authorization: Bearer omnikey-your-unified-openai-key-here" \
   -F "file=@/path/to/speech.wav" \
@@ -659,6 +672,8 @@ curl http://localhost:3001/v1/audio/transcriptions \
 
 ### cURL (Gemini Compatible)
 ```bash
+# Local: http://localhost:3001/v1beta/models/...:generateContent?key=...
+# Production: https://omnikey-ai-unified-key-manager.onrender.com/v1beta/models/...:generateContent?key=...
 curl -X POST "http://localhost:3001/v1beta/models/gemini-2.5-flash:generateContent?key=omnikey-g-your-unified-gemini-key-here" \
   -H "Content-Type: application/json" \
   -d '{
