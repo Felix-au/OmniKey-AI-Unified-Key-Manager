@@ -28,6 +28,7 @@ export default function DevCornerPage() {
   const [executing, setExecuting] = useState(false)
   const [copied, setCopied] = useState(false)
   const [apiFormat, setApiFormat] = useState<'openai' | 'gemini'>('openai')
+  const [selectedLang, setSelectedLang] = useState<'javascript' | 'python' | 'go' | 'rust' | 'curl'>('javascript')
   const [file, setFile] = useState<File | null>(null)
   const [filePreview, setFilePreview] = useState<string>('')
   const [audioOutputUrl, setAudioOutputUrl] = useState<string>('')
@@ -130,11 +131,12 @@ export default function DevCornerPage() {
     setFilePreview('')
   }
 
-  // Compile dynamic JavaScript snippets
+  // Compile dynamic SDK code snippets
   let jsCodeSnippet = ''
-  if (mode === 'chat') {
-    jsCodeSnippet = apiFormat === 'openai'
-      ? `// OmniKey AI Unified Request Example
+  if (selectedLang === 'javascript') {
+    if (mode === 'chat') {
+      jsCodeSnippet = apiFormat === 'openai'
+        ? `// OmniKey AI Unified Request Example
 const apiKey = '${apiKey}';
 const endpoint = '${completionEndpoint}';
 
@@ -189,7 +191,7 @@ async function generateCompletion() {
 }
 
 generateCompletion();`
-      : `// OmniKey AI Unified Request Example (Gemini Format)
+        : `// OmniKey AI Unified Request Example (Gemini Format)
 const apiKey = '${apiKey}';
 const endpoint = '${completionEndpoint}';
 
@@ -243,9 +245,9 @@ async function generateCompletion() {
 }
 
 generateCompletion();`
-  } else if (mode === 'vision') {
-    jsCodeSnippet = apiFormat === 'openai'
-      ? `// OmniKey AI Unified Vision Request Example
+    } else if (mode === 'vision') {
+      jsCodeSnippet = apiFormat === 'openai'
+        ? `// OmniKey AI Unified Vision Request Example
 const apiKey = '${apiKey}';
 const endpoint = '${completionEndpoint}';
 
@@ -287,7 +289,7 @@ async function generateVisionCompletion() {
 }
 
 generateVisionCompletion();`
-      : `// OmniKey AI Unified Vision Request Example (Gemini Format)
+        : `// OmniKey AI Unified Vision Request Example (Gemini Format)
 const apiKey = '${apiKey}';
 const endpoint = '${completionEndpoint}';
 
@@ -330,8 +332,8 @@ async function generateVisionCompletion() {
 }
 
 generateVisionCompletion();`
-  } else if (mode === 'stt') {
-    jsCodeSnippet = `// OmniKey AI Speech-to-Text (STT) Request Example
+    } else if (mode === 'stt') {
+      jsCodeSnippet = `// OmniKey AI Speech-to-Text (STT) Request Example
 const apiKey = '${apiKey}';
 const endpoint = '${completionEndpoint}';
 
@@ -355,8 +357,8 @@ async function transcribeAudio(audioBlob) {
     console.error('Transcription failed:', error);
   }
 }`
-  } else if (mode === 'tts') {
-    jsCodeSnippet = `// OmniKey AI Text-to-Speech (TTS) Request Example
+    } else if (mode === 'tts') {
+      jsCodeSnippet = `// OmniKey AI Text-to-Speech (TTS) Request Example
 const apiKey = '${apiKey}';
 const endpoint = '${completionEndpoint}';
 
@@ -387,7 +389,207 @@ async function generateSpeech() {
 }
 
 generateSpeech();`
-  }
+    }
+  } else if (selectedLang === 'python') {
+    if (mode === 'chat') {
+      jsCodeSnippet = apiFormat === 'openai'
+        ? `# OmniKey AI Unified Request Example
+import openai
+
+client = openai.OpenAI(
+    base_url='${baseApiUrl}/v1',
+    api_key='${apiKey}'
+)
+
+try:
+    response = client.chat.completions.create(
+        model='${selectedModel}',
+        messages=[
+            ${systemPrompt ? `{"role": "system", "content": "${systemPrompt.replace(/'/g, "\\'")}"},` : ''}
+            {"role": "user", "content": "${userPrompt.replace(/'/g, "\\'")}"}
+        ],
+        temperature=${temperature},
+        ${maxTokens ? `max_tokens=${maxTokens},` : ''}
+        ${topP < 1.0 ? `top_p=${topP},` : ''}
+        stream=${stream ? 'True' : 'False'}
+    )
+
+    if ${stream ? 'True' : 'False'}:
+        print("--- Streaming Response ---")
+        for chunk in response:
+            content = chunk.choices[0].delta.content
+            if content:
+                print(content, end="", flush=True)
+        print()
+    else:
+        print("Response content:", response.choices[0].message.content)
+except Exception as e:
+    print("Request failed:", e)`
+        : `# OmniKey AI Unified Request Example (Gemini Format)
+import requests
+import json
+
+endpoint = '${completionEndpoint}'
+apiKey = '${apiKey}'
+url = f"{endpoint}?key={apiKey}${stream ? '&alt=sse' : ''}"
+
+payload = {
+    "contents": [
+        {"role": "user", "parts": [{"text": "${userPrompt.replace(/'/g, "\\'")}"}]}
+    ],
+    ${systemPrompt ? `"systemInstruction": {"parts": [{"text": "${systemPrompt.replace(/'/g, "\\'")}"}]},` : ''}
+    "generationConfig": {
+        "temperature": ${temperature},
+        ${maxTokens ? `"maxOutputTokens": ${maxTokens},` : ''}
+        ${topP < 1.0 ? `"topP": ${topP},` : ''}
+    }
+}
+
+try:
+    headers = {"Content-Type": "application/json"}
+    if ${stream ? 'True' : 'False'}:
+        response = requests.post(url, headers=headers, json=payload, stream=True)
+        print("--- Streaming Response (SSE) ---")
+        for line in response.iter_lines():
+            if line:
+                line_str = line.decode('utf-8')
+                if line_str.startswith('data: '):
+                    try:
+                        parsed = json.loads(line_str[6:])
+                        text = parsed['candidates'][0]['content']['parts'][0]['text']
+                        print(text, end="", flush=True)
+                    except Exception:
+                        pass
+        print()
+    else:
+        response = requests.post(url, headers=headers, json=payload)
+        data = response.json()
+        print("Response content:", data['candidates'][0]['content']['parts'][0]['text'])
+except Exception as e:
+    print("Request failed:", e)`
+    } else if (mode === 'vision') {
+      jsCodeSnippet = apiFormat === 'openai'
+        ? `# OmniKey AI Unified Vision Request Example
+import openai
+import base64
+
+client = openai.OpenAI(
+    base_url='${baseApiUrl}/v1',
+    api_key='${apiKey}'
+)
+
+def encode_image(image_path):
+    with open(image_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode('utf-8')
+
+# base64_image = encode_image("path_to_image.jpg")
+base64_image = "..."
+
+try:
+    response = client.chat.completions.create(
+        model='${selectedModel}',
+        messages=[
+            ${systemPrompt ? `{"role": "system", "content": "${systemPrompt.replace(/'/g, "\\'")}"},` : ''}
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "${userPrompt.replace(/'/g, "\\'")}"},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_image}"
+                        }
+                    }
+                ]
+            }
+        ],
+        temperature=${temperature}
+    )
+    print("Response content:", response.choices[0].message.content)
+except Exception as e:
+    print("Vision request failed:", e)`
+        : `# OmniKey AI Unified Vision Request Example (Gemini Format)
+import requests
+import base64
+
+endpoint = '${completionEndpoint}'
+apiKey = '${apiKey}'
+url = f"{endpoint}?key={apiKey}"
+
+# base64_image = "..."
+
+payload = {
+    "contents": [
+        {
+            "role": "user",
+            "parts": [
+                {"text": "${userPrompt.replace(/'/g, "\\'")}"},
+                {
+                    "inlineData": {
+                        "mimeType": "image/jpeg",
+                        "data": "..." # Base64 image payload
+                    }
+                }
+            ]
+        }
+    ],
+    ${systemPrompt ? `"systemInstruction": {"parts": [{"text": "${systemPrompt.replace(/'/g, "\\'")}"}]},` : ''}
+    "generationConfig": {
+        "temperature": ${temperature}
+    }
+}
+
+try:
+    headers = {
+        "Content-Type": "application/json",
+        "X-Required-Modality": "vision"
+    }
+    response = requests.post(url, headers=headers, json=payload)
+    data = response.json()
+    print("Response content:", data['candidates'][0]['content']['parts'][0]['text'])
+except Exception as e:
+    print("Vision request failed:", e)`
+    } else if (mode === 'stt') {
+      jsCodeSnippet = `# OmniKey AI Speech-to-Text (STT) Request Example
+import requests
+
+endpoint = '${completionEndpoint}'
+apiKey = '${apiKey}'
+
+# with open("speech.wav", "rb") as audio_file:
+#     files = {"file": ("speech.wav", audio_file, "audio/wav")}
+#     data = {"model": "${selectedModel === 'auto' ? 'gemini-2.5-flash' : selectedModel}"}
+#     headers = {"Authorization": f"Bearer {apiKey}"}
+#     response = requests.post(endpoint, headers=headers, files=files, data=data)
+#     print("Transcription:", response.json().get("text"))`
+    } else if (mode === 'tts') {
+      jsCodeSnippet = `# OmniKey AI Text-to-Speech (TTS) Request Example
+import requests
+
+endpoint = '${completionEndpoint}'
+apiKey = '${apiKey}'
+
+payload = {
+    "model": "${selectedModel === 'auto' ? 'gemini-2.5-flash-preview-tts' : selectedModel}",
+    "input": "${userPrompt.replace(/'/g, "\\'")}",
+    "voice": "${voice}"
+}
+
+try:
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {apiKey}"
+    }
+    response = requests.post(endpoint, headers=headers, json=payload)
+    if response.status_code == 200:
+        with open("speech.mp3", "wb") as f:
+            f.write(response.content)
+        print("Audio saved successfully to speech.mp3")
+    else:
+        print("Failed to generate speech:", response.json())
+except Exception as e:
+    print("Speech generation failed:", e)`
+    }
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(jsCodeSnippet)
@@ -895,14 +1097,27 @@ generateSpeech();`
                 <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Dynamic SDK Code Snippet</h4>
                 <p className="text-[10px] text-muted-foreground">Auto-compiles instantly as request parameters change.</p>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={copyToClipboard}
-                className="text-[10px] font-bold py-1 px-3 h-auto text-violet-400 border-violet-500/20 hover:border-violet-500/40 bg-violet-950/10 hover:bg-violet-950/20 rounded-lg shrink-0"
-              >
-                {copied ? 'Copied!' : 'Copy Script'}
-              </Button>
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedLang}
+                  onChange={e => setSelectedLang(e.target.value as any)}
+                  className="bg-background border rounded-lg h-7 px-2 text-[10px] font-semibold uppercase tracking-wider focus:outline-none focus:ring-1 focus:ring-ring"
+                >
+                  <option value="javascript">JavaScript</option>
+                  <option value="python">Python</option>
+                  <option value="go">Go</option>
+                  <option value="rust">Rust</option>
+                  <option value="curl">cURL</option>
+                </select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={copyToClipboard}
+                  className="text-[10px] font-bold py-1 px-3 h-7 text-violet-400 border-violet-500/20 hover:border-violet-500/40 bg-violet-950/10 hover:bg-violet-950/20 rounded-lg shrink-0"
+                >
+                  {copied ? 'Copied!' : 'Copy Script'}
+                </Button>
+              </div>
             </div>
             <div className="flex-1 min-h-0 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-900 overflow-auto p-4 text-left">
               <pre className="text-[11px] font-mono leading-relaxed text-indigo-950 dark:text-indigo-200 whitespace-pre">
