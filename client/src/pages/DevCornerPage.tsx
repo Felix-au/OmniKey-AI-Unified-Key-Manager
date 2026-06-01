@@ -590,6 +590,285 @@ try:
 except Exception as e:
     print("Speech generation failed:", e)`
     }
+  } else if (selectedLang === 'go') {
+    if (mode === 'chat') {
+      jsCodeSnippet = apiFormat === 'openai'
+        ? `package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+func main() {
+    apiKey := "${apiKey}"
+    endpoint := "${completionEndpoint}"
+
+    payload := map[string]interface{}{
+        "model": "${selectedModel}",
+        "messages": []map[string]string{
+            ${systemPrompt ? `{"role": "system", "content": "${systemPrompt.replace(/'/g, "\\'")}"},` : ''}
+            {"role": "user", "content": "${userPrompt.replace(/'/g, "\\'")}"},
+        },
+        "temperature": ${temperature},
+        ${maxTokens ? `"max_tokens": ${maxTokens},` : ''}
+        ${topP < 1.0 ? `"top_p": ${topP},` : ''}
+        "stream": ${stream},
+    }
+
+    jsonPayload, _ := json.Marshal(payload)
+    req, _ := http.NewRequest("POST", endpoint, bytes.NewBuffer(jsonPayload))
+    req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("Authorization", "Bearer "+apiKey)
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        fmt.Println("Error:", err)
+        return
+    }
+    defer resp.Body.Close()
+
+    body, _ := io.ReadAll(resp.Body)
+    fmt.Println("Response:", string(body))
+}`
+        : `package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+func main() {
+    apiKey := "${apiKey}"
+    endpoint := "${completionEndpoint}"
+    url := endpoint + "?key=" + apiKey
+
+    payload := map[string]interface{}{
+        "contents": []map[string]interface{}{
+            {
+                "role": "user",
+                "parts": []map[string]string{
+                    {"text": "${userPrompt.replace(/'/g, "\\'")}"},
+                },
+            },
+        },
+        ${systemPrompt ? `"systemInstruction": map[string]interface{}{"parts": []map[string]string{{"text": "${systemPrompt.replace(/'/g, "\\'")}"}}},` : ''}
+        "generationConfig": map[string]interface{}{
+            "temperature": ${temperature},
+            ${maxTokens ? `"maxOutputTokens": ${maxTokens},` : ''}
+            ${topP < 1.0 ? `"topP": ${topP},` : ''}
+        },
+    }
+
+    jsonPayload, _ := json.Marshal(payload)
+    req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonPayload))
+    req.Header.Set("Content-Type", "application/json")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        fmt.Println("Error:", err)
+        return
+    }
+    defer resp.Body.Close()
+
+    body, _ := io.ReadAll(resp.Body)
+    fmt.Println("Response:", string(body))
+}`
+    } else if (mode === 'vision') {
+      jsCodeSnippet = apiFormat === 'openai'
+        ? `package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+func main() {
+    apiKey := "${apiKey}"
+    endpoint := "${completionEndpoint}"
+
+    payload := map[string]interface{}{
+        "model": "${selectedModel}",
+        "messages": []map[string]interface{}{
+            ${systemPrompt ? `map[string]interface{}{"role": "system", "content": "${systemPrompt.replace(/'/g, "\\'")}"},` : ''}
+            map[string]interface{}{
+                "role": "user",
+                "content": []map[string]interface{}{
+                    {"type": "text", "text": "${userPrompt.replace(/'/g, "\\'")}"},
+                    {"type": "image_url", "image_url": map[string]string{"url": "data:image/jpeg;base64,..."}},
+                },
+            },
+        },
+        "temperature": ${temperature},
+    }
+
+    jsonPayload, _ := json.Marshal(payload)
+    req, _ := http.NewRequest("POST", endpoint, bytes.NewBuffer(jsonPayload))
+    req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("Authorization", "Bearer "+apiKey)
+    req.Header.Set("X-Required-Modality", "vision")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        fmt.Println("Error:", err)
+        return
+    }
+    defer resp.Body.Close()
+
+    body, _ := io.ReadAll(resp.Body)
+    fmt.Println("Response:", string(body))
+}`
+        : `package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+func main() {
+    apiKey := "${apiKey}"
+    endpoint := "${completionEndpoint}"
+    url := endpoint + "?key=" + apiKey
+
+    payload := map[string]interface{}{
+        "contents": []map[string]interface{}{
+            {
+                "role": "user",
+                "parts": []map[string]interface{}{
+                    {"text": "${userPrompt.replace(/'/g, "\\'")}"},
+                    map[string]interface{}{
+                        "inlineData": map[string]string{
+                            "mimeType": "image/jpeg",
+                            "data": "...",
+                        },
+                    },
+                },
+            },
+        },
+        ${systemPrompt ? `"systemInstruction": map[string]interface{}{"parts": []map[string]string{{"text": "${systemPrompt.replace(/'/g, "\\'")}"}}},` : ''}
+        "generationConfig": map[string]interface{}{
+            "temperature": ${temperature},
+        },
+    }
+
+    jsonPayload, _ := json.Marshal(payload)
+    req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonPayload))
+    req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("X-Required-Modality", "vision")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        fmt.Println("Error:", err)
+        return
+    }
+    defer resp.Body.Close()
+
+    body, _ := io.ReadAll(resp.Body)
+    fmt.Println("Response:", string(body))
+}`
+    } else if (mode === 'stt') {
+      jsCodeSnippet = `package main
+
+import (
+    "bytes"
+    "fmt"
+    "io"
+    "mime/multipart"
+    "net/http"
+)
+
+func main() {
+    apiKey := "${apiKey}"
+    endpoint := "${completionEndpoint}"
+
+    body := &bytes.Buffer{}
+    writer := multipart.NewWriter(body)
+    
+    fileWriter, _ := writer.CreateFormFile("file", "speech.wav")
+    // file, _ := os.Open("speech.wav")
+    // io.Copy(fileWriter, file)
+    
+    writer.WriteField("model", "${selectedModel === 'auto' ? 'gemini-2.5-flash' : selectedModel}")
+    writer.Close()
+
+    req, _ := http.NewRequest("POST", endpoint, body)
+    req.Header.Set("Content-Type", writer.FormDataContentType())
+    req.Header.Set("Authorization", "Bearer "+apiKey)
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        fmt.Println("Error:", err)
+        return
+    }
+    defer resp.Body.Close()
+
+    respBody, _ := io.ReadAll(resp.Body)
+    fmt.Println("Response:", string(respBody))
+}`
+    } else if (mode === 'tts') {
+      jsCodeSnippet = `package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+    "os"
+)
+
+func main() {
+    apiKey := "${apiKey}"
+    endpoint := "${completionEndpoint}"
+
+    payload := map[string]interface{}{
+        "model": "${selectedModel === 'auto' ? 'gemini-2.5-flash-preview-tts' : selectedModel}",
+        "input": "${userPrompt.replace(/'/g, "\\'")}",
+        "voice": "${voice}",
+    }
+
+    jsonPayload, _ := json.Marshal(payload)
+    req, _ := http.NewRequest("POST", endpoint, bytes.NewBuffer(jsonPayload))
+    req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("Authorization", "Bearer "+apiKey)
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        fmt.Println("Error:", err)
+        return
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode == 250 || resp.StatusCode == 200 {
+        outFile, _ := os.Create("speech.mp3")
+        defer outFile.Close()
+        io.Copy(outFile, resp.Body)
+        fmt.Println("Audio saved to speech.mp3")
+    } else {
+        body, _ := io.ReadAll(resp.Body)
+        fmt.Println("Error response:", string(body))
+    }
+}`
+    }
+  }
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(jsCodeSnippet)
