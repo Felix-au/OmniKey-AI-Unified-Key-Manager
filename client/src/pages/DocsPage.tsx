@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Helmet } from 'react-helmet-async'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
@@ -67,6 +68,10 @@ export default function DocsPage() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: bg }}>
+      <Helmet>
+        <title>API Reference | OmniKey AI Documentation</title>
+        <meta name="description" content="Detailed API reference for OmniKey AI. Learn about authentication, endpoints, model configurations, streaming, audio integrations, and usage guidelines." />
+      </Helmet>
 
       {/* ── Navbar ── */}
       <header style={{ position: 'sticky', top: 0, zIndex: 50, backgroundColor: navBg, borderBottom: `1px solid ${border}`, backdropFilter: 'blur(12px)' }}>

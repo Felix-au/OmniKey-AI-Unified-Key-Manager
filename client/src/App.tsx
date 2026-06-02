@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { Helmet } from 'react-helmet-async'
 import { AuthProvider, useAuth } from '@/lib/AuthContext'
 import LoginPage from '@/pages/LoginPage'
 import KeysPage from '@/pages/KeysPage'
@@ -405,11 +406,74 @@ function DashboardLayout() {
   )
 }
 
+function RouteMeta() {
+  const location = useLocation()
+  
+  // Map paths to titles and descriptions
+  let title = 'OmniKey AI - Unified Key Manager'
+  let description = 'Route requests across Gemini, Groq, Mistral, and more with automatic fallbacks for 100% uptime.'
+
+  switch (location.pathname) {
+    case '/':
+      title = 'OmniKey AI - One Key. Every Model.'
+      description = 'Route requests across Gemini, Groq, Mistral, and more with automatic fallbacks for 100% uptime. Explore our API proxy gateway with Groq fallback routing and free Gemini API failover.'
+      break
+    case '/playground':
+      title = 'Playground | OmniKey AI'
+      description = 'Test chat completions, streaming, and model properties in the interactive OmniKey AI playground.'
+      break
+    case '/compare':
+      title = 'Side-by-Side Arena | OmniKey AI'
+      description = 'Compare model output latency, response tokens, and cost efficiency across multiple platforms side-by-side.'
+      break
+    case '/debate':
+      title = 'Debate Arena | OmniKey AI'
+      description = 'Watch two AI models debate complex topics, moderated by a third AI judge model in real-time.'
+      break
+    case '/keys':
+      title = 'Provider Keys Configuration | OmniKey AI'
+      description = 'Configure developer API keys for Google Gemini, Groq, Cerebras, SambaNova, NVIDIA, and other upstream providers.'
+      break
+    case '/fallback':
+      title = 'Smart Fallback Chain | OmniKey AI'
+      description = 'Set up model routing priorities and automatic provider failover lists to guarantee zero application downtime.'
+      break
+    case '/analytics':
+      title = 'Analytics & Costs Dashboard | OmniKey AI'
+      description = 'Track real-time request latencies, success rates, token usage, and cost savings metrics.'
+      break
+    case '/models':
+      title = 'Supported Models Catalog | OmniKey AI'
+      description = 'Explore the catalog of 60+ unified models available for chat completions and audio synthesis.'
+      break
+    case '/dev-corner':
+      title = 'Developer Integration Corner | OmniKey AI'
+      description = 'View ready-to-use SDK code blocks and cURL commands for seamless backend integrations.'
+      break
+    case '/docs':
+      title = 'API Reference | OmniKey AI Documentation'
+      description = 'Detailed API reference for OmniKey AI. Learn about authentication, endpoints, model configurations, streaming, audio integrations, and usage guidelines.'
+      break
+    case '/admin':
+      title = 'Admin Console | OmniKey AI'
+      description = 'Global administrator settings, key statistics, logs, and gateway credentials configurations.'
+      break
+  }
+
+  return (
+    <Helmet>
+      <title>{title}</title>
+      <meta name="description" content={description} />
+    </Helmet>
+  )
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter basename={import.meta.env.BASE_URL}>
+          <RouteMeta />
           <Routes>
             <Route path="/"       element={<LandingPage />} />
             <Route path="/docs"  element={<DocsPage />} />
