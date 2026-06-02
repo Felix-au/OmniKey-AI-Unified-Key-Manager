@@ -868,6 +868,213 @@ func main() {
     }
 }`
     }
+  } else if (selectedLang === 'rust') {
+    if (mode === 'chat') {
+      jsCodeSnippet = apiFormat === 'openai'
+        ? `use reqwest::Client;
+use serde_json::json;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let api_key = "${apiKey}";
+    let endpoint = "${completionEndpoint}";
+
+    let payload = json!({
+        "model": "${selectedModel}",
+        "messages": [
+            ${systemPrompt ? `{"role": "system", "content": "${systemPrompt.replace(/'/g, "\\'")}"},` : ''}
+            {"role": "user", "content": "${userPrompt.replace(/'/g, "\\'")}"}
+        ],
+        "temperature": ${temperature},
+        ${maxTokens ? `"max_tokens": ${maxTokens},` : ''}
+        ${topP < 1.0 ? `"top_p": ${topP},` : ''}
+        "stream": ${stream}
+    });
+
+    let client = Client::new();
+    let res = client.post(endpoint)
+        .header("Authorization", format!("Bearer {}", api_key))
+        .json(&payload)
+        .send()
+        .await?;
+
+    let body = res.text().await?;
+    println!("Response: {}", body);
+    Ok(())
+}`
+        : `use reqwest::Client;
+use serde_json::json;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let api_key = "${apiKey}";
+    let endpoint = "${completionEndpoint}";
+    let url = format!("{}?key={}", endpoint, api_key);
+
+    let payload = json!({
+        "contents": [
+            {
+                "role": "user",
+                "parts": [{"text": "${userPrompt.replace(/'/g, "\\'")}"}]
+            }
+        ],
+        ${systemPrompt ? `"systemInstruction": {"parts": [{"text": "${systemPrompt.replace(/'/g, "\\'")}"}]},` : ''}
+        "generationConfig": {
+            "temperature": ${temperature},
+            ${maxTokens ? `"maxOutputTokens": ${maxTokens},` : ''}
+            ${topP < 1.0 ? `"topP": ${topP}` : ''}
+        }
+    });
+
+    let client = Client::new();
+    let res = client.post(&url)
+        .json(&payload)
+        .send()
+        .await?;
+
+    let body = res.text().await?;
+    println!("Response: {}", body);
+    Ok(())
+}`
+    } else if (mode === 'vision') {
+      jsCodeSnippet = apiFormat === 'openai'
+        ? `use reqwest::Client;
+use serde_json::json;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let api_key = "${apiKey}";
+    let endpoint = "${completionEndpoint}";
+
+    let payload = json!({
+        "model": "${selectedModel}",
+        "messages": [
+            ${systemPrompt ? `{"role": "system", "content": "${systemPrompt.replace(/'/g, "\\'")}"},` : ''}
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "${userPrompt.replace(/'/g, "\\'")}"},
+                    {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,..."}}
+                ]
+            }
+        ],
+        "temperature": ${temperature}
+    });
+
+    let client = Client::new();
+    let res = client.post(endpoint)
+        .header("Authorization", format!("Bearer {}", api_key))
+        .header("X-Required-Modality", "vision")
+        .json(&payload)
+        .send()
+        .await?;
+
+    let body = res.text().await?;
+    println!("Response: {}", body);
+    Ok(())
+}`
+        : `use reqwest::Client;
+use serde_json::json;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let api_key = "${apiKey}";
+    let endpoint = "${completionEndpoint}";
+    let url = format!("{}?key={}", endpoint, api_key);
+
+    let payload = json!({
+        "contents": [
+            {
+                "role": "user",
+                "parts": [
+                    {"text": "${userPrompt.replace(/'/g, "\\'")}"},
+                    {
+                        "inlineData": {
+                            "mimeType": "image/jpeg",
+                            "data": "..."
+                        }
+                    }
+                ]
+            }
+        ],
+        ${systemPrompt ? `"systemInstruction": {"parts": [{"text": "${systemPrompt.replace(/'/g, "\\'")}"}]},` : ''}
+        "generationConfig": {
+            "temperature": ${temperature}
+        }
+    });
+
+    let client = Client::new();
+    let res = client.post(&url)
+        .header("X-Required-Modality", "vision")
+        .json(&payload)
+        .send()
+        .await?;
+
+    let body = res.text().await?;
+    println!("Response: {}", body);
+    Ok(())
+}`
+    } else if (mode === 'stt') {
+      jsCodeSnippet = `use reqwest::Client;
+use reqwest::multipart;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let api_key = "${apiKey}";
+    let endpoint = "${completionEndpoint}";
+
+    let form = multipart::Form::new()
+        .text("model", "${selectedModel === 'auto' ? 'gemini-2.5-flash' : selectedModel}")
+        // .file("file", "speech.wav").await?
+        ;
+
+    let client = Client::new();
+    let res = client.post(endpoint)
+        .header("Authorization", format!("Bearer {}", api_key))
+        .multipart(form)
+        .send()
+        .await?;
+
+    let body = res.text().await?;
+    println!("Transcription: {}", body);
+    Ok(())
+}`
+    } else if (mode === 'tts') {
+      jsCodeSnippet = `use reqwest::Client;
+use serde_json::json;
+use std::fs::File;
+use std::io::Write;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let api_key = "${apiKey}";
+    let endpoint = "${completionEndpoint}";
+
+    let payload = json!({
+        "model": "${selectedModel === 'auto' ? 'gemini-2.5-flash-preview-tts' : selectedModel}",
+        "input": "${userPrompt.replace(/'/g, "\\'")}",
+        "voice": "${voice}"
+    });
+
+    let client = Client::new();
+    let res = client.post(endpoint)
+        .header("Authorization", format!("Bearer {}", api_key))
+        .json(&payload)
+        .send()
+        .await?;
+
+    if res.status().is_success() {
+        let bytes = res.bytes().await?;
+        let mut file = File::create("speech.mp3")?;
+        file.write_all(&bytes)?;
+        println!("Audio saved to speech.mp3");
+    } else {
+        let body = res.text().await?;
+        println!("Error response: {}", body);
+    }
+    Ok(())
+}`
+    }
   }
 
   const copyToClipboard = () => {
