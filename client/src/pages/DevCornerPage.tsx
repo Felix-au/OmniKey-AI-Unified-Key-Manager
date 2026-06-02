@@ -1075,6 +1075,98 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }`
     }
+  } else if (selectedLang === 'curl') {
+    if (mode === 'chat') {
+      jsCodeSnippet = apiFormat === 'openai'
+        ? `curl ${completionEndpoint} \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer ${apiKey}" \\
+  -d '{
+    "model": "${selectedModel}",
+    "messages": [
+      ${systemPrompt ? `{"role": "system", "content": "${systemPrompt.replace(/'/g, "\\'")}"},` : ''}
+      {"role": "user", "content": "${userPrompt.replace(/'/g, "\\'")}"}
+    ],
+    "temperature": ${temperature},
+    ${maxTokens ? `"max_tokens": ${maxTokens},` : ''}
+    ${topP < 1.0 ? `"top_p": ${topP},` : ''}
+    "stream": ${stream}
+  }'`
+        : `curl -X POST "${completionEndpoint}?key=${apiKey}${stream ? '&alt=sse' : ''}" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "contents": [
+      {
+        "role": "user",
+        "parts": [{"text": "${userPrompt.replace(/'/g, "\\'")}"}]
+      }
+    ],
+    ${systemPrompt ? `"systemInstruction": {"parts": [{"text": "${systemPrompt.replace(/'/g, "\\'")}"}]},` : ''}
+    "generationConfig": {
+      "temperature": ${temperature},
+      ${maxTokens ? `"maxOutputTokens": ${maxTokens},` : ''}
+      ${topP < 1.0 ? `"topP": ${topP}` : ''}
+    }
+  }'`
+    } else if (mode === 'vision') {
+      jsCodeSnippet = apiFormat === 'openai'
+        ? `curl ${completionEndpoint} \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer ${apiKey}" \\
+  -H "X-Required-Modality: vision" \\
+  -d '{
+    "model": "${selectedModel}",
+    "messages": [
+      ${systemPrompt ? `{"role": "system", "content": "${systemPrompt.replace(/'/g, "\\'")}"},` : ''}
+      {
+        "role": "user",
+        "content": [
+          {"type": "text", "text": "${userPrompt.replace(/'/g, "\\'")}"},
+          {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,..."}}
+        ]
+      }
+    ],
+    "temperature": ${temperature}
+  }'`
+        : `curl -X POST "${completionEndpoint}?key=${apiKey}" \\
+  -H "Content-Type: application/json" \\
+  -H "X-Required-Modality: vision" \\
+  -d '{
+    "contents": [
+      {
+        "role": "user",
+        "parts": [
+          {"text": "${userPrompt.replace(/'/g, "\\'")}"},
+          {
+            "inlineData": {
+              "mimeType": "image/jpeg",
+              "data": "..."
+            }
+          }
+        ]
+      }
+    ],
+    ${systemPrompt ? `"systemInstruction": {"parts": [{"text": "${systemPrompt.replace(/'/g, "\\'")}"}]},` : ''}
+    "generationConfig": {
+      "temperature": ${temperature}
+    }
+  }'`
+    } else if (mode === 'stt') {
+      jsCodeSnippet = `curl ${completionEndpoint} \\
+  -H "Authorization: Bearer ${apiKey}" \\
+  -F "file=@/path/to/speech.wav" \\
+  -F "model=${selectedModel === 'auto' ? 'gemini-2.5-flash' : selectedModel}"`
+    } else if (mode === 'tts') {
+      jsCodeSnippet = `curl ${completionEndpoint} \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer ${apiKey}" \\
+  -d '{
+    "model": "${selectedModel === 'auto' ? 'gemini-2.5-flash-preview-tts' : selectedModel}",
+    "input": "${userPrompt.replace(/'/g, "\\'")}",
+    "voice": "${voice}"
+  }' \\
+  --output speech.mp3`
+    }
   }
 
   const copyToClipboard = () => {
