@@ -912,14 +912,16 @@ export default function AdminPage() {
                     const maxReq = Math.max(...stats.timeSeries.map(x => x.requests))
                     const heightPct = maxReq > 0 ? (t.requests / maxReq) * 80 + 10 : 10
                     return (
-                      <div key={t.date} className="flex-1 flex flex-col items-center group relative cursor-pointer">
+                      <div key={t.date} className="flex-1 h-full flex flex-col items-center group relative cursor-pointer">
                         <div className="absolute -top-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow-sm text-slate-900 dark:text-white">
                           {t.requests} reqs ({t.successRate.toFixed(0)}% ok)
                         </div>
-                        <div 
-                          className="w-full bg-violet-500/20 group-hover:bg-violet-500/40 border-t border-violet-500/50 rounded-t transition-all" 
-                          style={{ height: `${heightPct}%` }}
-                        />
+                        <div className="w-full flex-1 flex flex-col justify-end">
+                          <div 
+                            className="w-full bg-violet-500/20 group-hover:bg-violet-500/40 border-t border-violet-500/50 rounded-t transition-all" 
+                            style={{ height: `${heightPct}%` }}
+                          />
+                        </div>
                         <span className="text-[9px] text-slate-500 mt-2 font-mono truncate w-full text-center">
                           {t.date.split('-').slice(1).join('/')}
                         </span>
