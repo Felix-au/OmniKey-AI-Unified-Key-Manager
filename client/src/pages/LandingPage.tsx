@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import logoUrl from '../assets/logo.png'
 
 // ── Aurora background CSS ────────────────────────────────────────────────────
@@ -526,6 +527,10 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen text-foreground relative">
+      <Helmet>
+        <title>OmniKey AI - One Key. Every Model.</title>
+        <meta name="description" content="Route requests across Gemini, Groq, Mistral, and more with automatic fallbacks for 100% uptime. Explore our API proxy gateway with Groq fallback routing and free Gemini API failover." />
+      </Helmet>
       <style>{auroraCSS}</style>
       <OceanBackground dark={dark} />
 
@@ -851,6 +856,47 @@ export default function LandingPage() {
             </div>
           </div>
         </MockCard>
+      </Section>
+
+      {/* ── SECTION: FAQ & How it Works ── */}
+      <Section id="faq" alt>
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <Pill label="FAQ" color="violet" />
+            <SectionHeading>Frequently Asked Questions</SectionHeading>
+            <p className="text-muted-foreground max-w-xl mx-auto text-sm sm:text-base leading-relaxed">
+              Find answers to common questions about using our AI proxy gateway, failover configurations, and routing performance.
+            </p>
+          </div>
+          <div className="grid gap-6">
+            <div className="p-6 rounded-2xl border border-border bg-card/60 backdrop-blur shadow-xl transition-all duration-300 hover:translate-y-[-2px] hover:border-violet-500/30">
+              <h3 className="text-base font-bold text-foreground mb-2 flex items-center gap-2">
+                <span className="text-violet-500 text-sm">✦</span> Why use an AI proxy gateway?
+              </h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Managing separate API keys, usage tracking, and complex rate-limiting retry configurations across different vendors like OpenAI, Google, and Groq makes application code complex and hard to secure. An AI proxy gateway acts as a unified middleware server. It consolidates all model access under a single interface, securing provider keys and simplifying development.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-2xl border border-border bg-card/60 backdrop-blur shadow-xl transition-all duration-300 hover:translate-y-[-2px] hover:border-violet-500/30">
+              <h3 className="text-base font-bold text-foreground mb-2 flex items-center gap-2">
+                <span className="text-violet-500 text-sm">✦</span> How does Groq fallback routing work?
+              </h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                While Groq offers lightning-fast inference, peak demand can trigger HTTP 429 rate limits. OmniKey AI's routing layer continuously monitors provider health. If a request to Groq fails, the system automatically redirects the query to standby providers (e.g. Cerebras, SambaNova, or Gemini) in under 15 milliseconds, ensuring zero disruption to your end users.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-2xl border border-border bg-card/60 backdrop-blur shadow-xl transition-all duration-300 hover:translate-y-[-2px] hover:border-violet-500/30">
+              <h3 className="text-base font-bold text-foreground mb-2 flex items-center gap-2">
+                <span className="text-violet-500 text-sm">✦</span> How is free Gemini API failover managed?
+              </h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Free-tier promotional Gemini keys have tight requests-per-minute limits. OmniKey resolves this by pooling multiple API keys on the cloud instance and checking quota availability. If one key is rate-limited, it fails over to the next key in the pool, allowing applications to maintain continuous uptime in online production environments.
+              </p>
+            </div>
+          </div>
+        </div>
       </Section>
 
       {/* FOOTER */}
