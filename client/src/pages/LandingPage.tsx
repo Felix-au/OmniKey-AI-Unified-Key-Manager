@@ -503,6 +503,7 @@ export default function LandingPage() {
   const navigate = useNavigate()
   const { dark, toggle } = useDark()
   const [openFaq, setOpenFaq] = useState<number | null>(null)
+  const [activeCategory, setActiveCategory] = useState<'general' | 'api' | 'security'>('general')
   const chat = useAnimatedChat()
   const debateVisible = useAnimatedDebate()
   const routingPhase = useAnimatedRouting()
@@ -905,20 +906,51 @@ export default function LandingPage() {
       {/* ── SECTION: FAQ & How it Works ── */}
       <Section id="faq" alt>
         <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <Pill label="FAQ" color="violet" />
             <SectionHeading>Frequently Asked Questions</SectionHeading>
             <p className="text-muted-foreground max-w-xl mx-auto text-sm sm:text-base leading-relaxed">
               Find answers to common questions about using our AI proxy gateway, failover configurations, and routing performance.
             </p>
           </div>
-          <div className="space-y-4">
-            {faqData.map((faq, idx) => {
-              const isOpen = openFaq === idx;
+
+          {/* FAQ Category Tabs */}
+          <div className="flex flex-wrap justify-center gap-2 mb-10 max-w-xl mx-auto animate-fade-up">
+            {(['general', 'api', 'security'] as const).map(cat => {
+              const isActive = activeCategory === cat;
+              const labels = {
+                general: 'General Info',
+                api: 'API Compatibility',
+                security: 'Security & Encryption'
+              };
               return (
-                <div
-                  key={idx}
-                  style={{ animationDelay: `${idx * 150}ms` }}
+                <button
+                  key={cat}
+                  onClick={() => {
+                    setActiveCategory(cat);
+                    setOpenFaq(null);
+                  }}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all duration-300 cursor-pointer select-none ${
+                    isActive
+                      ? 'bg-gradient-to-r from-violet-600 to-indigo-600 border-violet-500 text-white shadow-lg shadow-violet-500/20'
+                      : 'border-border bg-card/40 text-muted-foreground hover:text-foreground hover:bg-card/75 hover:border-violet-500/20'
+                  }`}
+                >
+                  {labels[cat]}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="space-y-4">
+            {faqData
+              .filter(faq => faq.tag === activeCategory)
+              .map((faq, idx) => {
+                const isOpen = openFaq === idx;
+                return (
+                  <div
+                    key={idx}
+                    style={{ animationDelay: `${idx * 100}ms` }}
                   className={`group rounded-2xl border transition-all duration-300 bg-card/60 backdrop-blur overflow-hidden animate-fade-up ${isOpen
                     ? 'border-violet-500/40 ring-1 ring-violet-500/20 shadow-[0_0_25px_rgba(139,92,246,0.22)] bg-gradient-to-br from-card to-violet-500/5'
                     : 'border-border hover:border-violet-500/30 hover:shadow-[0_0_15px_rgba(139,92,246,0.08)] hover:bg-card/90'
