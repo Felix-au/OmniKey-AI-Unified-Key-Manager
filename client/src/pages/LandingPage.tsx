@@ -47,6 +47,21 @@ const auroraCSS = `
 @keyframes statPop{0%{transform:scale(1)}50%{transform:scale(1.12)}100%{transform:scale(1)}}
 .stat-num{display:inline-block;transition:color 0.2s;cursor:default;}
 .stat-num:hover{animation:statPop 0.4s ease;color:rgb(139,92,246);}
+@keyframes indicatorPulse {
+  0% { transform: scale(0.8); opacity: 0.1; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.8); opacity: 0.1; }
+}
+.animate-indicator-pulse {
+  animation: indicatorPulse 1.4s infinite ease-in-out;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 `
 
 // ── Ocean wave background ─────────────────────────────────────────────────────
@@ -606,46 +621,64 @@ function useDebateArenaSimulation() {
                         setActiveField(null)
 
                         runTimeout(() => {
-                          // Step 5: Select In Favor model
+                          // Step 5: Select In Favor model (deliberation: Auto -> claude-3-5-sonnet -> deepseek-r1 -> gemini-2.5-flash)
                           setActiveField('infavor')
                           runTimeout(() => {
-                            setInfavor('gemini-2.5-flash')
-                            setActiveField(null)
-
+                            setInfavor('claude-3-5-sonnet')
                             runTimeout(() => {
-                              // Step 6: Select Against model
-                              setActiveField('against')
+                              setInfavor('deepseek-r1')
                               runTimeout(() => {
-                                setAgainst('llama-3.3-70b')
+                                setInfavor('gemini-2.5-flash')
                                 setActiveField(null)
 
                                 runTimeout(() => {
-                                  // Step 7: Select Judge model
-                                  setActiveField('judge')
+                                  // Step 6: Select Against model (deliberation: Auto -> gpt-4o-mini -> mistral-large -> llama-3.3-70b)
+                                  setActiveField('against')
                                   runTimeout(() => {
-                                    setJudge('gpt-4o-mini')
-                                    setActiveField(null)
-
+                                    setAgainst('gpt-4o-mini')
                                     runTimeout(() => {
-                                      // Step 8: Click Start Button
-                                      setActiveField('startBtn')
+                                      setAgainst('mistral-large')
                                       runTimeout(() => {
-                                        setIsStartClicked(true)
+                                        setAgainst('llama-3.3-70b')
+                                        setActiveField(null)
+
                                         runTimeout(() => {
-                                          setIsStartClicked(false)
-                                          setActiveField(null)
-                                          setStage('debating')
-                                          
-                                          // Start the debate transcript choreography
-                                          runDebate()
-                                        }, 400)
-                                      }, 800)
-                                    }, 600)
-                                  }, 800)
+                                          // Step 7: Select Judge model (deliberation: Auto -> gemini-2.0-flash -> llama-3.3-70b -> gpt-4o-mini)
+                                          setActiveField('judge')
+                                          runTimeout(() => {
+                                            setJudge('gemini-2.0-flash')
+                                            runTimeout(() => {
+                                              setJudge('llama-3.3-70b')
+                                              runTimeout(() => {
+                                                setJudge('gpt-4o-mini')
+                                                setActiveField(null)
+
+                                                runTimeout(() => {
+                                                  // Step 8: Click Start Button
+                                                  setActiveField('startBtn')
+                                                  runTimeout(() => {
+                                                    setIsStartClicked(true)
+                                                    runTimeout(() => {
+                                                      setIsStartClicked(false)
+                                                      setActiveField(null)
+                                                      setStage('debating')
+                                                      
+                                                      // Start the debate transcript choreography
+                                                      runDebate()
+                                                    }, 400)
+                                                  }, 800)
+                                                }, 600)
+                                              }, 400)
+                                            }, 400)
+                                          }, 850)
+                                        }, 600)
+                                      }, 400)
+                                    }, 400)
+                                  }, 850)
                                 }, 600)
-                              }, 800)
-                            }, 600)
-                          }, 800)
+                              }, 400)
+                            }, 400)
+                          }, 850)
                         }, 600)
                       }, 800)
                     }, 600)
@@ -1450,12 +1483,9 @@ export default function LandingPage() {
                 <>
                   <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 shrink-0 flex items-center justify-between">
                     <span>Round {Math.min(5, Math.floor(debateSim.visibleCount / 3) + 1)} of 5</span>
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
-                    </span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-indicator-pulse inline-block" />
                   </div>
-                  <div ref={transcriptScrollRef} className="flex-1 overflow-y-auto pr-1 space-y-3 scroll-smooth">
+                  <div ref={transcriptScrollRef} className="flex-1 overflow-y-auto no-scrollbar pr-1 space-y-3 scroll-smooth">
                     {debateMsgs.map((m, i) => i < debateSim.visibleCount ? (
                       <div key={i} className={`rounded-xl border px-4 py-3 text-xs leading-relaxed animate-fade-up ${
                         m.role === 'infavor' ? 'border-emerald-500/30 bg-emerald-500/5' :
