@@ -1183,8 +1183,6 @@ export default function LandingPage() {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
             <span>Launch Offer: Get 10M tokens free!</span>
-            <span className="text-slate-300 dark:text-slate-650">·</span>
-            <span className="font-mono text-emerald-500 dark:text-emerald-300 font-bold">{promoStatus.remainingSlots} slots remaining</span>
           </div>
         ) : (
           <span className="inline-block text-xs font-semibold px-3 py-1 rounded-full border border-violet-500/30 bg-violet-500/10 text-violet-500 mb-6">

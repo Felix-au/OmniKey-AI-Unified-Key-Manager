@@ -160,12 +160,8 @@ export default function LoginPage() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-450 opacity-75 animate-duration-1000"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              10M Promotional Credit Active
+              10M Promotional Token Credit Active
             </p>
-
-            <div className="mt-2.5 text-[9px] font-bold tracking-wider text-emerald-600 dark:text-emerald-400 uppercase font-mono bg-emerald-500/10 rounded-lg py-1 px-2.5 inline-block">
-              {promoStatus.remainingSlots} of {promoStatus.totalPromoLimit} accounts left!
-            </div>
           </div>
         )}
 
