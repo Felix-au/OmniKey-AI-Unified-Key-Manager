@@ -871,23 +871,44 @@ const debateMsgs = [
   // Round 1
   { role: 'infavor', label: 'In Favor · gemini-2.5-flash · Round 1', text: 'AI acts as a collaborative partner, expanding the boundaries of human ideation by suggesting non-obvious combinations and patterns that inspire novel ideas.' },
   { role: 'against', label: 'Against · llama-3.3-70b · Round 1', text: 'True creative leaps require breaking conventions and lived emotional experience. Static probability matrices merely repackage existing human data without genuine agency.' },
-  { role: 'judge', label: '⚖ Judge · gpt-4o-mini · Round 1', text: 'In Favor points out collaborative potential, while Against emphasizes emotional authenticity. Slight edge to Against for distinguishing agency from iteration.' },
+  { role: 'judge', label: '⚖ Judge · gpt-4o-mini · Round 1', text: `Score Card (Round 1):
+
+In Favor Model: 6/10
+Against Model: 7/10
+Round Critique: In Favor points out collaborative potential, while Against emphasizes emotional authenticity. Slight edge to Against for distinguishing agency from iteration.` },
   // Round 2
   { role: 'infavor', label: 'In Favor · gemini-2.5-flash · Round 2', text: 'AI tools democratize expression, allowing people without formal training or technical illustration skills to manifest and communicate complex artistic visions.' },
   { role: 'against', label: 'Against · llama-3.3-70b · Round 2', text: 'Democratization shouldn\'t mean flooding the world with derivative, low-effort content. It risks diluting the value of dedication, craftsmanship, and years of skill.' },
-  { role: 'judge', label: '⚖ Judge · gpt-4o-mini · Round 2', text: 'A balanced round. In Favor scores highly on accessibility and inclusion, but Against correctly warns of market dilution. This round is a draw.' },
+  { role: 'judge', label: '⚖ Judge · gpt-4o-mini · Round 2', text: `Score Card (Round 2):
+
+In Favor Model: 8/10
+Against Model: 8/10
+Round Critique: A balanced round. In Favor scores highly on accessibility and inclusion, but Against correctly warns of market dilution. This round is a draw.` },
   // Round 3
   { role: 'infavor', label: 'In Favor · gemini-2.5-flash · Round 3', text: 'Generative models accelerate iteration, enabling creators to rapidly test and prototype concepts in seconds rather than spending weeks on basic drafts.' },
   { role: 'against', label: 'Against · llama-3.3-70b · Round 3', text: 'Accelerating iteration bypasses the critical process of deep reflection. "Happy accidents" occur during slow, deliberate craftsmanship, not instant generations.' },
-  { role: 'judge', label: '⚖ Judge · gpt-4o-mini · Round 3', text: 'In Favor highlights real-world industrial utility, whereas Against argues for the cognitive value of time. Slight edge to In Favor for practical feasibility.' },
+  { role: 'judge', label: '⚖ Judge · gpt-4o-mini · Round 3', text: `Score Card (Round 3):
+
+In Favor Model: 8/10
+Against Model: 7/10
+Round Critique: In Favor highlights real-world industrial utility, whereas Against argues for the cognitive value of time. Slight edge to In Favor for practical feasibility.` },
   // Round 4
   { role: 'infavor', label: 'In Favor · gemini-2.5-flash · Round 4', text: 'By scanning historical art styles, AI can identify unexplored aesthetic gaps, enabling human artists to deliberately explore fresh stylistic frontiers.' },
   { role: 'against', label: 'Against · llama-3.3-70b · Round 4', text: 'Finding stylistic gaps via analysis is a formulaic approach, not an artistic one. Art is an expression of conscious emotion reflecting a moment in time.' },
-  { role: 'judge', label: '⚖ Judge · gpt-4o-mini · Round 4', text: 'Against presents a strong philosophical argument against analytical creativity, though In Favor has solid utility. Score remains extremely tight.' },
+  { role: 'judge', label: '⚖ Judge · gpt-4o-mini · Round 4', text: `Score Card (Round 4):
+
+In Favor Model: 7/10
+Against Model: 8/10
+Round Critique: Against presents a strong philosophical argument against analytical creativity, though In Favor has solid utility. Score remains extremely tight.` },
   // Round 5
   { role: 'infavor', label: 'In Favor · gemini-2.5-flash · Round 5', text: 'Ultimately, AI is another tool in the artist\'s toolkit, analogous to the camera or synthesizer which faced similar resistance when first introduced.' },
   { role: 'against', label: 'Against · llama-3.3-70b · Round 5', text: 'A camera doesn\'t decide what is beautiful, and a synthesizer doesn\'t write lyrics. AI is the first tool that actively seeks to replace the creative agent.' },
-  { role: 'judge', label: '⚖ Judge · gpt-4o-mini · Round 5', text: 'Against captures the core distinction of creative agency, concluding the debate. Final verdict: Against wins by a narrow margin for defending human intent!' }
+  { role: 'judge', label: '⚖ Judge · gpt-4o-mini · Round 5', text: `Final Arena Verdict:
+
+In Favor Model: 7/10
+Against Model: 9/10
+Declared Winner: Against Model
+Key Debate Summary & Analysis: Ultimately, while In Favor presented a strong pragmatic defense of AI as an iteration booster and accessibility tool, Against won the debate by capturing the core distinction of human creative agency and lived intent.` }
 ]
 
 // ── Mock Fallback Chain ───────────────────────────────────────────────────────
