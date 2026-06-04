@@ -337,8 +337,13 @@ function useArenaAnimation() {
   const [isLoading, setIsLoading] = useState(false)
   const [visiblePanels, setVisiblePanels] = useState(0)
 
+  const containerRef = useRef<HTMLDivElement | null>(null)
+
   useEffect(() => {
-    let active = true
+    const el = containerRef.current
+    if (!el) return
+
+    let active = false
     let currentTimeout: ReturnType<typeof setTimeout> | null = null
     let currentInterval: ReturnType<typeof setInterval> | null = null
 
@@ -439,28 +444,51 @@ function useArenaAnimation() {
                               }, 300)
                             }, 800)
                           }, 600)
-                        }, 800)
-                      }, 400)
-                    }, 800)
-                  }, 400)
-                }, 800)
-              }, 400)
-            }, 800)
+                        }, 500)
+                      }, 250)
+                    }, 500)
+                  }, 250)
+                }, 500)
+              }, 250)
+            }, 500)
           }, 600)
         })
       }, 1000)
     }
 
-    loop()
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        if (!active) {
+          active = true
+          loop()
+        }
+      } else {
+        active = false
+        if (currentTimeout) clearTimeout(currentTimeout)
+        if (currentInterval) clearInterval(currentInterval)
+        // Reset states on out of focus
+        setPrompt('')
+        setPromptActive(false)
+        setModels(['', '', '', ''])
+        setSelectingIndex(null)
+        setSendReady(false)
+        setSendClicked(false)
+        setIsLoading(false)
+        setVisiblePanels(0)
+      }
+    }, { threshold: 0.15 })
+
+    observer.observe(el)
 
     return () => {
       active = false
+      observer.disconnect()
       if (currentTimeout) clearTimeout(currentTimeout)
       if (currentInterval) clearInterval(currentInterval)
     }
   }, [])
 
-  return { prompt, promptActive, models, selectingIndex, sendReady, sendClicked, isLoading, visiblePanels }
+  return { prompt, promptActive, models, selectingIndex, sendReady, sendClicked, isLoading, visiblePanels, containerRef }
 }
 
 // ── Fallback order animation ──────────────────────────────────────────────────
@@ -1008,7 +1036,7 @@ export default function LandingPage() {
 
       {/* ── SECTION: Arena ── */}
       <Section id="arena" alt>
-        <div className="grid md:grid-cols-2 gap-12 items-center">
+        <div ref={arena.containerRef} className="grid md:grid-cols-2 gap-12 items-center">
           <MockCard>
             <div className="bg-muted/40 dark:bg-white/5 px-4 py-3 border-b border-border flex items-center justify-between gap-3 min-h-[45px]">
               <div className="text-xs font-semibold flex items-center overflow-hidden flex-1">
