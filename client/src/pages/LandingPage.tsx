@@ -262,8 +262,46 @@ function useAnimatedChat() {
                                     setTyping(false)
                                     setVisible(6)
 
-                                    // Step 7: Hold state before resetting cycle
-                                    runTimeout(loop, 9000)
+                                    runTimeout(() => {
+                                      // Step 7: User types Question 4
+                                      typeText(mockChat[6].text, () => {
+                                        runTimeout(() => {
+                                          setVisible(7)
+                                          setInputText('')
+
+                                          runTimeout(() => {
+                                            // Step 8: Assistant types Response 4
+                                            setTyping(true)
+                                            runTimeout(() => {
+                                              setTyping(false)
+                                              setVisible(8)
+
+                                              runTimeout(() => {
+                                                // Step 9: User types Question 5
+                                                typeText(mockChat[8].text, () => {
+                                                  runTimeout(() => {
+                                                    setVisible(9)
+                                                    setInputText('')
+
+                                                    runTimeout(() => {
+                                                      // Step 10: Assistant types Response 5
+                                                      setTyping(true)
+                                                      runTimeout(() => {
+                                                        setTyping(false)
+                                                        setVisible(10)
+
+                                                        // Step 11: Hold state before resetting cycle
+                                                        runTimeout(loop, 9000)
+                                                      }, 2400)
+                                                    }, 800)
+                                                  }, 400)
+                                                })
+                                              }, 1500)
+                                            }, 2200)
+                                          }, 800)
+                                        }, 400)
+                                      })
+                                    }, 1500)
                                   }, 2400)
                                 }, 800)
                               }, 400)
@@ -485,6 +523,10 @@ const mockChat = [
   { role: 'assistant', text: 'No — while the correlation is instant, you cannot use it to send information faster than light. The measurement results are random, so no message can be encoded in them.', meta: '198 ms · 39 tokens · gemini-2.5-flash' },
   { role: 'user', text: 'Is quantum cryptography completely secure?' },
   { role: 'assistant', text: 'Yes. Eavesdropping disrupts the delicate entangled state, immediately alerting both parties of the intrusion. This makes any unauthorized interception physically impossible.', meta: '245 ms · 42 tokens · gemini-2.5-flash' },
+  { role: 'user', text: 'What is the average latency of the router?' },
+  { role: 'assistant', text: 'The unified routing layer adds under 15 milliseconds of overhead. It routes requests dynamically to the lowest-latency active provider in your configuration.', meta: '12 ms · 35 tokens · auto-model-router' },
+  { role: 'user', text: 'How do I configure automatic model failover?' },
+  { role: 'assistant', text: 'Simply target the "auto" model in your SDK payload. The gateway will automatically fallback through your designated model priority list if the primary provider fails.', meta: '18 ms · 41 tokens · auto-model-router' },
 ]
 
 // ── Mock Arena Panels ─────────────────────────────────────────────────────────
@@ -867,7 +909,7 @@ export default function LandingPage() {
           <MockCard>
             <div className="bg-muted/40 dark:bg-white/5 px-4 py-3 border-b border-border flex items-center justify-between">
               <span className="text-xs font-semibold text-muted-foreground">gemini-2.5-flash</span>
-              <span className="text-[10px] bg-violet-500/10 text-violet-500 border border-violet-500/20 rounded-full px-2 py-0.5 font-semibold">OpenAI Format</span>
+              <span className="text-[10px] bg-violet-500/10 text-violet-500 border border-violet-500/20 rounded-full px-2 py-0.5 font-semibold">OmniKey AI</span>
             </div>
             <div className="p-4 space-y-3 h-[340px] flex flex-col justify-end overflow-hidden">
               {mockChat.map((m, i) => i < chat.visible && (
@@ -1046,11 +1088,10 @@ export default function LandingPage() {
                     setActiveCategory(cat);
                     setOpenFaq(null);
                   }}
-                  className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all duration-300 cursor-pointer select-none ${
-                    isActive
-                      ? 'bg-gradient-to-r from-violet-600 to-indigo-600 border-violet-500 text-white shadow-lg shadow-violet-500/20'
-                      : 'border-border bg-card/40 text-muted-foreground hover:text-foreground hover:bg-card/75 hover:border-violet-500/20'
-                  }`}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all duration-300 cursor-pointer select-none ${isActive
+                    ? 'bg-gradient-to-r from-violet-600 to-indigo-600 border-violet-500 text-white shadow-lg shadow-violet-500/20'
+                    : 'border-border bg-card/40 text-muted-foreground hover:text-foreground hover:bg-card/75 hover:border-violet-500/20'
+                    }`}
                 >
                   {labels[cat]}
                 </button>
@@ -1067,42 +1108,42 @@ export default function LandingPage() {
                   <div
                     key={idx}
                     style={{ animationDelay: `${idx * 100}ms` }}
-                  className={`group rounded-2xl border transition-all duration-300 bg-card/60 backdrop-blur overflow-hidden animate-fade-up ${isOpen
-                    ? 'border-violet-500/40 ring-1 ring-violet-500/20 shadow-[0_0_25px_rgba(139,92,246,0.22)] bg-gradient-to-br from-card to-violet-500/5'
-                    : 'border-border hover:border-violet-500/30 hover:shadow-[0_0_15px_rgba(139,92,246,0.08)] hover:bg-card/90'
-                    }`}
-                >
-                  <button
-                    onClick={() => setOpenFaq(isOpen ? null : idx)}
-                    className="w-full text-left p-5 flex items-center justify-between gap-4 font-bold text-foreground cursor-pointer select-none"
-                  >
-                    <span className="flex items-center gap-3 text-sm sm:text-base">
-                      <span className={`text-xs transition-all duration-350 transform ${isOpen ? 'text-violet-500 rotate-90 scale-125' : 'text-slate-400 rotate-0 scale-100 group-hover:text-violet-400 group-hover:rotate-45'}`}>✦</span>
-                      <span className={`transition-colors duration-300 ${isOpen ? 'text-violet-500' : 'text-foreground group-hover:text-violet-400'}`}>
-                        {faq.question}
-                      </span>
-                    </span>
-                    <span className={`text-muted-foreground shrink-0 transition-all duration-350 ${isOpen ? 'rotate-180 text-violet-500' : 'group-hover:text-violet-400 group-hover:translate-y-0.5'}`}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="6 9 12 15 18 9" />
-                      </svg>
-                    </span>
-                  </button>
-                  <div
-                    className={`grid transition-all duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+                    className={`group rounded-2xl border transition-all duration-300 bg-card/60 backdrop-blur overflow-hidden animate-fade-up ${isOpen
+                      ? 'border-violet-500/40 ring-1 ring-violet-500/20 shadow-[0_0_25px_rgba(139,92,246,0.22)] bg-gradient-to-br from-card to-violet-500/5'
+                      : 'border-border hover:border-violet-500/30 hover:shadow-[0_0_15px_rgba(139,92,246,0.08)] hover:bg-card/90'
                       }`}
                   >
-                    <div className="overflow-hidden">
-                      <div className="px-5 pb-5 pt-1 text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                        <p className="pt-3 border-t border-border/40">
-                          {faq.answer}
-                        </p>
+                    <button
+                      onClick={() => setOpenFaq(isOpen ? null : idx)}
+                      className="w-full text-left p-5 flex items-center justify-between gap-4 font-bold text-foreground cursor-pointer select-none"
+                    >
+                      <span className="flex items-center gap-3 text-sm sm:text-base">
+                        <span className={`text-xs transition-all duration-350 transform ${isOpen ? 'text-violet-500 rotate-90 scale-125' : 'text-slate-400 rotate-0 scale-100 group-hover:text-violet-400 group-hover:rotate-45'}`}>✦</span>
+                        <span className={`transition-colors duration-300 ${isOpen ? 'text-violet-500' : 'text-foreground group-hover:text-violet-400'}`}>
+                          {faq.question}
+                        </span>
+                      </span>
+                      <span className={`text-muted-foreground shrink-0 transition-all duration-350 ${isOpen ? 'rotate-180 text-violet-500' : 'group-hover:text-violet-400 group-hover:translate-y-0.5'}`}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                      </span>
+                    </button>
+                    <div
+                      className={`grid transition-all duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+                        }`}
+                    >
+                      <div className="overflow-hidden">
+                        <div className="px-5 pb-5 pt-1 text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                          <p className="pt-3 border-t border-border/40">
+                            {faq.answer}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
         </div>
       </Section>
