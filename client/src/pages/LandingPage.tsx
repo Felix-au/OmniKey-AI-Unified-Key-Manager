@@ -184,20 +184,113 @@ function OceanBackground({ dark }: { dark: boolean }) {
 function useAnimatedChat() {
   const [visible, setVisible] = useState(0)
   const [typing, setTyping] = useState(false)
+  const [inputText, setInputText] = useState('')
+
   useEffect(() => {
-    const cycle = () => {
-      setVisible(0); setTyping(false)
-      const delays = [600, 1800, 3000, 4400]
-      delays.forEach((d, i) => {
-        setTimeout(() => { setTyping(true) }, d)
-        setTimeout(() => { setTyping(false); setVisible(i + 1) }, d + 900)
-      })
-      setTimeout(cycle, 9000)
+    let active = true
+    let currentTimeout: ReturnType<typeof setTimeout> | null = null
+    let currentInterval: ReturnType<typeof setInterval> | null = null
+
+    const runTimeout = (fn: () => void, delay: number) => {
+      if (!active) return
+      currentTimeout = setTimeout(fn, delay)
     }
-    const t = setTimeout(cycle, 400)
-    return () => clearTimeout(t)
+
+    const typeText = (text: string, onComplete: () => void) => {
+      let index = 0
+      setInputText('')
+      currentInterval = setInterval(() => {
+        if (!active) {
+          clearInterval(currentInterval!)
+          return
+        }
+        index++
+        if (index <= text.length) {
+          setInputText(text.slice(0, index))
+        } else {
+          clearInterval(currentInterval!)
+          onComplete()
+        }
+      }, 45) // typing speed: 45ms per character
+    }
+
+    const loop = () => {
+      if (!active) return
+      setVisible(0)
+      setInputText('')
+      setTyping(false)
+
+      runTimeout(() => {
+        // Step 1: User types Question 1
+        typeText(mockChat[0].text, () => {
+          runTimeout(() => {
+            setVisible(1)
+            setInputText('')
+
+            runTimeout(() => {
+              // Step 2: Assistant types Response 1
+              setTyping(true)
+              runTimeout(() => {
+                setTyping(false)
+                setVisible(2)
+
+                runTimeout(() => {
+                  // Step 3: User types Question 2
+                  typeText(mockChat[2].text, () => {
+                    runTimeout(() => {
+                      setVisible(3)
+                      setInputText('')
+
+                      runTimeout(() => {
+                        // Step 4: Assistant types Response 2
+                        setTyping(true)
+                        runTimeout(() => {
+                          setTyping(false)
+                          setVisible(4)
+
+                          runTimeout(() => {
+                            // Step 5: User types Question 3
+                            typeText(mockChat[4].text, () => {
+                              runTimeout(() => {
+                                setVisible(5)
+                                setInputText('')
+
+                                runTimeout(() => {
+                                  // Step 6: Assistant types Response 3
+                                  setTyping(true)
+                                  runTimeout(() => {
+                                    setTyping(false)
+                                    setVisible(6)
+
+                                    // Step 7: Hold state before resetting cycle
+                                    runTimeout(loop, 9000)
+                                  }, 2400)
+                                }, 800)
+                              }, 400)
+                            })
+                          }, 1500)
+                        }, 2200)
+                      }, 800)
+                    }, 400)
+                  })
+                }, 1500)
+              }, 2200)
+            }, 800)
+          }, 400)
+        })
+      }, 1000)
+    }
+
+    loop()
+
+    return () => {
+      active = false
+      if (currentTimeout) clearTimeout(currentTimeout)
+      if (currentInterval) clearInterval(currentInterval)
+    }
   }, [])
-  return { visible, typing }
+
+  return { visible, typing, inputText }
 }
 
 // ── Animated debate hook ─────────────────────────────────────────────────────
@@ -390,6 +483,8 @@ const mockChat = [
   { role: 'assistant', text: 'Quantum entanglement is when two particles become linked — measuring one instantly affects the other, no matter the distance. Einstein famously called it "spooky action at a distance."', meta: '312 ms · 47 tokens · gemini-2.5-flash' },
   { role: 'user', text: 'Can it be used for faster-than-light communication?' },
   { role: 'assistant', text: 'No — while the correlation is instant, you cannot use it to send information faster than light. The measurement results are random, so no message can be encoded in them.', meta: '198 ms · 39 tokens · gemini-2.5-flash' },
+  { role: 'user', text: 'Is quantum cryptography completely secure?' },
+  { role: 'assistant', text: 'Yes. Eavesdropping disrupts the delicate entangled state, immediately alerting both parties of the intrusion. This makes any unauthorized interception physically impossible.', meta: '245 ms · 42 tokens · gemini-2.5-flash' },
 ]
 
 // ── Mock Arena Panels ─────────────────────────────────────────────────────────
@@ -774,7 +869,7 @@ export default function LandingPage() {
               <span className="text-xs font-semibold text-muted-foreground">gemini-2.5-flash</span>
               <span className="text-[10px] bg-violet-500/10 text-violet-500 border border-violet-500/20 rounded-full px-2 py-0.5 font-semibold">OpenAI Format</span>
             </div>
-            <div className="p-4 space-y-3 h-[340px] flex flex-col justify-end">
+            <div className="p-4 space-y-3 h-[340px] flex flex-col justify-end overflow-hidden">
               {mockChat.map((m, i) => i < chat.visible && (
                 <div key={i} className={`flex animate-fade-up ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed ${m.role === 'user' ? 'bg-violet-600 text-white' : 'bg-muted/60 dark:bg-white/8 text-foreground border border-border'}`}>
@@ -792,8 +887,19 @@ export default function LandingPage() {
               )}
             </div>
             <div className="border-t border-border px-4 py-3 flex gap-2">
-              <div className="flex-1 bg-muted/40 dark:bg-white/5 rounded-xl text-xs px-3 py-2 text-muted-foreground">Type a message...</div>
-              <div className="bg-violet-600 rounded-xl px-3 py-2 text-white text-xs font-semibold">Send</div>
+              <div className="flex-1 bg-muted/40 dark:bg-white/5 rounded-xl text-xs px-3 py-2 text-foreground font-medium flex items-center min-h-[32px] overflow-hidden">
+                {chat.inputText ? (
+                  <span className="flex items-center truncate">
+                    <span>{chat.inputText}</span>
+                    <span className="w-1 h-3.5 bg-violet-500 ml-0.5 animate-pulse inline-block" />
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">Type a message...</span>
+                )}
+              </div>
+              <div className={`rounded-xl px-3 py-2 flex items-center text-white text-xs font-semibold transition-colors duration-300 ${chat.inputText ? 'bg-violet-600 shadow-md shadow-violet-500/20' : 'bg-muted-foreground/20 text-muted-foreground/60'}`}>
+                Send
+              </div>
             </div>
           </MockCard>
         </div>
