@@ -483,6 +483,14 @@ const faqData = [
   {
     question: "Does the proxy gateway support streaming completions?",
     answer: "Yes. Streaming is fully supported via Server-Sent Events (SSE) for both OpenAI-compatible and Gemini-compatible formats. When you set the stream parameter to true, token chunks are forwarded to your client application as they are generated with minimal overhead."
+  },
+  {
+    question: "Do I need to change my code to use OmniKey AI?",
+    answer: "Minimal changes are required. Since OmniKey AI exposes an OpenAI-compatible web API, you only need to change the API base URL in your SDK configuration to your hosted proxy server URL (available in the Keys or Dev Corner sections of the dashboard) and replace your API key with your unified OmniKey token. The request formats, schemas, and parameters remain exactly the same."
+  },
+  {
+    question: "Do I need to change the API endpoints I call?",
+    answer: "Yes, you will need to update the base URL of your API client to point to your deployed OmniKey AI proxy server. The exact endpoint URLs for your specific instance are listed dynamically in the Keys and Dev Corner sections of your dashboard, adapting automatically to your backend deployment address."
   }
 ]
 
