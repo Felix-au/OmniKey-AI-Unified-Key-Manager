@@ -890,8 +890,11 @@ export default function LandingPage() {
               return (
                 <div
                   key={idx}
-                  className={`rounded-2xl border transition-all duration-300 bg-card/60 backdrop-blur shadow-md overflow-hidden ${
-                    isOpen ? 'border-violet-500/40 ring-1 ring-violet-500/10' : 'border-border hover:border-violet-500/20'
+                  style={{ animationDelay: `${idx * 150}ms` }}
+                  className={`rounded-2xl border transition-all duration-300 bg-card/60 backdrop-blur shadow-md overflow-hidden animate-fade-up ${
+                    isOpen 
+                      ? 'border-violet-500/40 ring-1 ring-violet-500/10 shadow-lg shadow-violet-500/10' 
+                      : 'border-border hover:border-violet-500/20 hover:shadow-md hover:shadow-violet-500/5'
                   }`}
                 >
                   <button
@@ -899,10 +902,12 @@ export default function LandingPage() {
                     className="w-full text-left p-5 flex items-center justify-between gap-4 font-bold text-foreground cursor-pointer select-none"
                   >
                     <span className="flex items-center gap-3 text-sm sm:text-base">
-                      <span className={`text-xs transition-colors duration-300 ${isOpen ? 'text-violet-500' : 'text-slate-400'}`}>✦</span>
-                      {faq.question}
+                      <span className={`text-xs transition-all duration-350 transform ${isOpen ? 'text-violet-500 rotate-90 scale-125' : 'text-slate-400 rotate-0 scale-100'}`}>✦</span>
+                      <span className={`transition-colors duration-300 ${isOpen ? 'text-violet-500' : 'text-foreground'}`}>
+                        {faq.question}
+                      </span>
                     </span>
-                    <span className={`text-muted-foreground shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180 text-violet-500' : ''}`}>
+                    <span className={`text-muted-foreground shrink-0 transition-transform duration-350 ${isOpen ? 'rotate-180 text-violet-500' : ''}`}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="6 9 12 15 18 9" />
                       </svg>
