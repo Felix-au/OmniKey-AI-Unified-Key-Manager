@@ -794,21 +794,36 @@ function useCountUp(target: number, duration = 1200, decimals = 0) {
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const el = ref.current; if (!el) return
+    let animId: number | null = null
     const obs = new IntersectionObserver(([e]) => {
-      if (!e.isIntersecting) return
-      obs.disconnect()
-      const start = performance.now()
-      const tick = (now: number) => {
-        const p = Math.min((now - start) / duration, 1)
-        const raw = p * target
-        const factor = Math.pow(10, decimals)
-        setVal(Math.round(raw * factor) / factor)
-        if (p < 1) requestAnimationFrame(tick)
+      if (e.isIntersecting) {
+        if (animId) cancelAnimationFrame(animId)
+        const start = performance.now()
+        const tick = (now: number) => {
+          const p = Math.min((now - start) / duration, 1)
+          const raw = p * target
+          const factor = Math.pow(10, decimals)
+          setVal(Math.round(raw * factor) / factor)
+          if (p < 1) {
+            animId = requestAnimationFrame(tick)
+          } else {
+            animId = null
+          }
+        }
+        animId = requestAnimationFrame(tick)
+      } else {
+        setVal(0)
+        if (animId) {
+          cancelAnimationFrame(animId)
+          animId = null
+        }
       }
-      requestAnimationFrame(tick)
-    }, { threshold: 0.5 })
+    }, { threshold: 0.1 })
     obs.observe(el)
-    return () => obs.disconnect()
+    return () => {
+      obs.disconnect()
+      if (animId) cancelAnimationFrame(animId)
+    }
   }, [target, duration, decimals])
   return { val, ref }
 }
