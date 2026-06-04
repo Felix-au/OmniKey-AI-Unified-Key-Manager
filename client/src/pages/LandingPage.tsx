@@ -467,6 +467,22 @@ const faqData = [
   {
     question: "How is API key failover managed?",
     answer: "OmniKey AI pools multiple developer keys and tracks the rate limit status of different models internally in real-time. When a key hits a quota ceiling or triggers a rate limit (such as HTTP 429), requests are seamlessly and instantly routed to the next available key or standby provider in the chain to avoid user-facing errors."
+  },
+  {
+    question: "Is the API proxy gateway compatible with standard OpenAI and Gemini SDKs?",
+    answer: "Yes. OmniKey AI is built to be a drop-in replacement. You can point your existing OpenAI or Google Gen AI client SDKs directly to our proxy base URLs. Simply update the baseURL (for OpenAI) or baseUrl (for Google Gen AI) and swap your key for your unified OmniKey token."
+  },
+  {
+    question: "What models are supported by the gateway?",
+    answer: "We support over 60+ models from industry-leading providers, including Google Gemini (Flash, Pro), Meta Llama (via Groq, Cerebras, SambaNova), Mistral Large, Qwen, and DeepSeek. You can target specific models or use the 'auto' model to route dynamically to the most cost-efficient or lowest-latency provider."
+  },
+  {
+    question: "How does the gateway secure my developer credentials?",
+    answer: "Security is a top priority. Upstream provider keys (such as your personal Google AI Studio or Groq keys) are encrypted using industry-standard symmetric AES-256-GCM encryption before database persistence. They are decrypted in-memory only during routing execution, ensuring your credentials remain completely private."
+  },
+  {
+    question: "Does the proxy gateway support streaming completions?",
+    answer: "Yes. Streaming is fully supported via Server-Sent Events (SSE) for both OpenAI-compatible and Gemini-compatible formats. When you set the stream parameter to true, token chunks are forwarded to your client application as they are generated with minimal overhead."
   }
 ]
 
