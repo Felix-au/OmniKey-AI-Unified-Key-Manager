@@ -325,40 +325,142 @@ function useAnimatedRouting() {
   return phase
 }
 
-// ── Arena animated latency ───────────────────────────────────────────────────
-function useArenaVisible() {
-  const [visible, setVisible] = useState(0)
-  useEffect(() => {
-    const cycle = () => {
-      setVisible(0)
-        ;[300, 700, 1200, 1800].forEach((d, i) => setTimeout(() => setVisible(i + 1), d))
-      setTimeout(cycle, 6000)
-    }
-    const t = setTimeout(cycle, 200)
-    return () => clearTimeout(t)
-  }, [])
-  return visible
-}
+// ── Arena choreographed animation hook ──────────────────────────────────────────
 
-// ── Arena model selection cycling ────────────────────────────────────────────
-const modelOptions = ['gemini-2.5-flash', 'llama-3.3-70b', 'mistral-large', 'qwen-2.5-72b', 'gpt-4o-mini', 'deepseek-r1', 'claude-3-5-sonnet', 'nvidia/llama-3.1-nemotron-70b']
-function useArenaSelection() {
-  const [models, setModels] = useState(['gemini-2.5-flash', 'llama-3.3-70b', 'mistral-large', 'qwen-2.5-72b'])
-  const [selecting, setSelecting] = useState<number | null>(null)
+function useArenaAnimation() {
+  const [prompt, setPrompt] = useState('')
+  const [promptActive, setPromptActive] = useState(false)
+  const [models, setModels] = useState<string[]>(['', '', '', ''])
+  const [selectingIndex, setSelectingIndex] = useState<number | null>(null)
+  const [sendReady, setSendReady] = useState(false)
+  const [sendClicked, setSendClicked] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [visiblePanels, setVisiblePanels] = useState(0)
+
   useEffect(() => {
-    const cycle = () => {
-      const slot = Math.floor(Math.random() * 4)
-      setSelecting(slot)
-      setTimeout(() => {
-        setModels(prev => { const n = [...prev]; n[slot] = modelOptions[Math.floor(Math.random() * modelOptions.length)]; return n })
-        setSelecting(null)
-      }, 900)
-      setTimeout(cycle, 4500 + Math.random() * 2000)
+    let active = true
+    let currentTimeout: ReturnType<typeof setTimeout> | null = null
+    let currentInterval: ReturnType<typeof setInterval> | null = null
+
+    const runTimeout = (fn: () => void, delay: number) => {
+      if (!active) return
+      currentTimeout = setTimeout(fn, delay)
     }
-    const t = setTimeout(cycle, 2500)
-    return () => clearTimeout(t)
+
+    const typePrompt = (text: string, onComplete: () => void) => {
+      let index = 0
+      setPrompt('')
+      setPromptActive(true)
+      currentInterval = setInterval(() => {
+        if (!active) {
+          clearInterval(currentInterval!)
+          return
+        }
+        index++
+        if (index <= text.length) {
+          setPrompt(text.slice(0, index))
+        } else {
+          clearInterval(currentInterval!)
+          setPromptActive(false)
+          onComplete()
+        }
+      }, 40)
+    }
+
+    const loop = () => {
+      if (!active) return
+      setPrompt('')
+      setPromptActive(false)
+      setModels(['', '', '', ''])
+      setSelectingIndex(null)
+      setSendReady(false)
+      setSendClicked(false)
+      setIsLoading(false)
+      setVisiblePanels(0)
+
+      runTimeout(() => {
+        // Type prompt
+        typePrompt("Explain quantum entanglement simply.", () => {
+          runTimeout(() => {
+            // Select Model 1
+            setSelectingIndex(0)
+            runTimeout(() => {
+              setSelectingIndex(null)
+              setModels(['gemini-2.5-flash', '', '', ''])
+
+              runTimeout(() => {
+                // Select Model 2
+                setSelectingIndex(1)
+                runTimeout(() => {
+                  setSelectingIndex(null)
+                  setModels(['gemini-2.5-flash', 'llama-3.3-70b', '', ''])
+
+                  runTimeout(() => {
+                    // Select Model 3
+                    setSelectingIndex(2)
+                    runTimeout(() => {
+                      setSelectingIndex(null)
+                      setModels(['gemini-2.5-flash', 'llama-3.3-70b', 'mistral-large', ''])
+
+                      runTimeout(() => {
+                        // Select Model 4
+                        setSelectingIndex(3)
+                        runTimeout(() => {
+                          setSelectingIndex(null)
+                          setModels(['gemini-2.5-flash', 'llama-3.3-70b', 'mistral-large', 'qwen-2.5-72b'])
+
+                          runTimeout(() => {
+                            // Phase 4: Show Send Button & Click
+                            setSendReady(true)
+                            runTimeout(() => {
+                              setSendClicked(true)
+                              runTimeout(() => {
+                                setSendClicked(false)
+                                setSendReady(false)
+                                setIsLoading(true)
+
+                                runTimeout(() => {
+                                  // Phase 5: Staggered response reveals
+                                  setVisiblePanels(1)
+                                  runTimeout(() => {
+                                    setVisiblePanels(2)
+                                    runTimeout(() => {
+                                      setVisiblePanels(3)
+                                      runTimeout(() => {
+                                        setVisiblePanels(4)
+                                        setIsLoading(false)
+
+                                        // Phase 6: Hold state before resetting cycle
+                                        runTimeout(loop, 9000)
+                                      }, 800)
+                                    }, 700)
+                                  }, 600)
+                                }, 600)
+                              }, 300)
+                            }, 800)
+                          }, 600)
+                        }, 800)
+                      }, 400)
+                    }, 800)
+                  }, 400)
+                }, 800)
+              }, 400)
+            }, 800)
+          }, 600)
+        })
+      }, 1000)
+    }
+
+    loop()
+
+    return () => {
+      active = false
+      if (currentTimeout) clearTimeout(currentTimeout)
+      if (currentInterval) clearInterval(currentInterval)
+    }
   }, [])
-  return { models, selecting }
+
+  return { prompt, promptActive, models, selectingIndex, sendReady, sendClicked, isLoading, visiblePanels }
 }
 
 // ── Fallback order animation ──────────────────────────────────────────────────
@@ -612,8 +714,7 @@ export default function LandingPage() {
   const chat = useAnimatedChat()
   const debateVisible = useAnimatedDebate()
   const routingPhase = useAnimatedRouting()
-  const arenaVisible = useArenaVisible()
-  const arenaSelection = useArenaSelection()
+  const arena = useArenaAnimation()
   const fallbackOrder = useFallbackOrder()
   const debateCfg = useDebateConfig()
   const heroRef = useRef<HTMLElement>(null)
@@ -909,35 +1010,71 @@ export default function LandingPage() {
       <Section id="arena" alt>
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <MockCard>
-            <div className="bg-muted/40 dark:bg-white/5 px-4 py-3 border-b border-border">
-              <span className="text-xs font-semibold text-muted-foreground">Prompt: "Explain quantum entanglement simply."</span>
+            <div className="bg-muted/40 dark:bg-white/5 px-4 py-3 border-b border-border flex items-center justify-between gap-3 min-h-[45px]">
+              <div className="text-xs font-semibold flex items-center overflow-hidden flex-1">
+                <span className="text-muted-foreground shrink-0">Prompt:&nbsp;</span>
+                {arena.prompt ? (
+                  <span className="flex items-center text-foreground truncate">
+                    <span>{arena.prompt}</span>
+                    {arena.promptActive && <span className="w-1 h-3.5 bg-blue-500 ml-0.5 animate-pulse inline-block" />}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground/45 italic font-normal">Awaiting prompt...</span>
+                )}
+              </div>
+              <div className={`shrink-0 rounded-lg px-2.5 py-1 text-[10px] font-bold border transition-all duration-300 ${
+                arena.sendClicked
+                  ? 'bg-blue-700 text-white border-blue-600 scale-95 shadow-none'
+                  : arena.sendReady
+                    ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/20 scale-100'
+                    : 'bg-muted-foreground/10 text-muted-foreground/40 border-border/40 scale-100'
+              }`}>
+                Send
+              </div>
             </div>
             {/* Model selectors row */}
             <div className="grid grid-cols-4 divide-x divide-border border-b border-border">
-              {arenaSelection.models.map((m, i) => {
+              {arena.models.map((m, i) => {
                 const colors = ['text-blue-400', 'text-orange-400', 'text-purple-400', 'text-emerald-400']
-                const isSelecting = arenaSelection.selecting === i
+                const isSelecting = arena.selectingIndex === i
                 return (
-                  <div key={i} className={`px-2 py-2 text-[10px] font-semibold flex items-center gap-1 ${colors[i]} ${isSelecting ? 'bg-violet-500/10' : ''} transition-colors duration-300`}>
+                  <div key={i} className={`px-2 py-2 text-[10px] font-semibold flex items-center justify-center min-h-[33px] gap-1 ${colors[i]} ${isSelecting ? 'bg-violet-500/10' : ''} transition-colors duration-300`}>
                     {isSelecting ? (
-                      <><span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" /></>
-                    ) : (
+                      <span className="flex gap-0.5"><span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" /></span>
+                    ) : m ? (
                       <span className="model-tag truncate animate-drop-in">{m}</span>
+                    ) : (
+                      <span className="text-muted-foreground/30 font-normal italic">—</span>
                     )}
                   </div>
                 )
               })}
             </div>
             <div className="grid grid-cols-2 gap-0 divide-x divide-y divide-border">
-              {arenaPanels.map((p, i) => (
-                <div key={i} className={`p-3 transition-all duration-500 ${i < arenaVisible ? 'opacity-100' : 'opacity-0 translate-y-2'}`}>
-                  <div className={`text-[10px] font-semibold mb-2 ${p.color} flex items-center justify-between`}>
-                    <span>{arenaSelection.models[i] ?? p.model}</span>
-                    <span className="text-muted-foreground font-normal">{i < arenaVisible ? p.latency : '...'}</span>
+              {arenaPanels.map((p, i) => {
+                const isPanelVisible = i < arena.visiblePanels
+                return (
+                  <div key={i} className="p-3 min-h-[140px] relative flex flex-col justify-between overflow-hidden">
+                    <div>
+                      <div className={`text-[10px] font-semibold mb-2 ${p.color} flex items-center justify-between`}>
+                        <span>{arena.models[i] || '—'}</span>
+                        <span className="text-muted-foreground font-normal">{isPanelVisible ? p.latency : '...'}</span>
+                      </div>
+                      {arena.isLoading && !isPanelVisible ? (
+                        <div className="flex gap-1 items-center h-10 text-muted-foreground/40">
+                          <span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" />
+                        </div>
+                      ) : isPanelVisible ? (
+                        <p className="text-xs text-foreground/80 leading-relaxed whitespace-pre-line animate-fade-up">
+                          {p.text}
+                        </p>
+                      ) : (
+                        <div className="text-xs text-muted-foreground/30 italic font-normal py-2">Awaiting trigger...</div>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-xs text-foreground/80 leading-relaxed whitespace-pre-line">{p.text}</p>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </MockCard>
           <div>
