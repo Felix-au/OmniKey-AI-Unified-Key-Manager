@@ -486,7 +486,7 @@ const faqData = [
   },
   {
     question: "Do I need to change my code to use OmniKey AI?",
-    answer: "Minimal changes are required. Since OmniKey AI exposes an OpenAI-compatible web API, you only need to redirect your API requests by changing the base URL/endpoint in your SDK configuration to your hosted proxy server address (available dynamically under the Keys or Dev Corner sections of the dashboard) and replace your API key with your unified OmniKey token. All request payloads, headers, and schemas remain exactly the same."
+    answer: "Minimal changes are required. Since OmniKey AI exposes an OpenAI-compatible web API, you only need to redirect your API requests by changing the base URL/endpoint in your SDK configuration to your hosted proxy server address (available under the Keys or Dev Corner sections of the dashboard) and replace your API key with your unified OmniKey token. All request payloads, headers, and schemas remain exactly the same."
   }
 ]
 
@@ -912,8 +912,8 @@ export default function LandingPage() {
                   key={idx}
                   style={{ animationDelay: `${idx * 150}ms` }}
                   className={`group rounded-2xl border transition-all duration-300 bg-card/60 backdrop-blur overflow-hidden animate-fade-up ${isOpen
-                      ? 'border-violet-500/40 ring-1 ring-violet-500/20 shadow-[0_0_25px_rgba(139,92,246,0.22)] bg-gradient-to-br from-card to-violet-500/5'
-                      : 'border-border hover:border-violet-500/30 hover:shadow-[0_0_15px_rgba(139,92,246,0.08)] hover:bg-card/90'
+                    ? 'border-violet-500/40 ring-1 ring-violet-500/20 shadow-[0_0_25px_rgba(139,92,246,0.22)] bg-gradient-to-br from-card to-violet-500/5'
+                    : 'border-border hover:border-violet-500/30 hover:shadow-[0_0_15px_rgba(139,92,246,0.08)] hover:bg-card/90'
                     }`}
                 >
                   <button
