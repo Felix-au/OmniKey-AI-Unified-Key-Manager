@@ -262,46 +262,8 @@ function useAnimatedChat() {
                                     setTyping(false)
                                     setVisible(6)
 
-                                    runTimeout(() => {
-                                      // Step 7: User types Question 4
-                                      typeText(mockChat[6].text, () => {
-                                        runTimeout(() => {
-                                          setVisible(7)
-                                          setInputText('')
-
-                                          runTimeout(() => {
-                                            // Step 8: Assistant types Response 4
-                                            setTyping(true)
-                                            runTimeout(() => {
-                                              setTyping(false)
-                                              setVisible(8)
-
-                                              runTimeout(() => {
-                                                // Step 9: User types Question 5
-                                                typeText(mockChat[8].text, () => {
-                                                  runTimeout(() => {
-                                                    setVisible(9)
-                                                    setInputText('')
-
-                                                    runTimeout(() => {
-                                                      // Step 10: Assistant types Response 5
-                                                      setTyping(true)
-                                                      runTimeout(() => {
-                                                        setTyping(false)
-                                                        setVisible(10)
-
-                                                        // Step 11: Hold state before resetting cycle
-                                                        runTimeout(loop, 9000)
-                                                      }, 2400)
-                                                    }, 800)
-                                                  }, 400)
-                                                })
-                                              }, 1500)
-                                            }, 2200)
-                                          }, 800)
-                                        }, 400)
-                                      })
-                                    }, 1500)
+                                    // Step 7: Hold state before resetting cycle
+                                    runTimeout(loop, 9000)
                                   }, 2400)
                                 }, 800)
                               }, 400)
@@ -523,10 +485,6 @@ const mockChat = [
   { role: 'assistant', text: 'No — while the correlation is instant, you cannot use it to send information faster than light. The measurement results are random, so no message can be encoded in them.', meta: '198 ms · 39 tokens · gemini-2.5-flash' },
   { role: 'user', text: 'Is quantum cryptography completely secure?' },
   { role: 'assistant', text: 'Yes. Eavesdropping disrupts the delicate entangled state, immediately alerting both parties of the intrusion. This makes any unauthorized interception physically impossible.', meta: '245 ms · 42 tokens · gemini-2.5-flash' },
-  { role: 'user', text: 'What is the average latency of the router?' },
-  { role: 'assistant', text: 'The unified routing layer adds under 15 milliseconds of overhead. It routes requests dynamically to the lowest-latency active provider in your configuration.', meta: '12 ms · 35 tokens · auto-model-router' },
-  { role: 'user', text: 'How do I configure automatic model failover?' },
-  { role: 'assistant', text: 'Simply target the "auto" model in your SDK payload. The gateway will automatically fallback through your designated model priority list if the primary provider fails.', meta: '18 ms · 41 tokens · auto-model-router' },
 ]
 
 // ── Mock Arena Panels ─────────────────────────────────────────────────────────
