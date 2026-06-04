@@ -774,7 +774,7 @@ export default function LandingPage() {
               <span className="text-xs font-semibold text-muted-foreground">gemini-2.5-flash</span>
               <span className="text-[10px] bg-violet-500/10 text-violet-500 border border-violet-500/20 rounded-full px-2 py-0.5 font-semibold">OpenAI Format</span>
             </div>
-            <div className="p-4 space-y-3 min-h-[220px]">
+            <div className="p-4 space-y-3 h-[340px] flex flex-col justify-end">
               {mockChat.map((m, i) => i < chat.visible && (
                 <div key={i} className={`flex animate-fade-up ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed ${m.role === 'user' ? 'bg-violet-600 text-white' : 'bg-muted/60 dark:bg-white/8 text-foreground border border-border'}`}>
