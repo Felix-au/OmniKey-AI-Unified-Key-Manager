@@ -228,7 +228,7 @@ function useAnimatedChat() {
             setInputText('')
 
             runTimeout(() => {
-              // Step 2: Assistant types Response 1
+              // Step 2: Assistant Response 1
               setTyping(true)
               runTimeout(() => {
                 setTyping(false)
@@ -242,7 +242,7 @@ function useAnimatedChat() {
                       setInputText('')
 
                       runTimeout(() => {
-                        // Step 4: Assistant types Response 2
+                        // Step 4: Assistant Response 2
                         setTyping(true)
                         runTimeout(() => {
                           setTyping(false)
@@ -256,14 +256,52 @@ function useAnimatedChat() {
                                 setInputText('')
 
                                 runTimeout(() => {
-                                  // Step 6: Assistant types Response 3
+                                  // Step 6: Assistant Response 3
                                   setTyping(true)
                                   runTimeout(() => {
                                     setTyping(false)
                                     setVisible(6)
 
-                                    // Step 7: Hold state before resetting cycle
-                                    runTimeout(loop, 9000)
+                                    runTimeout(() => {
+                                      // Step 7: User types Question 4
+                                      typeText(mockChat[6].text, () => {
+                                        runTimeout(() => {
+                                          setVisible(7)
+                                          setInputText('')
+
+                                          runTimeout(() => {
+                                            // Step 8: Assistant Response 4
+                                            setTyping(true)
+                                            runTimeout(() => {
+                                              setTyping(false)
+                                              setVisible(8)
+
+                                              runTimeout(() => {
+                                                // Step 9: User types Question 5
+                                                typeText(mockChat[8].text, () => {
+                                                  runTimeout(() => {
+                                                    setVisible(9)
+                                                    setInputText('')
+
+                                                    runTimeout(() => {
+                                                      // Step 10: Assistant Response 5
+                                                      setTyping(true)
+                                                      runTimeout(() => {
+                                                        setTyping(false)
+                                                        setVisible(10)
+
+                                                        // Step 11: Hold state before resetting cycle
+                                                        runTimeout(loop, 9000)
+                                                      }, 2400)
+                                                    }, 800)
+                                                  }, 400)
+                                                })
+                                              }, 1500)
+                                            }, 2200)
+                                          }, 800)
+                                        }, 400)
+                                      })
+                                    }, 1500)
                                   }, 2400)
                                 }, 800)
                               }, 400)
