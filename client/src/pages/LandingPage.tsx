@@ -455,10 +455,26 @@ function MockCard({ children, className = '' }: { children: React.ReactNode; cla
 const SunIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2m-7.07-14.07 1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2m-4.93-7.07-1.41 1.41M6.34 17.66l-1.41 1.41" /></svg>)
 const MoonIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" /></svg>)
 
+const faqData = [
+  {
+    question: "Why use an AI proxy gateway?",
+    answer: "Managing separate API keys, usage tracking, and complex rate-limiting retry configurations across different model providers makes application code complex and hard to secure. An AI proxy gateway acts as a unified middleware server. It consolidates all model access under a single interface, securing provider keys and simplifying development."
+  },
+  {
+    question: "How does fallback routing work?",
+    answer: "When a primary model provider or endpoint experiences downtime, latency spikes, or rate limits, the routing layer automatically detects the failure. It silently redirects the request to the next best alternative provider in under 15 milliseconds, ensuring continuous availability for your end users."
+  },
+  {
+    question: "How is API key failover managed?",
+    answer: "OmniKey AI pools multiple developer keys and tracks the rate limit status of different models internally in real-time. When a key hits a quota ceiling or triggers a rate limit (such as HTTP 429), requests are seamlessly and instantly routed to the next available key or standby provider in the chain to avoid user-facing errors."
+  }
+]
+
 // ── Landing Page ──────────────────────────────────────────────────────────────
 export default function LandingPage() {
   const navigate = useNavigate()
   const { dark, toggle } = useDark()
+  const [openFaq, setOpenFaq] = useState<number | null>(null)
   const chat = useAnimatedChat()
   const debateVisible = useAnimatedDebate()
   const routingPhase = useAnimatedRouting()
@@ -860,7 +876,7 @@ export default function LandingPage() {
 
       {/* ── SECTION: FAQ & How it Works ── */}
       <Section id="faq" alt>
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
             <Pill label="FAQ" color="violet" />
             <SectionHeading>Frequently Asked Questions</SectionHeading>
@@ -868,33 +884,46 @@ export default function LandingPage() {
               Find answers to common questions about using our AI proxy gateway, failover configurations, and routing performance.
             </p>
           </div>
-          <div className="grid gap-6">
-            <div className="p-6 rounded-2xl border border-border bg-card/60 backdrop-blur shadow-xl transition-all duration-300 hover:translate-y-[-2px] hover:border-violet-500/30">
-              <h3 className="text-base font-bold text-foreground mb-2 flex items-center gap-2">
-                <span className="text-violet-500 text-sm">✦</span> Why use an AI proxy gateway?
-              </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Managing separate API keys, usage tracking, and complex rate-limiting retry configurations across different model providers makes application code complex and hard to secure. An AI proxy gateway acts as a unified middleware server. It consolidates all model access under a single interface, securing provider keys and simplifying development.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-2xl border border-border bg-card/60 backdrop-blur shadow-xl transition-all duration-300 hover:translate-y-[-2px] hover:border-violet-500/30">
-              <h3 className="text-base font-bold text-foreground mb-2 flex items-center gap-2">
-                <span className="text-violet-500 text-sm">✦</span> How does fallback routing work?
-              </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                When a primary model provider or endpoint experiences downtime, latency spikes, or rate limits, the routing layer automatically detects the failure. It silently redirects the request to the next best alternative provider in under 15 milliseconds, ensuring continuous availability for your end users.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-2xl border border-border bg-card/60 backdrop-blur shadow-xl transition-all duration-300 hover:translate-y-[-2px] hover:border-violet-500/30">
-              <h3 className="text-base font-bold text-foreground mb-2 flex items-center gap-2">
-                <span className="text-violet-500 text-sm">✦</span> How is API key failover managed?
-              </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                OmniKey AI pools multiple developer keys and tracks the rate limit status of different models internally in real-time. When a key hits a quota ceiling or triggers a rate limit (such as HTTP 429), requests are seamlessly and instantly routed to the next available key or standby provider in the chain to avoid user-facing errors.
-              </p>
-            </div>
+          <div className="space-y-4">
+            {faqData.map((faq, idx) => {
+              const isOpen = openFaq === idx;
+              return (
+                <div
+                  key={idx}
+                  className={`rounded-2xl border transition-all duration-300 bg-card/60 backdrop-blur shadow-md overflow-hidden ${
+                    isOpen ? 'border-violet-500/40 ring-1 ring-violet-500/10' : 'border-border hover:border-violet-500/20'
+                  }`}
+                >
+                  <button
+                    onClick={() => setOpenFaq(isOpen ? null : idx)}
+                    className="w-full text-left p-5 flex items-center justify-between gap-4 font-bold text-foreground cursor-pointer select-none"
+                  >
+                    <span className="flex items-center gap-3 text-sm sm:text-base">
+                      <span className={`text-xs transition-colors duration-300 ${isOpen ? 'text-violet-500' : 'text-slate-400'}`}>✦</span>
+                      {faq.question}
+                    </span>
+                    <span className={`text-muted-foreground shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180 text-violet-500' : ''}`}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </span>
+                  </button>
+                  <div
+                    className={`grid transition-all duration-300 ease-in-out ${
+                      isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+                    }`}
+                  >
+                    <div className="overflow-hidden">
+                      <div className="px-5 pb-5 pt-1 text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                        <p className="pt-3 border-t border-border/40">
+                          {faq.answer}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </Section>
