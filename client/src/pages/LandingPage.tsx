@@ -891,10 +891,10 @@ export default function LandingPage() {
                 <div
                   key={idx}
                   style={{ animationDelay: `${idx * 150}ms` }}
-                  className={`rounded-2xl border transition-all duration-300 bg-card/60 backdrop-blur shadow-md overflow-hidden animate-fade-up ${
+                  className={`group rounded-2xl border transition-all duration-300 bg-card/60 backdrop-blur overflow-hidden animate-fade-up ${
                     isOpen 
-                      ? 'border-violet-500/40 ring-1 ring-violet-500/10 shadow-lg shadow-violet-500/10' 
-                      : 'border-border hover:border-violet-500/20 hover:shadow-md hover:shadow-violet-500/5'
+                      ? 'border-violet-500/40 ring-1 ring-violet-500/20 shadow-[0_0_25px_rgba(139,92,246,0.22)] bg-gradient-to-br from-card to-violet-500/5' 
+                      : 'border-border hover:border-violet-500/30 hover:shadow-[0_0_15px_rgba(139,92,246,0.08)] hover:bg-card/90'
                   }`}
                 >
                   <button
@@ -902,12 +902,12 @@ export default function LandingPage() {
                     className="w-full text-left p-5 flex items-center justify-between gap-4 font-bold text-foreground cursor-pointer select-none"
                   >
                     <span className="flex items-center gap-3 text-sm sm:text-base">
-                      <span className={`text-xs transition-all duration-350 transform ${isOpen ? 'text-violet-500 rotate-90 scale-125' : 'text-slate-400 rotate-0 scale-100'}`}>✦</span>
-                      <span className={`transition-colors duration-300 ${isOpen ? 'text-violet-500' : 'text-foreground'}`}>
+                      <span className={`text-xs transition-all duration-350 transform ${isOpen ? 'text-violet-500 rotate-90 scale-125' : 'text-slate-400 rotate-0 scale-100 group-hover:text-violet-400 group-hover:rotate-45'}`}>✦</span>
+                      <span className={`transition-colors duration-300 ${isOpen ? 'text-violet-500' : 'text-foreground group-hover:text-violet-400'}`}>
                         {faq.question}
                       </span>
                     </span>
-                    <span className={`text-muted-foreground shrink-0 transition-transform duration-350 ${isOpen ? 'rotate-180 text-violet-500' : ''}`}>
+                    <span className={`text-muted-foreground shrink-0 transition-all duration-350 ${isOpen ? 'rotate-180 text-violet-500' : 'group-hover:text-violet-400 group-hover:translate-y-0.5'}`}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="6 9 12 15 18 9" />
                       </svg>
