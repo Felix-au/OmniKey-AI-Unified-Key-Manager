@@ -237,3 +237,24 @@ html:not(.dark) :is(.markdown-body, .chat-markdown) code:not([class*="language-"
 html:not(.dark) :is(.markdown-body, .chat-markdown) table tbody tr:hover {
     background-color: oklch(0.90 0.01 240);
 }
+
+/* ── Smooth Message Entrance Animation ── */
+@utility animate-message-enter {
+  animation: message-enter 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  overflow: hidden;
+}
+
+@keyframes message-enter {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(24px) scale(0.98);
+    margin-top: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 160px;
+    transform: translateY(0) scale(1);
+  }
+}
+
