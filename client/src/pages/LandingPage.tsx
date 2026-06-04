@@ -185,6 +185,7 @@ function useAnimatedChat() {
   const [visible, setVisible] = useState(0)
   const [typing, setTyping] = useState(false)
   const [inputText, setInputText] = useState('')
+  const [isFadingOut, setIsFadingOut] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -216,6 +217,7 @@ function useAnimatedChat() {
 
     const loop = () => {
       if (!active) return
+      setIsFadingOut(false)
       setVisible(0)
       setInputText('')
       setTyping(false)
@@ -263,7 +265,10 @@ function useAnimatedChat() {
                                     setVisible(6)
 
                                     // Step 7: Hold state before resetting cycle
-                                    runTimeout(loop, 9000)
+                                    runTimeout(() => {
+                                      setIsFadingOut(true)
+                                      runTimeout(loop, 500)
+                                    }, 9000)
                                   }, 2400)
                                 }, 800)
                               }, 400)
@@ -290,7 +295,7 @@ function useAnimatedChat() {
     }
   }, [])
 
-  return { visible, typing, inputText }
+  return { visible, typing, inputText, isFadingOut }
 }
 
 // ── Animated debate hook ─────────────────────────────────────────────────────
@@ -336,6 +341,7 @@ function useArenaAnimation() {
   const [sendClicked, setSendClicked] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [visiblePanels, setVisiblePanels] = useState(0)
+  const [isFadingOut, setIsFadingOut] = useState(false)
 
   const containerRef = useRef<HTMLDivElement | null>(null)
 
@@ -374,6 +380,7 @@ function useArenaAnimation() {
 
     const loop = () => {
       if (!active) return
+      setIsFadingOut(false)
       setPrompt('')
       setPromptActive(false)
       setModels(['', '', '', ''])
@@ -436,7 +443,10 @@ function useArenaAnimation() {
                                         setIsLoading(false)
 
                                         // Phase 6: Hold state before resetting cycle
-                                        runTimeout(loop, 2500)
+                                        runTimeout(() => {
+                                          setIsFadingOut(true)
+                                          runTimeout(loop, 500)
+                                        }, 2500)
                                       }, 800)
                                     }, 700)
                                   }, 600)
@@ -475,6 +485,7 @@ function useArenaAnimation() {
         setSendClicked(false)
         setIsLoading(false)
         setVisiblePanels(0)
+        setIsFadingOut(false)
       }
     }, { threshold: 0.15 })
 
@@ -488,7 +499,7 @@ function useArenaAnimation() {
     }
   }, [])
 
-  return { prompt, promptActive, models, selectingIndex, sendReady, sendClicked, isLoading, visiblePanels, containerRef }
+  return { prompt, promptActive, models, selectingIndex, sendReady, sendClicked, isLoading, visiblePanels, containerRef, isFadingOut }
 }
 
 // ── Fallback order animation ──────────────────────────────────────────────────
@@ -994,40 +1005,42 @@ export default function LandingPage() {
             <SectionSub>Switch between OpenAI and Gemini formats. Pick any model, type your prompt, and see real AI responses with live latency and token metrics.</SectionSub>
           </div>
           <MockCard>
-            <div className="bg-muted/40 dark:bg-white/5 px-4 py-3 border-b border-border flex items-center justify-between">
-              <span className="text-xs font-semibold text-muted-foreground">gemini-2.5-flash</span>
-              <span className="text-[10px] bg-violet-500/10 text-violet-500 border border-violet-500/20 rounded-full px-2 py-0.5 font-semibold">OmniKey AI</span>
-            </div>
-            <div className="p-4 space-y-3 h-[340px] flex flex-col justify-end overflow-hidden">
-              {mockChat.map((m, i) => i < chat.visible && (
-                <div key={i} className={`flex animate-fade-up ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed ${m.role === 'user' ? 'bg-violet-600 text-white' : 'bg-muted/60 dark:bg-white/8 text-foreground border border-border'}`}>
-                    {m.text}
-                    {m.meta && <div className="mt-1 text-[10px] opacity-60">{m.meta}</div>}
+            <div className={`transition-opacity duration-500 ${chat.isFadingOut ? 'opacity-0' : 'opacity-100'}`}>
+              <div className="bg-muted/40 dark:bg-white/5 px-4 py-3 border-b border-border flex items-center justify-between">
+                <span className="text-xs font-semibold text-muted-foreground">gemini-2.5-flash</span>
+                <span className="text-[10px] bg-violet-500/10 text-violet-500 border border-violet-500/20 rounded-full px-2 py-0.5 font-semibold">OmniKey AI</span>
+              </div>
+              <div className="p-4 space-y-3 h-[340px] flex flex-col justify-end overflow-hidden">
+                {mockChat.map((m, i) => i < chat.visible && (
+                  <div key={i} className={`flex animate-fade-up ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed ${m.role === 'user' ? 'bg-violet-600 text-white' : 'bg-muted/60 dark:bg-white/8 text-foreground border border-border'}`}>
+                      {m.text}
+                      {m.meta && <div className="mt-1 text-[10px] opacity-60">{m.meta}</div>}
+                    </div>
                   </div>
-                </div>
-              ))}
-              {chat.typing && (
-                <div className="flex justify-start animate-fade-up">
-                  <div className="bg-muted/60 border border-border rounded-xl px-3 py-2 flex gap-1 items-center text-muted-foreground">
-                    <span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" />
+                ))}
+                {chat.typing && (
+                  <div className="flex justify-start animate-fade-up">
+                    <div className="bg-muted/60 border border-border rounded-xl px-3 py-2 flex gap-1 items-center text-muted-foreground">
+                      <span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" />
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-            <div className="border-t border-border px-4 py-3 flex gap-2">
-              <div className="flex-1 bg-muted/40 dark:bg-white/5 rounded-xl text-xs px-3 py-2 text-foreground font-medium flex items-center min-h-[32px] overflow-hidden">
-                {chat.inputText ? (
-                  <span className="flex items-center truncate">
-                    <span>{chat.inputText}</span>
-                    <span className="w-1 h-3.5 bg-violet-500 ml-0.5 animate-pulse inline-block" />
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground">Type a message...</span>
                 )}
               </div>
-              <div className={`rounded-xl px-3 py-2 flex items-center text-white text-xs font-semibold transition-colors duration-300 ${chat.inputText ? 'bg-violet-600 shadow-md shadow-violet-500/20' : 'bg-muted-foreground/20 text-muted-foreground/60'}`}>
-                Send
+              <div className="border-t border-border px-4 py-3 flex gap-2">
+                <div className="flex-1 bg-muted/40 dark:bg-white/5 rounded-xl text-xs px-3 py-2 text-foreground font-medium flex items-center min-h-[32px] overflow-hidden">
+                  {chat.inputText ? (
+                    <span className="flex items-center truncate">
+                      <span>{chat.inputText}</span>
+                      <span className="w-1 h-3.5 bg-violet-500 ml-0.5 animate-pulse inline-block" />
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">Type a message...</span>
+                  )}
+                </div>
+                <div className={`rounded-xl px-3 py-2 flex items-center text-white text-xs font-semibold transition-colors duration-300 ${chat.inputText ? 'bg-violet-600 shadow-md shadow-violet-500/20' : 'bg-muted-foreground/20 text-muted-foreground/60'}`}>
+                  Send
+                </div>
               </div>
             </div>
           </MockCard>
@@ -1038,71 +1051,73 @@ export default function LandingPage() {
       <Section id="arena" alt>
         <div ref={arena.containerRef} className="grid md:grid-cols-2 gap-12 items-center">
           <MockCard>
-            <div className="bg-muted/40 dark:bg-white/5 px-4 py-3 border-b border-border flex items-center justify-between gap-3 min-h-[45px]">
-              <div className="text-xs font-semibold flex items-center overflow-hidden flex-1">
-                <span className="text-muted-foreground shrink-0">Prompt:&nbsp;</span>
-                {arena.prompt ? (
-                  <span className="flex items-center text-foreground truncate">
-                    <span>{arena.prompt}</span>
-                    {arena.promptActive && <span className="w-1 h-3.5 bg-blue-500 ml-0.5 animate-pulse inline-block" />}
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground/45 italic font-normal">Awaiting prompt...</span>
-                )}
+            <div className={`transition-opacity duration-500 ${arena.isFadingOut ? 'opacity-0' : 'opacity-100'}`}>
+              <div className="bg-muted/40 dark:bg-white/5 px-4 py-3 border-b border-border flex items-center justify-between gap-3 min-h-[45px]">
+                <div className="text-xs font-semibold flex items-center overflow-hidden flex-1">
+                  <span className="text-muted-foreground shrink-0">Prompt:&nbsp;</span>
+                  {arena.prompt ? (
+                    <span className="flex items-center text-foreground truncate">
+                      <span>{arena.prompt}</span>
+                      {arena.promptActive && <span className="w-1 h-3.5 bg-blue-500 ml-0.5 animate-pulse inline-block" />}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground/45 italic font-normal">Awaiting prompt...</span>
+                  )}
+                </div>
+                <div className={`shrink-0 rounded-lg px-2.5 py-1 text-[10px] font-bold border transition-all duration-300 ${
+                  arena.sendClicked
+                    ? 'bg-blue-700 text-white border-blue-600 scale-95 shadow-none'
+                    : arena.sendReady
+                      ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/20 scale-100'
+                      : 'bg-muted-foreground/10 text-muted-foreground/40 border-border/40 scale-100'
+                }`}>
+                  Send
+                </div>
               </div>
-              <div className={`shrink-0 rounded-lg px-2.5 py-1 text-[10px] font-bold border transition-all duration-300 ${
-                arena.sendClicked
-                  ? 'bg-blue-700 text-white border-blue-600 scale-95 shadow-none'
-                  : arena.sendReady
-                    ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/20 scale-100'
-                    : 'bg-muted-foreground/10 text-muted-foreground/40 border-border/40 scale-100'
-              }`}>
-                Send
-              </div>
-            </div>
-            {/* Model selectors row */}
-            <div className="grid grid-cols-4 divide-x divide-border border-b border-border">
-              {arena.models.map((m, i) => {
-                const colors = ['text-blue-400', 'text-orange-400', 'text-purple-400', 'text-emerald-400']
-                const isSelecting = arena.selectingIndex === i
-                return (
-                  <div key={i} className={`px-2 py-2 text-[10px] font-semibold flex items-center justify-center min-h-[33px] gap-1 ${colors[i]} ${isSelecting ? 'bg-violet-500/10' : ''} transition-colors duration-300`}>
-                    {isSelecting ? (
-                      <span className="flex gap-0.5"><span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" /></span>
-                    ) : m ? (
-                      <span className="model-tag truncate animate-drop-in">{m}</span>
-                    ) : (
-                      <span className="text-muted-foreground/30 font-normal italic">—</span>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-            <div className="grid grid-cols-2 gap-0 divide-x divide-y divide-border">
-              {arenaPanels.map((p, i) => {
-                const isPanelVisible = i < arena.visiblePanels
-                return (
-                  <div key={i} className="p-3 min-h-[140px] relative flex flex-col justify-between overflow-hidden">
-                    <div>
-                      <div className={`text-[10px] font-semibold mb-2 ${p.color} flex items-center justify-between`}>
-                        <span>{arena.models[i] || '—'}</span>
-                        <span className="text-muted-foreground font-normal">{isPanelVisible ? p.latency : '...'}</span>
-                      </div>
-                      {arena.isLoading && !isPanelVisible ? (
-                        <div className="flex gap-1 items-center h-10 text-muted-foreground/40">
-                          <span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" />
-                        </div>
-                      ) : isPanelVisible ? (
-                        <p className="text-xs text-foreground/80 leading-relaxed whitespace-pre-line animate-fade-up">
-                          {p.text}
-                        </p>
+              {/* Model selectors row */}
+              <div className="grid grid-cols-4 divide-x divide-border border-b border-border">
+                {arena.models.map((m, i) => {
+                  const colors = ['text-blue-400', 'text-orange-400', 'text-purple-400', 'text-emerald-400']
+                  const isSelecting = arena.selectingIndex === i
+                  return (
+                    <div key={i} className={`px-2 py-2 text-[10px] font-semibold flex items-center justify-center min-h-[33px] gap-1 ${colors[i]} ${isSelecting ? 'bg-violet-500/10' : ''} transition-colors duration-300`}>
+                      {isSelecting ? (
+                        <span className="flex gap-0.5"><span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" /></span>
+                      ) : m ? (
+                        <span className="model-tag truncate animate-drop-in">{m}</span>
                       ) : (
-                        <div className="text-xs text-muted-foreground/30 italic font-normal py-2">Awaiting trigger...</div>
+                        <span className="text-muted-foreground/30 font-normal italic">—</span>
                       )}
                     </div>
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
+              <div className="grid grid-cols-2 gap-0 divide-x divide-y divide-border">
+                {arenaPanels.map((p, i) => {
+                  const isPanelVisible = i < arena.visiblePanels
+                  return (
+                    <div key={i} className="p-3 min-h-[140px] relative flex flex-col justify-between overflow-hidden">
+                      <div>
+                        <div className={`text-[10px] font-semibold mb-2 ${p.color} flex items-center justify-between`}>
+                          <span>{arena.models[i] || '—'}</span>
+                          <span className="text-muted-foreground font-normal">{isPanelVisible ? p.latency : '...'}</span>
+                        </div>
+                        {arena.isLoading && !isPanelVisible ? (
+                          <div className="flex gap-1 items-center h-10 text-muted-foreground/40">
+                            <span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" />
+                          </div>
+                        ) : isPanelVisible ? (
+                          <p className="text-xs text-foreground/80 leading-relaxed whitespace-pre-line animate-fade-up">
+                            {p.text}
+                          </p>
+                        ) : (
+                          <div className="text-xs text-muted-foreground/30 italic font-normal py-2">Awaiting trigger...</div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           </MockCard>
           <div>
