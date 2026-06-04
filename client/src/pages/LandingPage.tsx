@@ -298,20 +298,6 @@ function useAnimatedChat() {
   return { visible, typing, inputText, isFadingOut }
 }
 
-// ── Animated debate hook ─────────────────────────────────────────────────────
-function useAnimatedDebate() {
-  const [visible, setVisible] = useState(0)
-  useEffect(() => {
-    const cycle = () => {
-      setVisible(0)
-        ;[1200, 3500, 6200].forEach((d, i) => setTimeout(() => setVisible(i + 1), d))
-      setTimeout(cycle, 10000)
-    }
-    const t = setTimeout(cycle, 600)
-    return () => clearTimeout(t)
-  }, [])
-  return visible
-}
 
 // ── Animated routing hook ────────────────────────────────────────────────────
 function useAnimatedRouting() {
@@ -525,37 +511,248 @@ function useFallbackOrder() {
 // ── Debate config cursor animation ───────────────────────────────────────────────
 const debateConfigFields = ['opening', 'rounds', 'judging', 'infavor', 'against', 'judge'] as const
 type DebateField = typeof debateConfigFields[number]
-const judgeModels = ['gpt-4o-mini', 'gemini-2.0-flash', 'llama-3.3-70b', 'mistral-large']
-const favorModels = ['gemini-2.5-flash', 'claude-3-5-sonnet', 'qwen-2.5-72b', 'deepseek-r1']
-const againstModels = ['llama-3.3-70b', 'mistral-large', 'gpt-4o-mini', 'nvidia/nemotron-70b']
-function useDebateConfig() {
-  const [activeField, setActiveField] = useState<DebateField | null>(null)
+
+function useDebateArenaSimulation() {
+  const [activeField, setActiveField] = useState<DebateField | 'topic' | 'startBtn' | null>(null)
+  const [topicText, setTopicText] = useState('')
+  const [openingPlayer, setOpeningPlayer] = useState('Auto')
   const [rounds, setRounds] = useState(3)
-  const [judging, setJudging] = useState('Every Round')
-  const [infavor, setInfavor] = useState('gemini-2.5-flash')
-  const [against, setAgainst] = useState('llama-3.3-70b')
-  const [judge, setJudge] = useState('gpt-4o-mini')
+  const [judging, setJudging] = useState('At the End')
+  const [infavor, setInfavor] = useState('Auto')
+  const [against, setAgainst] = useState('Auto')
+  const [judge, setJudge] = useState('Auto')
+  const [isStartClicked, setIsStartClicked] = useState(false)
+  const [stage, setStage] = useState<'config' | 'debating'>('config')
+  const [visibleCount, setVisibleCount] = useState(0)
+  const [isTyping, setIsTyping] = useState(false)
+  const [isFadingOut, setIsFadingOut] = useState(false)
+
+  const containerRef = useRef<HTMLDivElement | null>(null)
+
   useEffect(() => {
-    const seq: [DebateField, number, () => void][] = [
-      ['rounds', 800, () => setRounds(r => r < 6 ? r + 1 : 2)],
-      ['judging', 1600, () => setJudging(j => j === 'Every Round' ? 'At the End' : 'Every Round')],
-      ['infavor', 2600, () => setInfavor(favorModels[Math.floor(Math.random() * favorModels.length)])],
-      ['against', 3700, () => setAgainst(againstModels[Math.floor(Math.random() * againstModels.length)])],
-      ['judge', 4800, () => setJudge(judgeModels[Math.floor(Math.random() * judgeModels.length)])],
-    ]
-    const cycle = () => {
-      setActiveField(null)
-      const tos: ReturnType<typeof setTimeout>[] = []
-      seq.forEach(([field, delay, action]) => {
-        tos.push(setTimeout(() => { setActiveField(field); action() }, delay))
-        tos.push(setTimeout(() => setActiveField(null), delay + 600))
-      })
-      tos.push(setTimeout(cycle, 7000))
+    let active = false
+    let currentTimeout: ReturnType<typeof setTimeout> | null = null
+    let currentInterval: ReturnType<typeof setInterval> | null = null
+
+    const runTimeout = (fn: () => void, delay: number) => {
+      if (!active) return
+      currentTimeout = setTimeout(fn, delay)
     }
-    const t = setTimeout(cycle, 1000)
-    return () => clearTimeout(t)
+
+    const typeText = (text: string, onComplete: () => void) => {
+      let index = 0
+      setTopicText('')
+      currentInterval = setInterval(() => {
+        if (!active) {
+          clearInterval(currentInterval!)
+          return
+        }
+        index++
+        if (index <= text.length) {
+          setTopicText(text.slice(0, index))
+        } else {
+          clearInterval(currentInterval!)
+          onComplete()
+        }
+      }, 40) // typing speed: 40ms per char
+    }
+
+    const loop = () => {
+      if (!active) return
+      
+      // Reset all states
+      setIsFadingOut(false)
+      setStage('config')
+      setActiveField(null)
+      setTopicText('')
+      setOpeningPlayer('Auto')
+      setRounds(3)
+      setJudging('At the End')
+      setInfavor('Auto')
+      setAgainst('Auto')
+      setJudge('Auto')
+      setIsStartClicked(false)
+      setVisibleCount(0)
+      setIsTyping(false)
+
+      runTimeout(() => {
+        // Step 1: Type Topic
+        setActiveField('topic')
+        typeText("Should AI replace human creativity?", () => {
+          setActiveField(null)
+          
+          runTimeout(() => {
+            // Step 2: Select Opening Player
+            setActiveField('opening')
+            runTimeout(() => {
+              setOpeningPlayer('In Favor')
+              setActiveField(null)
+
+              runTimeout(() => {
+                // Step 3: Change Rounds (3 -> 4)
+                setActiveField('rounds')
+                runTimeout(() => {
+                  setRounds(4)
+                  runTimeout(() => {
+                    // Step 3b: Change Rounds (4 -> 5)
+                    setRounds(5)
+                    setActiveField(null)
+
+                    runTimeout(() => {
+                      // Step 4: Change Judging
+                      setActiveField('judging')
+                      runTimeout(() => {
+                        setJudging('Every Round')
+                        setActiveField(null)
+
+                        runTimeout(() => {
+                          // Step 5: Select In Favor model
+                          setActiveField('infavor')
+                          runTimeout(() => {
+                            setInfavor('gemini-2.5-flash')
+                            setActiveField(null)
+
+                            runTimeout(() => {
+                              // Step 6: Select Against model
+                              setActiveField('against')
+                              runTimeout(() => {
+                                setAgainst('llama-3.3-70b')
+                                setActiveField(null)
+
+                                runTimeout(() => {
+                                  // Step 7: Select Judge model
+                                  setActiveField('judge')
+                                  runTimeout(() => {
+                                    setJudge('gpt-4o-mini')
+                                    setActiveField(null)
+
+                                    runTimeout(() => {
+                                      // Step 8: Click Start Button
+                                      setActiveField('startBtn')
+                                      runTimeout(() => {
+                                        setIsStartClicked(true)
+                                        runTimeout(() => {
+                                          setIsStartClicked(false)
+                                          setActiveField(null)
+                                          setStage('debating')
+                                          
+                                          // Start the debate transcript choreography
+                                          runDebate()
+                                        }, 400)
+                                      }, 800)
+                                    }, 600)
+                                  }, 800)
+                                }, 600)
+                              }, 800)
+                            }, 600)
+                          }, 800)
+                        }, 600)
+                      }, 800)
+                    }, 600)
+                  }, 800)
+                }, 800)
+              }, 600)
+            }, 800)
+          }, 600)
+        })
+      }, 1000)
+    }
+
+    const runDebate = () => {
+      // We have 15 messages (5 rounds * 3 messages per round).
+      // We will show typing dots, then reveal the message, then wait, then repeat.
+      let currentMsgIndex = 0
+
+      const nextMessage = () => {
+        if (!active) return
+        if (currentMsgIndex >= 15) {
+          // Finished the debate! Wait, fade out, then loop.
+          runTimeout(() => {
+            setIsFadingOut(true)
+            runTimeout(loop, 600)
+          }, 8000) // Let the user read the final verdict for 8 seconds
+          return
+        }
+
+        // Show typing indicator
+        setIsTyping(true)
+        runTimeout(() => {
+          setIsTyping(false)
+          setVisibleCount(currentMsgIndex + 1)
+          currentMsgIndex++
+          // Wait a short delay before starting the next turn
+          runTimeout(nextMessage, 1500)
+        }, 1800) // Simulate typing for 1.8 seconds
+      }
+
+      nextMessage()
+    }
+
+    // IntersectionObserver to only play animation when section is in view
+    const el = containerRef.current
+    if (!el) {
+      // Fallback if ref is not ready
+      loop()
+      return () => {
+        active = false
+        if (currentTimeout) clearTimeout(currentTimeout)
+        if (currentInterval) clearInterval(currentInterval)
+      }
+    }
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        if (!active) {
+          active = true
+          loop()
+        }
+      } else {
+        active = false
+        if (currentTimeout) clearTimeout(currentTimeout)
+        if (currentInterval) clearInterval(currentInterval)
+        // Reset states
+        setActiveField(null)
+        setTopicText('')
+        setOpeningPlayer('Auto')
+        setRounds(3)
+        setJudging('At the End')
+        setInfavor('Auto')
+        setAgainst('Auto')
+        setJudge('Auto')
+        setIsStartClicked(false)
+        setStage('config')
+        setVisibleCount(0)
+        setIsTyping(false)
+        setIsFadingOut(false)
+      }
+    }, { threshold: 0.15 })
+
+    observer.observe(el)
+
+    return () => {
+      active = false
+      observer.disconnect()
+      if (currentTimeout) clearTimeout(currentTimeout)
+      if (currentInterval) clearInterval(currentInterval)
+    }
   }, [])
-  return { activeField, rounds, judging, infavor, against, judge }
+
+  return {
+    activeField,
+    topicText,
+    openingPlayer,
+    rounds,
+    judging,
+    infavor,
+    against,
+    judge,
+    isStartClicked,
+    stage,
+    visibleCount,
+    isTyping,
+    isFadingOut,
+    containerRef
+  }
 }
 
 // ── Count-up hook ─────────────────────────────────────────────────────────────
@@ -638,9 +835,26 @@ const arenaPanels = [
 
 // ── Mock Debate ───────────────────────────────────────────────────────────────
 const debateMsgs = [
-  { role: 'infavor', label: 'In Favor · gemini-2.5-flash', text: 'AI enhances creativity by handling repetitive tasks, freeing humans for higher-order creative thinking. Tools like Midjourney and GitHub Copilot prove this already.' },
-  { role: 'against', label: 'Against · llama-3.3-70b', text: 'Creativity is fundamentally human — rooted in emotion, lived experience, and intention. AI can mimic patterns, but it cannot truly innovate without a soul.' },
-  { role: 'judge', label: '⚖ Judge · gpt-4o-mini · Round 1', text: 'Both arguments are well-structured. In Favor scores 7/10 for pragmatic evidence. Against scores 8/10 for philosophical depth. Slight edge to Against this round.' },
+  // Round 1
+  { role: 'infavor', label: 'In Favor · gemini-2.5-flash · Round 1', text: 'AI acts as a collaborative partner, expanding the boundaries of human ideation by suggesting non-obvious combinations and patterns that inspire novel ideas.' },
+  { role: 'against', label: 'Against · llama-3.3-70b · Round 1', text: 'True creative leaps require breaking conventions and lived emotional experience. Static probability matrices merely repackage existing human data without genuine agency.' },
+  { role: 'judge', label: '⚖ Judge · gpt-4o-mini · Round 1', text: 'In Favor points out collaborative potential, while Against emphasizes emotional authenticity. Slight edge to Against for distinguishing agency from iteration.' },
+  // Round 2
+  { role: 'infavor', label: 'In Favor · gemini-2.5-flash · Round 2', text: 'AI tools democratize expression, allowing people without formal training or technical illustration skills to manifest and communicate complex artistic visions.' },
+  { role: 'against', label: 'Against · llama-3.3-70b · Round 2', text: 'Democratization shouldn\'t mean flooding the world with derivative, low-effort content. It risks diluting the value of dedication, craftsmanship, and years of skill.' },
+  { role: 'judge', label: '⚖ Judge · gpt-4o-mini · Round 2', text: 'A balanced round. In Favor scores highly on accessibility and inclusion, but Against correctly warns of market dilution. This round is a draw.' },
+  // Round 3
+  { role: 'infavor', label: 'In Favor · gemini-2.5-flash · Round 3', text: 'Generative models accelerate iteration, enabling creators to rapidly test and prototype concepts in seconds rather than spending weeks on basic drafts.' },
+  { role: 'against', label: 'Against · llama-3.3-70b · Round 3', text: 'Accelerating iteration bypasses the critical process of deep reflection. "Happy accidents" occur during slow, deliberate craftsmanship, not instant generations.' },
+  { role: 'judge', label: '⚖ Judge · gpt-4o-mini · Round 3', text: 'In Favor highlights real-world industrial utility, whereas Against argues for the cognitive value of time. Slight edge to In Favor for practical feasibility.' },
+  // Round 4
+  { role: 'infavor', label: 'In Favor · gemini-2.5-flash · Round 4', text: 'By scanning historical art styles, AI can identify unexplored aesthetic gaps, enabling human artists to deliberately explore fresh stylistic frontiers.' },
+  { role: 'against', label: 'Against · llama-3.3-70b · Round 4', text: 'Finding stylistic gaps via analysis is a formulaic approach, not an artistic one. Art is an expression of conscious emotion reflecting a moment in time.' },
+  { role: 'judge', label: '⚖ Judge · gpt-4o-mini · Round 4', text: 'Against presents a strong philosophical argument against analytical creativity, though In Favor has solid utility. Score remains extremely tight.' },
+  // Round 5
+  { role: 'infavor', label: 'In Favor · gemini-2.5-flash · Round 5', text: 'Ultimately, AI is another tool in the artist\'s toolkit, analogous to the camera or synthesizer which faced similar resistance when first introduced.' },
+  { role: 'against', label: 'Against · llama-3.3-70b · Round 5', text: 'A camera doesn\'t decide what is beautiful, and a synthesizer doesn\'t write lyrics. AI is the first tool that actively seeks to replace the creative agent.' },
+  { role: 'judge', label: '⚖ Judge · gpt-4o-mini · Round 5', text: 'Against captures the core distinction of creative agency, concluding the debate. Final verdict: Against wins by a narrow margin for defending human intent!' }
 ]
 
 // ── Mock Fallback Chain ───────────────────────────────────────────────────────
@@ -751,11 +965,16 @@ export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [activeCategory, setActiveCategory] = useState<'general' | 'api' | 'security'>('general')
   const chat = useAnimatedChat()
-  const debateVisible = useAnimatedDebate()
   const routingPhase = useAnimatedRouting()
   const arena = useArenaAnimation()
   const fallbackOrder = useFallbackOrder()
-  const debateCfg = useDebateConfig()
+  const debateSim = useDebateArenaSimulation()
+  const transcriptScrollRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    if (transcriptScrollRef.current) {
+      transcriptScrollRef.current.scrollTop = transcriptScrollRef.current.scrollHeight
+    }
+  }, [debateSim.visibleCount, debateSim.isTyping])
   const heroRef = useRef<HTMLElement>(null)
   const [routedRequestsTarget, setRoutedRequestsTarget] = useState(850.00)
   const [tokensChanneledTarget, setTokensChanneledTarget] = useState(100.00)
@@ -1136,64 +1355,137 @@ export default function LandingPage() {
           <p className="text-muted-foreground max-w-xl mx-auto">Pick a topic, assign In Favor and Against models, set the number of rounds, and let a Judge model moderate the entire debate.</p>
         </div>
         <MockCard>
-          <div className="grid md:grid-cols-[280px_1fr]">
+          <div ref={debateSim.containerRef} className="grid md:grid-cols-[280px_1fr]">
             <div className="border-r border-border p-5 space-y-4 bg-muted/20 dark:bg-white/[0.02] relative">
               {/* Animated cursor ball */}
-              <div className={`absolute top-2 right-2 w-3 h-3 rounded-full border-2 border-border shadow transition-all duration-500 ${debateCfg.activeField ? 'bg-foreground scale-110 opacity-100' : 'bg-muted opacity-40 scale-75'
+              <div className={`absolute top-2 right-2 w-3 h-3 rounded-full border-2 border-border shadow transition-all duration-500 ${debateSim.activeField ? 'bg-foreground scale-110 opacity-100' : 'bg-muted opacity-40 scale-75'
                 }`} />
               <div className="space-y-1">
                 <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Topic</div>
-                <div className="text-xs bg-background border border-border rounded-xl px-3 py-2 text-foreground">Should AI replace human creativity?</div>
+                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground transition-all duration-300 min-h-[34px] flex items-center ${
+                  debateSim.activeField === 'topic' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
+                }`}>
+                  {debateSim.topicText ? (
+                    <span className="flex items-center truncate">
+                      <span>{debateSim.topicText}</span>
+                      {debateSim.activeField === 'topic' && <span className="w-1.5 h-3.5 bg-violet-500 ml-0.5 animate-pulse inline-block" />}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground/35 italic font-normal">Awaiting topic input...</span>
+                  )}
+                </div>
               </div>
               <div className="space-y-1">
                 <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Opening Player</div>
-                <div className="text-xs bg-background border border-border rounded-xl px-3 py-2 text-foreground flex justify-between"><span>In Favor</span><span className="text-muted-foreground">▾</span></div>
+                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${
+                  debateSim.activeField === 'opening' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
+                }`}>
+                  <span>{debateSim.openingPlayer}</span>
+                  <span className="text-muted-foreground">▾</span>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Rounds</div>
-                  <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground transition-all duration-300 ${debateCfg.activeField === 'rounds' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
-                    }`}>{debateCfg.rounds}</div>
+                  <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground transition-all duration-300 ${
+                    debateSim.activeField === 'rounds' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
+                  }`}>{debateSim.rounds}</div>
                 </div>
                 <div className="space-y-1">
                   <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Judging</div>
-                  <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${debateCfg.activeField === 'judging' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
-                    }`}><span>{debateCfg.judging}</span><span className="text-muted-foreground">▾</span></div>
+                  <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${
+                    debateSim.activeField === 'judging' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
+                  }`}>
+                    <span>{debateSim.judging}</span>
+                    <span className="text-muted-foreground">▾</span>
+                  </div>
                 </div>
               </div>
               <div className="space-y-1">
                 <div className="text-[10px] font-semibold text-emerald-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />In Favor</div>
-                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${debateCfg.activeField === 'infavor' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
-                  }`}><span className="truncate">{debateCfg.infavor}</span><span className="text-muted-foreground ml-1">▾</span></div>
+                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${
+                  debateSim.activeField === 'infavor' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
+                }`}>
+                  <span className="truncate">{debateSim.infavor}</span>
+                  <span className="text-muted-foreground ml-1">▾</span>
+                </div>
               </div>
               <div className="space-y-1">
                 <div className="text-[10px] font-semibold text-rose-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block" />Against</div>
-                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${debateCfg.activeField === 'against' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
-                  }`}><span className="truncate">{debateCfg.against}</span><span className="text-muted-foreground ml-1">▾</span></div>
+                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${
+                  debateSim.activeField === 'against' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
+                }`}>
+                  <span className="truncate">{debateSim.against}</span>
+                  <span className="text-muted-foreground ml-1">▾</span>
+                </div>
               </div>
               <div className="space-y-1">
                 <div className="text-[10px] font-semibold text-amber-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />Judge</div>
-                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${debateCfg.activeField === 'judge' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
-                  }`}><span className="truncate">{debateCfg.judge}</span><span className="text-muted-foreground ml-1">▾</span></div>
+                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${
+                  debateSim.activeField === 'judge' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
+                }`}>
+                  <span className="truncate">{debateSim.judge}</span>
+                  <span className="text-muted-foreground ml-1">▾</span>
+                </div>
               </div>
-              <div className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-xs font-semibold rounded-xl px-4 py-2.5 text-center cursor-default">Start Debate Arena</div>
+              <button
+                className={`w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-xs font-semibold rounded-xl px-4 py-2.5 text-center cursor-default transition-all duration-300 ${
+                  debateSim.activeField === 'startBtn' ? 'ring-2 ring-violet-500 ring-offset-2 dark:ring-offset-slate-900 scale-102 shadow-lg shadow-violet-500/30' : ''
+                } ${
+                  debateSim.isStartClicked ? 'scale-95 brightness-90 shadow-none' : ''
+                }`}
+              >
+                Start Debate Arena
+              </button>
             </div>
             {/* Transcript */}
-            <div className="p-5 space-y-3">
-              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Round 1 of 3</div>
-              {debateMsgs.map((m, i) => i < debateVisible ? (
-                <div key={i} className={`rounded-xl border px-4 py-3 text-xs leading-relaxed animate-fade-up ${m.role === 'infavor' ? 'border-emerald-500/30 bg-emerald-500/5' :
-                  m.role === 'against' ? 'border-rose-500/30 bg-rose-500/5' :
-                    'border-amber-500/30 bg-amber-500/5'
-                  }`}>
-                  <div className={`text-[10px] font-semibold mb-1 ${m.role === 'infavor' ? 'text-emerald-500' : m.role === 'against' ? 'text-rose-500' : 'text-amber-500'}`}>{m.label}</div>
-                  {m.text}
+            <div className={`p-5 flex flex-col h-[480px] transition-opacity duration-500 ${debateSim.isFadingOut ? 'opacity-0' : 'opacity-100'}`}>
+              {debateSim.stage === 'config' ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground/45 border-2 border-dashed border-border/60 rounded-2xl p-6 bg-muted/5">
+                  <span className="text-3xl mb-3">⚔</span>
+                  <p className="text-xs font-semibold uppercase tracking-wider mb-1">Debate Arena Offline</p>
+                  <p className="text-[11px] text-center max-w-[200px] leading-relaxed">Configure the parameters in the sidebar and press start to begin the simulation.</p>
                 </div>
-              ) : i === debateVisible ? (
-                <div key={i} className="flex gap-1 px-4 py-3 text-muted-foreground animate-fade-up">
-                  <span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" />
-                </div>
-              ) : null)}
+              ) : (
+                <>
+                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 shrink-0 flex items-center justify-between">
+                    <span>Round {Math.min(5, Math.floor(debateSim.visibleCount / 3) + 1)} of 5</span>
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                    </span>
+                  </div>
+                  <div ref={transcriptScrollRef} className="flex-1 overflow-y-auto pr-1 space-y-3 scroll-smooth">
+                    {debateMsgs.map((m, i) => i < debateSim.visibleCount ? (
+                      <div key={i} className={`rounded-xl border px-4 py-3 text-xs leading-relaxed animate-fade-up ${
+                        m.role === 'infavor' ? 'border-emerald-500/30 bg-emerald-500/5' :
+                        m.role === 'against' ? 'border-rose-500/30 bg-rose-500/5' :
+                        'border-amber-500/30 bg-amber-500/5'
+                      }`}>
+                        <div className={`text-[10px] font-semibold mb-1 ${
+                          m.role === 'infavor' ? 'text-emerald-500' :
+                          m.role === 'against' ? 'text-rose-500' :
+                          'text-amber-500'
+                        }`}>{m.label}</div>
+                        <p className="whitespace-pre-line">{m.text}</p>
+                      </div>
+                    ) : null)}
+                    
+                    {debateSim.isTyping && (
+                      <div className="rounded-xl border px-4 py-3 text-xs leading-relaxed animate-fade-up bg-muted/20 border-border/40 flex items-center gap-2">
+                        <span className="text-[10px] font-semibold text-muted-foreground">
+                          {debateMsgs[debateSim.visibleCount]?.role === 'infavor' ? 'In Favor is typing' :
+                           debateMsgs[debateSim.visibleCount]?.role === 'against' ? 'Against is typing' :
+                           'Judge is evaluating'}
+                        </span>
+                        <div className="flex gap-1 items-center">
+                          <span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </MockCard>
