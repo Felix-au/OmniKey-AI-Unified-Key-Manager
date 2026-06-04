@@ -495,6 +495,16 @@ const faqData = [
     question: "Do I need to change my code to use OmniKey AI?",
     answer: "Minimal changes are required. Since OmniKey AI exposes an OpenAI-compatible web API, you only need to redirect your API requests by changing the base URL/endpoint in your SDK configuration to your hosted proxy server address (available under the Keys or Dev Corner sections of the dashboard) and replace your API key with your unified OmniKey token. All request payloads, headers, and schemas remain exactly the same.",
     tag: "api"
+  },
+  {
+    question: "What is the 'auto' model in OmniKey AI?",
+    answer: "The 'auto' model is a dynamic placeholder model. When targeted, OmniKey's router automatically selects the highest-priority online model in your configured fallback chain. This allows your client application to function continuously even if specific vendor models are rate-limited or disabled.",
+    tag: "api"
+  },
+  {
+    question: "Do my API requests get logged on the server?",
+    answer: "By default, requests are routed statelessly. However, if audit logging is enabled in the Admin Console, the server maintains recent audit records (latency, token count, and timestamps) for usage statistics. These logs do not contain raw prompt payloads and can be flushed instantly by the administrator.",
+    tag: "security"
   }
 ]
 
