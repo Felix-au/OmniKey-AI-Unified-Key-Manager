@@ -874,16 +874,16 @@ export default function LandingPage() {
                 <span className="text-violet-500 text-sm">✦</span> Why use an AI proxy gateway?
               </h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Managing separate API keys, usage tracking, and complex rate-limiting retry configurations across different vendors like OpenAI, Google, and Groq makes application code complex and hard to secure. An AI proxy gateway acts as a unified middleware server. It consolidates all model access under a single interface, securing provider keys and simplifying development.
+                Managing separate API keys, usage tracking, and complex rate-limiting retry configurations across different model providers makes application code complex and hard to secure. An AI proxy gateway acts as a unified middleware server. It consolidates all model access under a single interface, securing provider keys and simplifying development.
               </p>
             </div>
 
             <div className="p-6 rounded-2xl border border-border bg-card/60 backdrop-blur shadow-xl transition-all duration-300 hover:translate-y-[-2px] hover:border-violet-500/30">
               <h3 className="text-base font-bold text-foreground mb-2 flex items-center gap-2">
-                <span className="text-violet-500 text-sm">✦</span> How does Groq fallback routing work?
+                <span className="text-violet-500 text-sm">✦</span> How does fallback routing work?
               </h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                While Groq offers lightning-fast inference, peak demand can trigger HTTP 429 rate limits. OmniKey AI's routing layer continuously monitors provider health. If a request to Groq fails, the system automatically redirects the query to standby providers (e.g. Cerebras, SambaNova, or Gemini) in under 15 milliseconds, ensuring zero disruption to your end users.
+                When a primary model provider or endpoint experiences downtime, latency spikes, or rate limits, the routing layer automatically detects the failure. It silently redirects the request to the next best alternative provider in under 15 milliseconds, ensuring continuous availability for your end users.
               </p>
             </div>
 
