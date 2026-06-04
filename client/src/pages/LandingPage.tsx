@@ -889,10 +889,10 @@ export default function LandingPage() {
 
             <div className="p-6 rounded-2xl border border-border bg-card/60 backdrop-blur shadow-xl transition-all duration-300 hover:translate-y-[-2px] hover:border-violet-500/30">
               <h3 className="text-base font-bold text-foreground mb-2 flex items-center gap-2">
-                <span className="text-violet-500 text-sm">✦</span> How is free Gemini API failover managed?
+                <span className="text-violet-500 text-sm">✦</span> How is API key failover managed?
               </h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Free-tier promotional Gemini keys have tight requests-per-minute limits. OmniKey resolves this by pooling multiple API keys on the cloud instance and checking quota availability. If one key is rate-limited, it fails over to the next key in the pool, allowing applications to maintain continuous uptime in online production environments.
+                OmniKey AI pools multiple developer keys and tracks the rate limit status of different models internally in real-time. When a key hits a quota ceiling or triggers a rate limit (such as HTTP 429), requests are seamlessly and instantly routed to the next available key or standby provider in the chain to avoid user-facing errors.
               </p>
             </div>
           </div>
