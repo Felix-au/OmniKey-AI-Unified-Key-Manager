@@ -436,7 +436,7 @@ function useArenaAnimation() {
                                         setIsLoading(false)
 
                                         // Phase 6: Hold state before resetting cycle
-                                        runTimeout(loop, 4500)
+                                        runTimeout(loop, 2500)
                                       }, 800)
                                     }, 700)
                                   }, 600)
