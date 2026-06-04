@@ -457,8 +457,8 @@ const MoonIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="no
 
 const faqData = [
   {
-    question: "Why use an AI proxy gateway?",
-    answer: "Managing separate API keys, usage tracking, and complex rate-limiting retry configurations across different model providers makes application code complex and hard to secure. An AI proxy gateway acts as a unified middleware server. It consolidates all model access under a single interface, securing provider keys and simplifying development."
+    question: "Why use OmniKey AI?",
+    answer: "OmniKey AI is a high-performance AI proxy gateway that consolidates multiple model providers and developer API credentials under a single OpenAI-compatible interface. By acting as a unified middleware layer, it simplifies application development, secures API keys, handles dynamic fallback routing, and aggregates usage stats in real-time, eliminating vendor lock-in and avoiding runtime interruptions."
   },
   {
     question: "How does fallback routing work?",
