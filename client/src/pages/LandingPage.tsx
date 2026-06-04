@@ -703,7 +703,7 @@ function useDebateArenaSimulation() {
           runTimeout(() => {
             setIsFadingOut(true)
             runTimeout(loop, 600)
-          }, 8000) // Let the user read the final verdict for 8 seconds
+          }, 3000) // Let the user read the final verdict for 3 seconds
           return
         }
 
