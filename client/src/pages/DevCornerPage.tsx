@@ -1026,7 +1026,8 @@ func main() {
     fmt.Println("Response:", string(body))
 }`
     } else if (mode === 'stt') {
-      jsCodeSnippet = `package main
+      jsCodeSnippet = apiFormat === 'openai'
+        ? `package main
 
 import (
     "bytes"
@@ -1065,8 +1066,61 @@ func main() {
     respBody, _ := io.ReadAll(resp.Body)
     fmt.Println("Response:", string(respBody))
 }`
+        : `package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+func main() {
+    apiKey := "${apiKey}"
+    endpoint := "${completionEndpoint}"
+    url := endpoint + "?key=" + apiKey
+
+    // Read and encode audio file
+    // audioBytes, _ := os.ReadFile("speech.wav")
+    // base64Audio := base64.StdEncoding.EncodeToString(audioBytes)
+    base64Audio := "..."
+
+    payload := map[string]interface{}{
+        "contents": []map[string]interface{}{
+            {
+                "role": "user",
+                "parts": []map[string]interface{}{
+                    {
+                        "inlineData": map[string]string{
+                            "mimeType": "audio/wav",
+                            "data": base64Audio,
+                        },
+                    },
+                },
+            },
+        },
+    }
+
+    jsonPayload, _ := json.Marshal(payload)
+    req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonPayload))
+    req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("X-Required-Modality", "audio_input")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        fmt.Println("Error:", err)
+        return
+    }
+    defer resp.Body.Close()
+
+    respBody, _ := io.ReadAll(resp.Body)
+    fmt.Println("Response:", string(respBody))
+}`
     } else if (mode === 'tts') {
-      jsCodeSnippet = `package main
+      jsCodeSnippet = apiFormat === 'openai'
+        ? `package main
 
 import (
     "bytes"
@@ -1109,6 +1163,58 @@ func main() {
         body, _ := io.ReadAll(resp.Body)
         fmt.Println("Error response:", string(body))
     }
+}`
+        : `package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+func main() {
+    apiKey := "${apiKey}"
+    endpoint := "${completionEndpoint}"
+    url := endpoint + "?key=" + apiKey
+
+    payload := map[string]interface{}{
+        "contents": []map[string]interface{}{
+            {
+                "role": "user",
+                "parts": []map[string]string{
+                    {"text": "${userPrompt.replace(/'/g, "\\'")}"},
+                },
+            },
+        },
+        "generationConfig": map[string]interface{}{
+            "responseModalities": []string{"AUDIO"},
+            "speechConfig": map[string]interface{}{
+                "voiceConfig": map[string]interface{}{
+                    "prebuiltVoiceConfig": map[string]string{
+                        "voiceName": "Puck",
+                    },
+                },
+            },
+        },
+    }
+
+    jsonPayload, _ := json.Marshal(payload)
+    req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonPayload))
+    req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("X-Required-Modality", "audio_output")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        fmt.Println("Error:", err)
+        return
+    }
+    defer resp.Body.Close()
+
+    // Parse candidates and inlineData from response map...
+    fmt.Println("Response parsed successfully.")
 }`
     }
   } else if (selectedLang === 'rust') {
