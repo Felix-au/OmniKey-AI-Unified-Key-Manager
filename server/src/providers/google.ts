@@ -301,6 +301,65 @@ function extractText(parts: GeminiPart[] | undefined): string | null {
   return text.length > 0 ? text : null;
 }
 
+function writeWavHeader(pcmLength: number, sampleRate: number, numChannels: number, bitsPerSample: number): Buffer {
+  const header = Buffer.alloc(44);
+  header.write('RIFF', 0);
+  header.writeUInt32LE(36 + pcmLength, 4);
+  header.write('WAVE', 8);
+  header.write('fmt ', 12);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(numChannels, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(sampleRate * numChannels * (bitsPerSample / 8), 28);
+  header.writeUInt16LE(numChannels * (bitsPerSample / 8), 32);
+  header.writeUInt16LE(bitsPerSample, 34);
+  header.write('data', 36);
+  header.writeUInt32LE(pcmLength, 40);
+  return header;
+}
+
+function extractContent(parts: GeminiPart[] | undefined): any {
+  if (!parts || parts.length === 0) return null;
+
+  const blocks: any[] = [];
+  for (const part of parts) {
+    if (part.text) {
+      blocks.push({ type: 'text', text: part.text });
+    }
+    if (part.inlineData) {
+      let mimeType = part.inlineData.mimeType;
+      let data = part.inlineData.data;
+
+      if (mimeType.includes('codec=pcm') || mimeType.includes('audio/L16')) {
+        try {
+          let audioBuffer = Buffer.from(data, 'base64');
+          const wavHeader = writeWavHeader(audioBuffer.length, 24000, 1, 16);
+          audioBuffer = Buffer.concat([wavHeader, audioBuffer]);
+          data = audioBuffer.toString('base64');
+          mimeType = 'audio/wav';
+        } catch (e) {
+          console.error('[Google Provider] Failed to prepend WAV header:', e);
+        }
+      }
+
+      blocks.push({
+        type: 'inline_data',
+        inlineData: {
+          mimeType,
+          data,
+        },
+      });
+    }
+  }
+
+  if (blocks.length === 0) return null;
+  if (blocks.length === 1 && blocks[0].type === 'text') {
+    return blocks[0].text;
+  }
+  return blocks;
+}
+
 export class GoogleProvider extends BaseProvider {
   readonly platform = 'google' as const;
   readonly name = 'Google AI Studio';
@@ -319,13 +378,16 @@ export class GoogleProvider extends BaseProvider {
         temperature: options?.temperature,
         maxOutputTokens: options?.max_tokens,
         topP: options?.top_p,
+        ...(options?.responseModalities ? { responseModalities: options.responseModalities } : {}),
+        ...(options?.speechConfig ? { speechConfig: options.speechConfig } : {}),
       },
       tools: toGeminiTools(options?.tools),
       toolConfig: toGeminiToolConfig(options?.tool_choice),
     };
     if (systemInstruction) body.systemInstruction = systemInstruction;
 
-    const url = `${API_BASE}/models/${modelId}:generateContent?key=${apiKey}`;
+    const targetModel = options?.responseModalities?.includes('AUDIO') ? 'gemini-2.5-flash-preview-tts' : modelId;
+    const url = `${API_BASE}/models/${targetModel}:generateContent?key=${apiKey}`;
     const res = await this.fetchWithTimeout(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -358,7 +420,7 @@ export class GoogleProvider extends BaseProvider {
         index: 0,
         message: {
           role: 'assistant',
-          content: text,
+          content: extractContent(parts),
           ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
         },
         finish_reason: toolCalls.length > 0 ? 'tool_calls' : toGeminiFinishReason(candidate?.finishReason),
@@ -382,13 +444,17 @@ export class GoogleProvider extends BaseProvider {
         temperature: options?.temperature,
         maxOutputTokens: options?.max_tokens,
         topP: options?.top_p,
+        ...(options?.responseModalities ? { responseModalities: options.responseModalities } : {}),
+        ...(options?.speechConfig ? { speechConfig: options.speechConfig } : {}),
       },
       tools: toGeminiTools(options?.tools),
       toolConfig: toGeminiToolConfig(options?.tool_choice),
     };
+
     if (systemInstruction) body.systemInstruction = systemInstruction;
 
-    const url = `${API_BASE}/models/${modelId}:streamGenerateContent?alt=sse&key=${apiKey}`;
+    const targetModel = options?.responseModalities?.includes('AUDIO') ? 'gemini-2.5-flash-preview-tts' : modelId;
+    const url = `${API_BASE}/models/${targetModel}:streamGenerateContent?alt=sse&key=${apiKey}`;
     const res = await this.fetchWithTimeout(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -461,7 +527,8 @@ export class GoogleProvider extends BaseProvider {
           return true;
         });
 
-        if ((text && text.length > 0) || toolCalls.length > 0) {
+        const hasInlineData = parts.some(p => p.inlineData);
+        if ((text && text.length > 0) || toolCalls.length > 0 || hasInlineData) {
           sawToolCalls = sawToolCalls || toolCalls.length > 0;
           yield {
             id,
@@ -473,6 +540,12 @@ export class GoogleProvider extends BaseProvider {
               delta: {
                 ...(text ? { content: text } : {}),
                 ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
+                ...(hasInlineData ? {
+                  inline_data: parts.filter(p => p.inlineData).map(p => ({
+                    mimeType: p.inlineData!.mimeType,
+                    data: p.inlineData!.data,
+                  })),
+                } : {}),
               },
               finish_reason: null,
             }],
