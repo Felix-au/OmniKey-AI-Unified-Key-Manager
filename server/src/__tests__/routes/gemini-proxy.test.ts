@@ -2,6 +2,11 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import type { Express } from 'express';
 import { createApp } from '../../app.js';
 import { initDb, getUnifiedGeminiApiKey } from '../../db/index.js';
+import {
+  translateGeminiRequest,
+  translateToGeminiResponse,
+  translateToGeminiStreamChunk
+} from '../../routes/gemini-proxy.js';
 
 async function request(app: Express, method: string, path: string, body?: any, headers: Record<string, string> = {}) {
   const server = app.listen(0);
@@ -85,5 +90,85 @@ describe('Gemini proxy router', () => {
       'x-goog-api-key': geminiKey
     });
     expect(status).not.toBe(401);
+  });
+
+  describe('Audio and Modalities Translation Helpers', () => {
+    it('translates generationConfig responseModalities and speechConfig', () => {
+      const body = {
+        contents: [{ role: 'user', parts: [{ text: 'hello' }] }],
+        generationConfig: {
+          responseModalities: ['AUDIO'],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: {
+                voiceName: 'Puck'
+              }
+            }
+          }
+        }
+      };
+      const result = translateGeminiRequest(body);
+      expect(result.responseModalities).toEqual(['AUDIO']);
+      expect(result.speechConfig).toBeDefined();
+      expect((result.speechConfig as any).voiceConfig.prebuiltVoiceConfig.voiceName).toBe('Puck');
+    });
+
+    it('translates output base64 audio response to Gemini format', () => {
+      const mockOpenaiResult = {
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: [
+                { type: 'text', text: 'Spoken text' },
+                {
+                  type: 'inline_data',
+                  inlineData: {
+                    mimeType: 'audio/mp3',
+                    data: 'base64audiobytes'
+                  }
+                }
+              ]
+            },
+            finish_reason: 'stop'
+          }
+        ],
+        usage: {
+          prompt_tokens: 10,
+          completion_tokens: 20,
+          total_tokens: 30
+        }
+      };
+      const result = translateToGeminiResponse(mockOpenaiResult, 'gemini-2.5-flash');
+      expect(result.candidates[0].content.parts.length).toBe(2);
+      expect(result.candidates[0].content.parts[0].text).toBe('Spoken text');
+      expect(result.candidates[0].content.parts[1].inlineData.mimeType).toBe('audio/mp3');
+      expect(result.candidates[0].content.parts[1].inlineData.data).toBe('base64audiobytes');
+    });
+
+    it('translates output stream base64 audio chunk to Gemini format', () => {
+      const mockOpenaiChunk = {
+        choices: [
+          {
+            index: 0,
+            delta: {
+              content: '',
+              inline_data: [
+                {
+                  mimeType: 'audio/wav',
+                  data: 'chunkbase64'
+                }
+              ]
+            },
+            finish_reason: null
+          }
+        ]
+      };
+      const result = translateToGeminiStreamChunk(mockOpenaiChunk);
+      expect(result.candidates[0].content.parts.length).toBe(1);
+      expect(result.candidates[0].content.parts[0].inlineData.mimeType).toBe('audio/wav');
+      expect(result.candidates[0].content.parts[0].inlineData.data).toBe('chunkbase64');
+    });
   });
 });
