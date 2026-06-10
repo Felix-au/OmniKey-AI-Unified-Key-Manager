@@ -6,17 +6,6 @@ import { Input } from '@/components/ui/input'
 import { PageHeader } from '@/components/page-header'
 import { MessageSquare, Eye, Mic, Volume2, Upload, X, Square } from 'lucide-react'
 
-const fileToBase64 = (file: File | Blob): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const base64 = (reader.result as string).split(',')[1]
-      resolve(base64)
-    }
-    reader.onerror = (err) => reject(err)
-    reader.readAsDataURL(file)
-  })
-}
 
 const base64ToBlob = (base64: string, mimeType: string): Blob => {
   const byteCharacters = atob(base64)
