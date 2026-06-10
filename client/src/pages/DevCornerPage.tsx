@@ -1759,29 +1759,85 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         if (!file) {
           throw new Error('Please select or drop an audio file first.')
         }
-        const formData = new FormData()
-        formData.append('file', file)
-        formData.append('model', selectedModel === 'auto' ? 'gemini-2.5-flash' : selectedModel)
+        if (apiFormat === 'gemini') {
+          const base64Data = filePreview.split('base64,')[1]
+          const body = {
+            contents: [
+              {
+                role: 'user',
+                parts: [
+                  {
+                    inlineData: {
+                      mimeType: file.type || 'audio/wav',
+                      data: base64Data
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+          res = await fetch(`${base}/v1beta/models/${selectedModel === 'auto' ? 'auto' : selectedModel}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Required-Modality': 'audio_input'
+            },
+            body: JSON.stringify(body)
+          })
+        } else {
+          const formData = new FormData()
+          formData.append('file', file)
+          formData.append('model', selectedModel === 'auto' ? 'gemini-2.5-flash' : selectedModel)
 
-        res = await fetch(`${base}/v1/audio/transcriptions`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${apiKey}` },
-          body: formData
-        })
+          res = await fetch(`${base}/v1/audio/transcriptions`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${apiKey}` },
+            body: formData
+          })
+        }
       } else {
         // TTS Mode
-        res = await fetch(`${base}/v1/audio/speech`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-          },
-          body: JSON.stringify({
-            model: selectedModel === 'auto' ? 'gemini-2.5-flash-preview-tts' : selectedModel,
-            input: userPrompt,
-            voice: voice
+        if (apiFormat === 'gemini') {
+          const body = {
+            contents: [
+              {
+                role: 'user',
+                parts: [{ text: userPrompt }]
+              }
+            ],
+            generationConfig: {
+              responseModalities: ["AUDIO"],
+              speechConfig: {
+                voiceConfig: {
+                  prebuiltVoiceConfig: {
+                    voiceName: "Puck"
+                  }
+                }
+              }
+            }
+          }
+          res = await fetch(`${base}/v1beta/models/${selectedModel === 'auto' ? 'auto' : selectedModel}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Required-Modality': 'audio_output'
+            },
+            body: JSON.stringify(body)
           })
-        })
+        } else {
+          res = await fetch(`${base}/v1/audio/speech`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+              model: selectedModel === 'auto' ? 'gemini-2.5-flash-preview-tts' : selectedModel,
+              input: userPrompt,
+              voice: voice
+            })
+          })
+        }
       }
 
       if (!res.ok) {
@@ -1792,10 +1848,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
       }
 
       if (mode === 'tts') {
-        const blob = await res.blob()
-        const url = URL.createObjectURL(blob)
+        let url = ''
+        if (apiFormat === 'gemini') {
+          const data = await res.json()
+          const inlinePart = data.candidates?.[0]?.content?.parts?.find((p: any) => p.inlineData)
+          if (!inlinePart?.inlineData?.data) {
+            throw new Error('No audio output found in Gemini response')
+          }
+          const blob = base64ToBlob(inlinePart.inlineData.data, inlinePart.inlineData.mimeType)
+          url = URL.createObjectURL(blob)
+          setResponseOutput(JSON.stringify(data, null, 2))
+        } else {
+          const blob = await res.blob()
+          url = URL.createObjectURL(blob)
+          setResponseOutput('Audio synthesized successfully. Click the player below to listen to your generated voice output.')
+        }
         setAudioOutputUrl(url)
-        setResponseOutput('Audio synthesized successfully. Click the player below to listen to your generated voice output.')
       } else if (stream && mode === 'chat') {
         setResponseOutput('')
         const reader = res.body?.getReader()
