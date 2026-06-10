@@ -402,7 +402,8 @@ async function generateVisionCompletion() {
 
 generateVisionCompletion();`
     } else if (mode === 'stt') {
-      jsCodeSnippet = `// OmniKey AI Speech-to-Text (STT) Request Example
+      jsCodeSnippet = apiFormat === 'openai'
+        ? `// OmniKey AI Speech-to-Text (STT) Request Example
 const apiKey = '${apiKey}';
 const endpoint = '${completionEndpoint}';
 
@@ -426,8 +427,53 @@ async function transcribeAudio(audioBlob) {
     console.error('Transcription failed:', error);
   }
 }`
+        : `// OmniKey AI Speech-to-Text (STT) Request Example (Gemini Format)
+const apiKey = '${apiKey}';
+const endpoint = '${completionEndpoint}';
+
+// Helper to convert blob/file to base64
+const fileToBase64 = (blob) => new Promise((resolve) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(reader.result.split(',')[1]);
+  reader.readAsDataURL(blob);
+});
+
+async function transcribeAudio(audioBlob) {
+  try {
+    const base64Data = await fileToBase64(audioBlob);
+    const url = \`\${endpoint}?key=\${apiKey}\`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Required-Modality': 'audio_input'
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              {
+                inlineData: {
+                  mimeType: audioBlob.type || 'audio/wav',
+                  data: base64Data
+                }
+              }
+            ]
+          }
+        ]
+      })
+    });
+
+    const data = await response.json();
+    console.log('Transcription:', data.candidates?.[0]?.content?.parts?.[0]?.text);
+  } catch (error) {
+    console.error('Transcription failed:', error);
+  }
+}`
     } else if (mode === 'tts') {
-      jsCodeSnippet = `// OmniKey AI Text-to-Speech (TTS) Request Example
+      jsCodeSnippet = apiFormat === 'openai'
+        ? `// OmniKey AI Text-to-Speech (TTS) Request Example
 const apiKey = '${apiKey}';
 const endpoint = '${completionEndpoint}';
 
@@ -452,6 +498,64 @@ async function generateSpeech() {
     // Play audio in browser
     const audio = new Audio(audioUrl);
     audio.play();
+  } catch (error) {
+    console.error('Speech generation failed:', error);
+  }
+}
+
+generateSpeech();`
+        : `// OmniKey AI Text-to-Speech (TTS) Request Example (Gemini Format)
+const apiKey = '${apiKey}';
+const endpoint = '${completionEndpoint}';
+
+// Helper to convert base64 to blob
+const base64ToBlob = (base64, mimeType) => {
+  const byteCharacters = atob(base64);
+  const byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  return new Blob([byteArray], { type: mimeType });
+};
+
+async function generateSpeech() {
+  try {
+    const url = \`\${endpoint}?key=\${apiKey}\`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Required-Modality': 'audio_output'
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: '${userPrompt.replace(/'/g, "\\'")}' }]
+          }
+        ],
+        generationConfig: {
+          responseModalities: ['AUDIO'],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: {
+                voiceName: 'Puck'
+              }
+            }
+          }
+        }
+      })
+    });
+
+    const data = await response.json();
+    const inlinePart = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+    if (inlinePart) {
+      const audioBlob = base64ToBlob(inlinePart.inlineData.data, inlinePart.inlineData.mimeType);
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      audio.play();
+    }
   } catch (error) {
     console.error('Speech generation failed:', error);
   }
