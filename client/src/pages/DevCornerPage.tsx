@@ -1581,12 +1581,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
   }'`
     } else if (mode === 'stt') {
-      jsCodeSnippet = `curl ${completionEndpoint} \\
+      jsCodeSnippet = apiFormat === 'openai'
+        ? `curl ${completionEndpoint} \\
   -H "Authorization: Bearer ${apiKey}" \\
   -F "file=@/path/to/speech.wav" \\
   -F "model=${selectedModel === 'auto' ? 'gemini-2.5-flash' : selectedModel}"`
+        : `curl -X POST "${completionEndpoint}?key=${apiKey}" \\
+  -H "Content-Type: application/json" \\
+  -H "X-Required-Modality: audio_input" \\
+  -d '{
+    "contents": [
+      {
+        "role": "user",
+        "parts": [
+          {
+            "inlineData": {
+              "mimeType": "audio/wav",
+              "data": "$(base64 -w 0 /path/to/speech.wav)"
+            }
+          }
+        ]
+      }
+    ]
+  }'`
     } else if (mode === 'tts') {
-      jsCodeSnippet = `curl ${completionEndpoint} \\
+      jsCodeSnippet = apiFormat === 'openai'
+        ? `curl ${completionEndpoint} \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer ${apiKey}" \\
   -d '{
@@ -1595,6 +1615,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     "voice": "${voice}"
   }' \\
   --output speech.mp3`
+        : `curl -X POST "${completionEndpoint}?key=${apiKey}" \\
+  -H "Content-Type: application/json" \\
+  -H "X-Required-Modality: audio_output" \\
+  -d '{
+    "contents": [
+      {
+        "role": "user",
+        "parts": [{"text": "${userPrompt.replace(/'/g, "\\'")}"}]
+      }
+    ],
+    "generationConfig": {
+      "responseModalities": ["AUDIO"],
+      "speechConfig": {
+        "voiceConfig": {
+          "prebuiltVoiceConfig": {
+            "voiceName": "Puck"
+          }
+        }
+      }
+    }
+  }'`
     }
   }
 
