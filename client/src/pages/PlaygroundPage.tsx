@@ -417,17 +417,15 @@ export default function PlaygroundPage() {
               </SelectContent>
             </Select>
 
-            {mode === 'chat' || mode === 'vision' ? (
-              <Select value={apiFormat} onValueChange={(v) => setApiFormat(v as 'openai' | 'gemini')}>
-                <SelectTrigger className="w-full sm:w-[150px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="openai">OpenAI Format</SelectItem>
-                  <SelectItem value="gemini">Gemini Format</SelectItem>
-                </SelectContent>
-              </Select>
-            ) : null}
+            <Select value={apiFormat} onValueChange={(v) => setApiFormat(v as 'openai' | 'gemini')}>
+              <SelectTrigger className="w-full sm:w-[150px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="openai">OpenAI Format</SelectItem>
+                <SelectItem value="gemini">Gemini Format</SelectItem>
+              </SelectContent>
+            </Select>
 
             <Select value={selectedModel} onValueChange={(v) => setSelectedModel(v ?? 'auto')}>
               <SelectTrigger className="flex-1 sm:w-[260px] min-w-[160px]">
