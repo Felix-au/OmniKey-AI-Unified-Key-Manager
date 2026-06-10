@@ -15,6 +15,8 @@ export interface CompletionOptions {
   tools?: ChatToolDefinition[];
   tool_choice?: ChatToolChoice;
   parallel_tool_calls?: boolean;
+  responseModalities?: string[];
+  speechConfig?: unknown;
 }
 
 export abstract class BaseProvider {
