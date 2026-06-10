@@ -1974,22 +1974,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
           </div>
 
           <div className="space-y-4">
-            {/* API Format Selection (only relevant for Chat / Vision) */}
-            {(mode === 'chat' || mode === 'vision') && (
-              <div>
-                <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
-                  API Key Format / Type
-                </label>
-                <select
-                  value={apiFormat}
-                  onChange={e => setApiFormat(e.target.value as 'openai' | 'gemini')}
-                  className="w-full bg-background border rounded-lg h-8 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
-                >
-                  <option value="openai">OpenAI Format (Bearer Token, /v1/...)</option>
-                  <option value="gemini">Gemini Format (Query Param, /v1beta/...)</option>
-                </select>
-              </div>
-            )}
+            {/* API Format Selection */}
+            <div>
+              <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                API Key Format / Type
+              </label>
+              <select
+                value={apiFormat}
+                onChange={e => setApiFormat(e.target.value as 'openai' | 'gemini')}
+                className="w-full bg-background border rounded-lg h-8 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+              >
+                <option value="openai">OpenAI Format (Bearer Token, /v1/...)</option>
+                <option value="gemini">Gemini Format (Query Param, /v1beta/...)</option>
+              </select>
+            </div>
 
             <div>
               <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
@@ -2053,8 +2051,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             {/* Sandbox Media Upload Area */}
             {(mode === 'vision' || mode === 'stt') && (
               <div>
-                <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
-                  Sandbox Payload ({mode === 'vision' ? 'Image' : 'Audio'})
+                <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 flex justify-between items-center">
+                  <span>Sandbox Payload ({mode === 'vision' ? 'Image' : 'Audio'})</span>
+                  {mode === 'stt' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={isRecording ? stopRecording : startRecording}
+                      className={`h-7 text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1 ${
+                        isRecording ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse' : ''
+                      }`}
+                    >
+                      {isRecording ? <Square className="w-3 h-3" /> : <Mic className="w-3 h-3" />}
+                      {isRecording ? 'Stop Recording' : 'Record Audio'}
+                    </Button>
+                  )}
                 </label>
                 <div className="border border-dashed border-border rounded-xl p-4 flex flex-col items-center justify-center gap-2 bg-muted/10 hover:bg-muted/20 transition-all relative min-h-[100px]">
                   <input
