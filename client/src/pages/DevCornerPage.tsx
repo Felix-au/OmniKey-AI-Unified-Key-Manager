@@ -1364,7 +1364,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }`
     } else if (mode === 'stt') {
-      jsCodeSnippet = `use reqwest::Client;
+      jsCodeSnippet = apiFormat === 'openai'
+        ? `use reqwest::Client;
 use reqwest::multipart;
 
 #[tokio::main]
@@ -1388,8 +1389,48 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Transcription: {}", body);
     Ok(())
 }`
+        : `use reqwest::Client;
+use serde_json::json;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let api_key = "${apiKey}";
+    let endpoint = "${completionEndpoint}";
+    let url = format!("{}?key={}", endpoint, api_key);
+
+    // let base64_audio = base64::encode(std::fs::read("speech.wav")?);
+    let base64_audio = "...";
+
+    let payload = json!({
+        "contents": [
+            {
+                "role": "user",
+                "parts": [
+                    {
+                        "inlineData": {
+                            "mimeType": "audio/wav",
+                            "data": base64_audio
+                        }
+                    }
+                ]
+            }
+        ]
+    });
+
+    let client = Client::new();
+    let res = client.post(&url)
+        .header("X-Required-Modality", "audio_input")
+        .json(&payload)
+        .send()
+        .await?;
+
+    let body = res.text().await?;
+    println!("Response: {}", body);
+    Ok(())
+}`
     } else if (mode === 'tts') {
-      jsCodeSnippet = `use reqwest::Client;
+      jsCodeSnippet = apiFormat === 'openai'
+        ? `use reqwest::Client;
 use serde_json::json;
 use std::fs::File;
 use std::io::Write;
@@ -1421,6 +1462,45 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let body = res.text().await?;
         println!("Error response: {}", body);
     }
+    Ok(())
+}`
+        : `use reqwest::Client;
+use serde_json::json;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let api_key = "${apiKey}";
+    let endpoint = "${completionEndpoint}";
+    let url = format!("{}?key={}", endpoint, api_key);
+
+    let payload = json!({
+        "contents": [
+            {
+                "role": "user",
+                "parts": [{"text": "${userPrompt.replace(/'/g, "\\'")}"}]
+            }
+        ],
+        "generationConfig": {
+            "responseModalities": ["AUDIO"],
+            "speechConfig": {
+                "voiceConfig": {
+                    "prebuiltVoiceConfig": {
+                        "voiceName": "Puck"
+                    }
+                }
+            }
+        }
+    });
+
+    let client = Client::new();
+    let res = client.post(&url)
+        .header("X-Required-Modality", "audio_output")
+        .json(&payload)
+        .send()
+        .await?;
+
+    let body = res.text().await?;
+    println!("Response: {}", body);
     Ok(())
 }`
     }
