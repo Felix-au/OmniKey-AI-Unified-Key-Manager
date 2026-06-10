@@ -26,11 +26,13 @@ function timingSafeStringEqual(provided: string, expected: string): boolean {
 }
 
 // Translate Gemini Request to internal format
-function translateGeminiRequest(body: any): {
+export function translateGeminiRequest(body: any): {
   messages: ChatMessage[];
   temperature?: number;
   max_tokens?: number;
   top_p?: number;
+  responseModalities?: string[];
+  speechConfig?: unknown;
 } {
   const messages: ChatMessage[] = [];
 
@@ -99,70 +101,99 @@ function translateGeminiRequest(body: any): {
     temperature: typeof config.temperature === 'number' ? config.temperature : undefined,
     max_tokens: typeof config.maxOutputTokens === 'number' ? config.maxOutputTokens : undefined,
     top_p: typeof config.topP === 'number' ? config.topP : undefined,
+    responseModalities: Array.isArray(config.responseModalities) ? config.responseModalities : undefined,
+    speechConfig: config.speechConfig || undefined,
   };
 }
 
 // Translate OpenAI response to Gemini format
-function translateToGeminiResponse(openaiResult: any, modelName: string): any {
-  const contentText = openaiResult.choices?.[0]?.message?.content || '';
+export function translateToGeminiResponse(openaiResult: any, modelName: string): any {
+  const messageContent = openaiResult.choices?.[0]?.message?.content;
   const finishReasonRaw = openaiResult.choices?.[0]?.finish_reason || 'stop';
   const finishReason = finishReasonRaw === 'length' ? 'MAX_TOKENS' : 'STOP';
+
+  const parts: any[] = [];
+  if (typeof messageContent === 'string') {
+    parts.push({ text: messageContent });
+  } else if (Array.isArray(messageContent)) {
+    for (const block of messageContent) {
+      if (block.type === 'text') {
+        parts.push({ text: block.text });
+      } else if (block.type === 'inline_data' && block.inlineData) {
+        parts.push({
+          inlineData: {
+            mimeType: block.inlineData.mimeType,
+            data: block.inlineData.data,
+          },
+        });
+      }
+    }
+  }
 
   const usage = openaiResult.usage || {};
   return {
     candidates: [
       {
         content: {
-          parts: [
-            {
-              text: contentText
-            }
-          ],
-          role: 'model'
+          parts,
+          role: 'model',
         },
         finishReason,
-        index: 0
-      }
+        index: 0,
+      },
     ],
     usageMetadata: {
       promptTokenCount: usage.prompt_tokens || 0,
       candidatesTokenCount: usage.completion_tokens || 0,
-      totalTokenCount: usage.total_tokens || 0
+      totalTokenCount: usage.total_tokens || 0,
     },
-    modelVersion: modelName
+    modelVersion: modelName,
   };
 }
 
 // Translate OpenAI streaming chunk to Gemini format
-function translateToGeminiStreamChunk(openaiChunk: any): any {
+export function translateToGeminiStreamChunk(openaiChunk: any): any {
   const deltaText = openaiChunk.choices?.[0]?.delta?.content || '';
   const finishReasonRaw = openaiChunk.choices?.[0]?.finish_reason;
   const finishReason = finishReasonRaw ? (finishReasonRaw === 'length' ? 'MAX_TOKENS' : 'STOP') : undefined;
 
+  const parts: any[] = [];
+  if (deltaText) {
+    parts.push({ text: deltaText });
+  }
+
+  const inlineData = openaiChunk.choices?.[0]?.delta?.inline_data;
+  if (Array.isArray(inlineData)) {
+    for (const item of inlineData) {
+      parts.push({
+        inlineData: {
+          mimeType: item.mimeType,
+          data: item.data,
+        },
+      });
+    }
+  }
+
   const candidate: any = {
     content: {
-      parts: [
-        {
-          text: deltaText
-        }
-      ],
-      role: 'model'
+      parts,
+      role: 'model',
     },
-    index: 0
+    index: 0,
   };
   if (finishReason) {
     candidate.finishReason = finishReason;
   }
 
   const chunk: any = {
-    candidates: [candidate]
+    candidates: [candidate],
   };
 
   if (openaiChunk.usage) {
     chunk.usageMetadata = {
       promptTokenCount: openaiChunk.usage.prompt_tokens || 0,
       candidatesTokenCount: openaiChunk.usage.completion_tokens || 0,
-      totalTokenCount: openaiChunk.usage.total_tokens || 0
+      totalTokenCount: openaiChunk.usage.total_tokens || 0,
     };
   }
 
@@ -386,7 +417,7 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
       });
     }
 
-    const { messages, temperature, max_tokens, top_p } = parsed;
+    const { messages, temperature, max_tokens, top_p, responseModalities, speechConfig } = parsed;
     
     const rawParam = req.params.model;
     const modelParam = Array.isArray(rawParam) ? rawParam.join('/') : (rawParam as string || '');
@@ -430,9 +461,47 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
       modelId = modelId.replace(/^models\//, '');
     }
 
+    let requiredModality = req.headers['x-required-modality'] as string | undefined;
+
+    // Detect dynamic multimodal content in parts (e.g. inlineData) if header not present
+    if (!requiredModality && req.body && Array.isArray(req.body.contents)) {
+      for (const content of req.body.contents) {
+        if (Array.isArray(content.parts)) {
+          for (const part of content.parts) {
+            if (part.inlineData) {
+              const mime = String(part.inlineData.mimeType || '');
+              if (mime.startsWith('audio/')) {
+                requiredModality = 'audio_input';
+              } else {
+                requiredModality = 'vision';
+              }
+              break;
+            }
+          }
+        }
+        if (requiredModality) break;
+      }
+    }
+
+    if (!requiredModality && responseModalities && responseModalities.includes('AUDIO')) {
+      requiredModality = 'audio_output';
+    }
+
     let preferredModel: number | string | undefined;
     if (modelId === AUTO_MODEL_ID) {
-      preferredModel = undefined;
+      if (requiredModality === 'audio_output') {
+        const audioModelId = 'gemini-2.5-flash';
+        if (isLocalDbEnabled()) {
+          const db = getDb();
+          const enabled = db.prepare('SELECT id FROM models WHERE model_id = ? AND enabled = 1').get(audioModelId) as { id: number } | undefined;
+          if (enabled) preferredModel = enabled.id;
+        } else {
+          const enabled = await Model.findOne({ modelId: audioModelId, enabled: true });
+          if (enabled) preferredModel = enabled._id.toString();
+        }
+      } else {
+        preferredModel = undefined;
+      }
     } else if (modelId) {
       if (isLocalDbEnabled()) {
         const db = getDb();
@@ -465,23 +534,6 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
             }
           });
         }
-      }
-    }
-
-    let requiredModality = req.headers['x-required-modality'] as string | undefined;
-
-    // Detect dynamic multimodal content in parts (e.g. inlineData) if header not present
-    if (!requiredModality && req.body && Array.isArray(req.body.contents)) {
-      for (const content of req.body.contents) {
-        if (Array.isArray(content.parts)) {
-          for (const part of content.parts) {
-            if (part.inlineData) {
-              requiredModality = 'vision';
-              break;
-            }
-          }
-        }
-        if (requiredModality) break;
       }
     }
 
@@ -519,7 +571,7 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
         if (!isStream) {
           const result = await route.provider.chatCompletion(
             route.apiKey, messages, route.modelId,
-            { temperature, max_tokens, top_p },
+            { temperature, max_tokens, top_p, responseModalities, speechConfig },
           );
 
           const totalTokens = result.usage?.total_tokens ?? 0;
@@ -571,7 +623,7 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
           try {
             const gen = route.provider.streamChatCompletion(
               route.apiKey, messages, route.modelId,
-              { temperature, max_tokens, top_p },
+              { temperature, max_tokens, top_p, responseModalities, speechConfig },
             );
 
             let isFirstChunk = true;
