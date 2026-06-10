@@ -129,27 +129,27 @@ export default function DevCornerPage() {
   // Resolve endpoints
   let completionEndpoint = `${baseApiUrl}/v1/chat/completions`
   if (mode === 'stt') {
-    completionEndpoint = `${baseApiUrl}/v1/audio/transcriptions`
+    completionEndpoint = apiFormat === 'gemini'
+      ? `${baseApiUrl}/v1beta/models/${selectedModel}:generateContent`
+      : `${baseApiUrl}/v1/audio/transcriptions`
   } else if (mode === 'tts') {
-    completionEndpoint = `${baseApiUrl}/v1/audio/speech`
+    completionEndpoint = apiFormat === 'gemini'
+      ? `${baseApiUrl}/v1beta/models/${selectedModel}:generateContent`
+      : `${baseApiUrl}/v1/audio/speech`
   } else if (mode === 'vision' && apiFormat === 'gemini') {
     completionEndpoint = `${baseApiUrl}/v1beta/models/${selectedModel}:generateContent`
   } else if (mode === 'chat' && apiFormat === 'gemini') {
     completionEndpoint = `${baseApiUrl}/v1beta/models/${selectedModel}:${stream ? 'streamGenerateContent' : 'generateContent'}`
   }
 
-  // Auto lock to OpenAI format for STT & TTS
-  useEffect(() => {
-    if (mode === 'stt' || mode === 'tts') {
-      setApiFormat('openai')
-    }
-  }, [mode])
-
-  // Revoke blob URL on change/unmount to avoid memory leaks
+  // Revoke blob URL and stop recording on unmount to avoid memory leaks
   useEffect(() => {
     return () => {
       if (audioOutputUrl) {
         URL.revokeObjectURL(audioOutputUrl)
+      }
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop()
       }
     }
   }, [audioOutputUrl])
