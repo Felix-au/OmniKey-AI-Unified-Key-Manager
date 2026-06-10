@@ -5,7 +5,29 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PageHeader } from '@/components/page-header'
 import { MarkdownRenderer } from '@/components/markdown-renderer'
-import { Paperclip, X, Image as ImageIcon, FileAudio } from 'lucide-react'
+import { Paperclip, X, Image as ImageIcon, FileAudio, Mic, Square } from 'lucide-react'
+
+const fileToBase64 = (file: File | Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(',')[1]
+      resolve(base64)
+    }
+    reader.onerror = (err) => reject(err)
+    reader.readAsDataURL(file)
+  })
+}
+
+const base64ToBlob = (base64: string, mimeType: string): Blob => {
+  const byteCharacters = atob(base64)
+  const byteNumbers = new Array(byteCharacters.length)
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i)
+  }
+  const byteArray = new Uint8Array(byteNumbers)
+  return new Blob([byteArray], { type: mimeType })
+}
 
 interface FallbackEntry {
   modelDbId: number
@@ -46,6 +68,46 @@ export default function PlaygroundPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const [isRecording, setIsRecording] = useState(false)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mediaRecorder = new MediaRecorder(stream)
+      mediaRecorderRef.current = mediaRecorder
+      audioChunksRef.current = []
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data)
+        }
+      }
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' })
+        const file = new File([audioBlob], 'recording.wav', { type: 'audio/wav' })
+        setAttachedFile(file)
+        setFilePreview('')
+        stream.getTracks().forEach(track => track.stop())
+      }
+
+      mediaRecorder.start()
+      setIsRecording(true)
+    } catch (err) {
+      console.error('Error starting audio recording:', err)
+      alert('Could not start audio recording. Please ensure microphone access is granted.')
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+    }
+  }
+
   const { data: keyData } = useQuery<{ apiKey: string; geminiApiKey: string }>({
     queryKey: ['unified-key'],
     queryFn: () => apiFetch('/api/settings/api-key'),
@@ -72,7 +134,7 @@ export default function PlaygroundPage() {
     }
   }, [mode, availableModels, selectedModel])
 
-  // Revoke object URLs on unmount to prevent leaks
+  // Revoke object URLs and stop recording on unmount to prevent leaks
   useEffect(() => {
     return () => {
       messages.forEach(m => {
@@ -80,6 +142,9 @@ export default function PlaygroundPage() {
           URL.revokeObjectURL(m.audioUrl)
         }
       })
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop()
+      }
     }
   }, [messages])
 
@@ -145,37 +210,107 @@ export default function PlaygroundPage() {
 
       // 🎧 SPEECH-TO-TEXT (STT) MODE
       if (mode === 'stt') {
-        const formData = new FormData()
-        if (fileToSend) formData.append('file', fileToSend)
-        formData.append('model', selectedModel === 'auto' ? 'auto' : selectedModel)
+        if (apiFormat === 'gemini') {
+          const keyVal = keyData?.geminiApiKey || ''
+          const urlModel = selectedModel === 'auto' ? 'auto' : selectedModel
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+          headers['X-Required-Modality'] = 'audio_input'
 
-        const headers: Record<string, string> = {}
-        if (keyData?.apiKey) headers['Authorization'] = `Bearer ${keyData.apiKey}`
-        headers['X-Required-Modality'] = 'audio_input'
+          let base64Data = ''
+          if (fileToSend) {
+            base64Data = await fileToBase64(fileToSend)
+          }
 
-        res = await fetch(`${base}/v1/audio/transcriptions`, {
-          method: 'POST',
-          headers,
-          body: formData
-        })
+          const body = {
+            contents: [
+              {
+                role: 'user',
+                parts: [
+                  {
+                    inlineData: {
+                      mimeType: fileToSend?.type || 'audio/wav',
+                      data: base64Data
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+
+          res = await fetch(`${base}/v1beta/models/${urlModel}:generateContent?key=${keyVal}`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(body)
+          })
+        } else {
+          const formData = new FormData()
+          if (fileToSend) formData.append('file', fileToSend)
+          formData.append('model', selectedModel === 'auto' ? 'auto' : selectedModel)
+
+          const headers: Record<string, string> = {}
+          if (keyData?.apiKey) headers['Authorization'] = `Bearer ${keyData.apiKey}`
+          headers['X-Required-Modality'] = 'audio_input'
+
+          res = await fetch(`${base}/v1/audio/transcriptions`, {
+            method: 'POST',
+            headers,
+            body: formData
+          })
+        }
       }
       // 🔊 TEXT-TO-SPEECH (TTS) MODE
       else if (mode === 'tts') {
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-        if (keyData?.apiKey) headers['Authorization'] = `Bearer ${keyData.apiKey}`
-        headers['X-Required-Modality'] = 'audio_output'
+        if (apiFormat === 'gemini') {
+          const keyVal = keyData?.geminiApiKey || ''
+          const urlModel = selectedModel === 'auto' ? 'auto' : selectedModel
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+          headers['X-Required-Modality'] = 'audio_output'
 
-        const body = {
-          input: text,
-          model: selectedModel === 'auto' ? 'auto' : selectedModel,
-          voice: 'alloy'
+          const body = {
+            contents: [
+              {
+                role: 'user',
+                parts: [
+                  {
+                    text: text
+                  }
+                ]
+              }
+            ],
+            generationConfig: {
+              responseModalities: ["AUDIO"],
+              speechConfig: {
+                voiceConfig: {
+                  prebuiltVoiceConfig: {
+                    voiceName: "Puck"
+                  }
+                }
+              }
+            }
+          }
+
+          res = await fetch(`${base}/v1beta/models/${urlModel}:generateContent?key=${keyVal}`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(body)
+          })
+        } else {
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+          if (keyData?.apiKey) headers['Authorization'] = `Bearer ${keyData.apiKey}`
+          headers['X-Required-Modality'] = 'audio_output'
+
+          const body = {
+            input: text,
+            model: selectedModel === 'auto' ? 'auto' : selectedModel,
+            voice: 'alloy'
+          }
+
+          res = await fetch(`${base}/v1/audio/speech`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(body)
+          })
         }
-
-        res = await fetch(`${base}/v1/audio/speech`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(body)
-        })
       }
       // 👁️ VISION OR SIMPLE CHAT (OPENAI FORMAT)
       else if (apiFormat === 'openai') {
@@ -285,17 +420,29 @@ export default function PlaygroundPage() {
         return
       }
 
-      // Handle TTS binary output
+      // Handle TTS binary / JSON output
       if (mode === 'tts') {
-        const blob = await res.blob()
-        const audioUrl = URL.createObjectURL(blob)
+        let audioUrl = ''
+        if (apiFormat === 'gemini') {
+          const data = await res.json()
+          const inlinePart = data.candidates?.[0]?.content?.parts?.find((p: any) => p.inlineData)
+          if (!inlinePart?.inlineData?.data) {
+            throw new Error('No audio output found in Gemini response')
+          }
+          const blob = base64ToBlob(inlinePart.inlineData.data, inlinePart.inlineData.mimeType)
+          audioUrl = URL.createObjectURL(blob)
+        } else {
+          const blob = await res.blob()
+          audioUrl = URL.createObjectURL(blob)
+        }
+
         setMessages([...newMessages, {
           role: 'assistant',
           content: 'Synthesized speech audio:',
           audioUrl,
           meta: {
             platform: 'google',
-            model: 'gemini-2.5-flash-preview-tts',
+            model: selectedModel === 'auto' ? 'gemini-2.5-flash-preview-tts' : selectedModel,
             latency,
             keyUsed: keyUsed ?? undefined
           }
@@ -312,9 +459,13 @@ export default function PlaygroundPage() {
           keyUsed: keyUsed ?? undefined,
         } : undefined)
 
+        const contentText = apiFormat === 'gemini'
+          ? (data.candidates?.[0]?.content?.parts?.[0]?.text ?? JSON.stringify(data, null, 2))
+          : (data.text || JSON.stringify(data, null, 2))
+
         setMessages([...newMessages, {
           role: 'assistant',
-          content: data.text || JSON.stringify(data, null, 2),
+          content: contentText,
           meta: {
             platform: via?.platform,
             model: via?.model,
@@ -374,6 +525,9 @@ export default function PlaygroundPage() {
     setMessages([])
     setAttachedFile(null)
     setFilePreview('')
+    if (isRecording) {
+      stopRecording()
+    }
     inputRef.current?.focus()
   }
 
@@ -565,6 +719,21 @@ export default function PlaygroundPage() {
                 <Paperclip className="size-5 text-muted-foreground" />
               </Button>
             ) : null}
+            {mode === 'stt' && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={isRecording ? stopRecording : startRecording}
+                title={isRecording ? "Stop Recording" : "Record Audio"}
+                className={`shrink-0 size-10 border transition-all ${
+                  isRecording
+                    ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse'
+                    : 'bg-background hover:bg-muted text-muted-foreground'
+                }`}
+              >
+                {isRecording ? <Square className="size-5" /> : <Mic className="size-5" />}
+              </Button>
+            )}
             <textarea
               ref={inputRef}
               value={input}
