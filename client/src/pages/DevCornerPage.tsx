@@ -1,10 +1,32 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PageHeader } from '@/components/page-header'
-import { MessageSquare, Eye, Mic, Volume2, Upload, X } from 'lucide-react'
+import { MessageSquare, Eye, Mic, Volume2, Upload, X, Square } from 'lucide-react'
+
+const fileToBase64 = (file: File | Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(',')[1]
+      resolve(base64)
+    }
+    reader.onerror = (err) => reject(err)
+    reader.readAsDataURL(file)
+  })
+}
+
+const base64ToBlob = (base64: string, mimeType: string): Blob => {
+  const byteCharacters = atob(base64)
+  const byteNumbers = new Array(byteCharacters.length)
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i)
+  }
+  const byteArray = new Uint8Array(byteNumbers)
+  return new Blob([byteArray], { type: mimeType })
+}
 
 interface FallbackEntry {
   modelDbId: number
@@ -33,6 +55,53 @@ export default function DevCornerPage() {
   const [filePreview, setFilePreview] = useState<string>('')
   const [audioOutputUrl, setAudioOutputUrl] = useState<string>('')
   const [voice, setVoice] = useState<string>('alloy')
+
+  const [isRecording, setIsRecording] = useState(false)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mediaRecorder = new MediaRecorder(stream)
+      mediaRecorderRef.current = mediaRecorder
+      audioChunksRef.current = []
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data)
+        }
+      }
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' })
+        const recordingFile = new File([audioBlob], 'recording.wav', { type: 'audio/wav' })
+        setFile(recordingFile)
+
+        // Compile base64 preview for STT sandbox
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          setFilePreview(reader.result as string)
+        }
+        reader.readAsDataURL(recordingFile)
+
+        stream.getTracks().forEach(track => track.stop())
+      }
+
+      mediaRecorder.start()
+      setIsRecording(true)
+    } catch (err) {
+      console.error('Error starting audio recording:', err)
+      alert('Could not start audio recording. Please ensure microphone access is granted.')
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+    }
+  }
 
   // Fetch current unified API key
   const { data: keyData } = useQuery<{ apiKey: string; geminiApiKey: string }>({
