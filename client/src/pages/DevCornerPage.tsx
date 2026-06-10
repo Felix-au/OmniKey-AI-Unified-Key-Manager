@@ -723,7 +723,8 @@ try:
 except Exception as e:
     print("Vision request failed:", e)`
     } else if (mode === 'stt') {
-      jsCodeSnippet = `# OmniKey AI Speech-to-Text (STT) Request Example
+      jsCodeSnippet = apiFormat === 'openai'
+        ? `# OmniKey AI Speech-to-Text (STT) Request Example
 import requests
 
 endpoint = '${completionEndpoint}'
@@ -735,8 +736,37 @@ apiKey = '${apiKey}'
 #     headers = {"Authorization": f"Bearer {apiKey}"}
 #     response = requests.post(endpoint, headers=headers, files=files, data=data)
 #     print("Transcription:", response.json().get("text"))`
+        : `# OmniKey AI Speech-to-Text (STT) Request Example (Gemini Format)
+import requests
+import base64
+
+endpoint = '${completionEndpoint}'
+apiKey = '${apiKey}'
+url = f"{endpoint}?key={apiKey}"
+
+# with open("speech.wav", "rb") as audio_file:
+#     base64_audio = base64.b64encode(audio_file.read()).decode('utf-8')
+#     payload = {
+#         "contents": [{
+#             "role": "user",
+#             "parts": [{
+#                 "inlineData": {
+#                     "mimeType": "audio/wav",
+#                     "data": base64_audio
+#                 }
+#             }]
+#         }]
+#     }
+#     headers = {
+#         "Content-Type": "application/json",
+#         "X-Required-Modality": "audio_input"
+#     }
+#     response = requests.post(url, headers=headers, json=payload)
+#     data = response.json()
+#     print("Transcription:", data['candidates'][0]['content']['parts'][0]['text'])`
     } else if (mode === 'tts') {
-      jsCodeSnippet = `# OmniKey AI Text-to-Speech (TTS) Request Example
+      jsCodeSnippet = apiFormat === 'openai'
+        ? `# OmniKey AI Text-to-Speech (TTS) Request Example
 import requests
 
 endpoint = '${completionEndpoint}'
@@ -760,6 +790,46 @@ try:
         print("Audio saved successfully to speech.mp3")
     else:
         print("Failed to generate speech:", response.json())
+except Exception as e:
+    print("Speech generation failed:", e)`
+        : `# OmniKey AI Text-to-Speech (TTS) Request Example (Gemini Format)
+import requests
+import base64
+
+endpoint = '${completionEndpoint}'
+apiKey = '${apiKey}'
+url = f"{endpoint}?key={apiKey}"
+
+payload = {
+    "contents": [{
+        "role": "user",
+        "parts": [{"text": "${userPrompt.replace(/'/g, "\\'")}"}]
+    }],
+    "generationConfig": {
+        "responseModalities": ["AUDIO"],
+        "speechConfig": {
+            "voiceConfig": {
+                "prebuiltVoiceConfig": {
+                    "voiceName": "Puck"
+                }
+            }
+        }
+    }
+}
+
+try:
+    headers = {
+        "Content-Type": "application/json",
+        "X-Required-Modality": "audio_output"
+    }
+    response = requests.post(url, headers=headers, json=payload)
+    data = response.json()
+    inline_part = next((p for p in data['candidates'][0]['content']['parts'] if 'inlineData' in p), None)
+    if inline_part:
+        audio_data = base64.b64decode(inline_part['inlineData']['data'])
+        with open("speech.wav", "wb") as f:
+            f.write(audio_data)
+        print("Audio saved successfully to speech.wav")
 except Exception as e:
     print("Speech generation failed:", e)`
     }
