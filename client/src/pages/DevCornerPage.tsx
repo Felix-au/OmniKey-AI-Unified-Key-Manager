@@ -4,7 +4,7 @@ import { apiFetch } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PageHeader } from '@/components/page-header'
-import { MessageSquare, Eye, Mic, Volume2, Upload, X, Square } from 'lucide-react'
+import { MessageSquare, Eye, Mic, Volume2, Upload, X, Square, Info } from 'lucide-react'
 
 
 const base64ToBlob = (base64: string, mimeType: string): Blob => {
@@ -1977,6 +1977,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 <option value="gemini">Gemini Format (Query Param, /v1beta/...)</option>
               </select>
             </div>
+
+            {mode === 'stt' && (
+              <div className="p-3 rounded-lg border border-amber-500/25 bg-amber-500/5 text-amber-700 dark:text-amber-400 text-[11px] flex items-start gap-2.5 select-none">
+                <Info className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-semibold block mb-0.5">Voice Mode Info</span>
+                  <span>
+                    {apiFormat === 'openai'
+                      ? "The selected OpenAI Format behaves purely as a transcription tool. Sent audio is transcribed to text verbatim."
+                      : "The selected Gemini Format utilizes native multimodal capabilities. Sent audio is understood as a conversational query and responds back directly."}
+                  </span>
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">

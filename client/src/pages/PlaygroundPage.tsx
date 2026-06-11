@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PageHeader } from '@/components/page-header'
 import { MarkdownRenderer } from '@/components/markdown-renderer'
-import { Paperclip, X, Image as ImageIcon, FileAudio, Mic, Square } from 'lucide-react'
+import { Paperclip, X, Image as ImageIcon, FileAudio, Mic, Square, Info } from 'lucide-react'
 
 const fileToBase64 = (file: File | Blob): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -607,6 +607,20 @@ export default function PlaygroundPage() {
       />
 
       <div className="flex-1 flex flex-col rounded-lg border bg-card overflow-hidden min-h-0">
+        {mode === 'stt' && (
+          <div className="mx-6 mt-4 p-3 rounded-lg border border-amber-500/25 bg-amber-500/5 text-amber-700 dark:text-amber-400 text-xs flex items-start gap-2.5 select-none">
+            <Info className="size-4 text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-semibold block mb-0.5">Voice Modality Info</span>
+              <span>
+                {apiFormat === 'openai' 
+                  ? "The selected OpenAI Format behaves purely as a transcription tool. Sent audio is transcribed to text verbatim."
+                  : "The selected Gemini Format utilizes native multimodal capabilities. Sent audio is understood as a conversational query and responds back directly."}
+              </span>
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {messages.length === 0 ? (
             <div className="flex items-center justify-center h-full text-center">

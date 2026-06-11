@@ -332,7 +332,7 @@ export async function routeRequest(
             const key = keys[idx % keys.length];
             idx++;
 
-            // Block promo/funding keys from using Vision/TTS/STT
+            // Block promo/funding keys from using Vision/TTS/Voice
             if (requiredModality && key.userId.toString() !== userId) {
               continue;
             }
@@ -400,7 +400,7 @@ export async function routeRequest(
         const key = keys[idx % keys.length];
         idx++;
 
-        // Block promo/funding keys from using Vision/TTS/STT
+        // Block promo/funding keys from using Vision/TTS/Voice
         if (requiredModality && key.userId.toString() !== userId) {
           continue;
         }
@@ -440,7 +440,7 @@ export async function routeRequest(
   if (requiredModality && !isLocalDbEnabled()) {
     const hasKeys = await ApiKey.exists({ userId, enabled: true, status: { $ne: 'invalid' } });
     if (!hasKeys) {
-      const err = new Error('Multimodal capabilities (Vision, STT, TTS) are not available on the free promo tier. Please add your own Gemini API key under Keys page to use these features.') as any;
+      const err = new Error('Multimodal capabilities (Vision, Voice, TTS) are not available on the free promo tier. Please add your own Gemini API key under Keys page to use these features.') as any;
       err.status = 403;
       throw err;
     }
