@@ -15,7 +15,7 @@
 - [Gemini-Compatible Request/Response Format](#gemini-compatible-requestresponse-format)
 - [Gemini Streaming Completions](#gemini-streaming-completions)
 - [Vision Modality (Multimodal)](#vision-modality-multimodal)
-- [Speech-to-Text (STT) Transcription](#speech-to-text-stt-transcription)
+- [Voice (Speech Input & Transcription)](#voice-speech-input--transcription)
 - [Text-to-Speech (TTS) Synthesis](#text-to-speech-tts-synthesis)
 - [Promo Tier Restrictions & Modalities](#promo-tier-restrictions-and-modalities)
 - [Dashboard Management APIs](#dashboard-management-apis)
@@ -60,7 +60,7 @@ Authorization: Bearer omnikey-your-unified-openai-key-here
 |---|---|---|---|---|
 | **POST** | `/v1/chat/completions` | Create a chat completion (OpenAI compatible) | Client | `chat` |
 | **POST** | `/v1/chat/completions` | Create a vision completion (OpenAI compatible) | Client | `vision` (auto-detected) |
-| **POST** | `/v1/audio/transcriptions` | Transcribe audio files to text (STT) | Client | `audio_input` |
+| **POST** | `/v1/audio/transcriptions` | Transcribe audio files to text (Voice) | Client | `audio_input` |
 | **POST** | `/v1/audio/speech` | Synthesize text to speech (TTS) | Client | `audio_output` |
 | **GET** | `/v1/models` | List all supported models (OpenAI compatible) | Client | - |
 | **POST** | `/v1beta/models/:model:generateContent` | Generate a Gemini-compatible completion | Client | `chat` / `vision` / `audio_input` / `audio_output` |
@@ -378,7 +378,7 @@ OmniKey AI supports multimodal Vision inputs via both OpenAI and Gemini compatib
 
 ---
 
-## Speech-to-Text (STT) & Speech Input
+## Voice (Speech Input & Transcription)
 
 OmniKey AI supports speech recognition and transcription through two standard formats:
 
@@ -541,13 +541,13 @@ Returns the model text response alongside the synthesized audio block inside can
 
 To prevent exhaustion of pooled admin resources, strict modality-based authorization checks are enforced inside the router's key iteration loops:
 
-* **Modality Classes**: `vision`, `audio_input` (STT), and `audio_output` (TTS) are flagged as specialized capabilities.
+* **Modality Classes**: `vision`, `audio_input` (Voice), and `audio_output` (TTS) are flagged as specialized capabilities.
 * **Key Exclusions**: When processing requests categorized under these modalities, the router **skips all administrative promo funding keys** unless the user has added their own personal Gemini/OpenAI key.
 * **Rejection Error**: If a promo user attempts to invoke multimodal endpoints without adding a personal API key, the gateway returns a `403 Forbidden` response:
   ```json
   {
     "error": {
-      "message": "Multimodal capabilities (Vision, STT, TTS) are not available on the free promo tier. Please add your own Gemini API key under Keys page to use these features.",
+      "message": "Multimodal capabilities (Vision, Voice, TTS) are not available on the free promo tier. Please add your own Gemini API key under Keys page to use these features.",
       "status": 403
     }
   }

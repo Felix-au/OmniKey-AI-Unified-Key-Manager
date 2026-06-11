@@ -392,7 +392,7 @@ async function generateVisionCompletion() {
 generateVisionCompletion();`
     } else if (mode === 'stt') {
       jsCodeSnippet = apiFormat === 'openai'
-        ? `// OmniKey AI Speech-to-Text (STT) Request Example
+        ? `// OmniKey AI Voice (Speech Input) Request Example
 const apiKey = '${apiKey}';
 const endpoint = '${completionEndpoint}';
 
@@ -416,7 +416,7 @@ async function transcribeAudio(audioBlob) {
     console.error('Transcription failed:', error);
   }
 }`
-        : `// OmniKey AI Speech-to-Text (STT) Request Example (Gemini Format)
+        : `// OmniKey AI Voice (Speech Input) Request Example (Gemini Format)
 const apiKey = '${apiKey}';
 const endpoint = '${completionEndpoint}';
 
@@ -713,7 +713,7 @@ except Exception as e:
     print("Vision request failed:", e)`
     } else if (mode === 'stt') {
       jsCodeSnippet = apiFormat === 'openai'
-        ? `# OmniKey AI Speech-to-Text (STT) Request Example
+        ? `# OmniKey AI Voice (Speech Input) Request Example
 import requests
 
 endpoint = '${completionEndpoint}'
@@ -725,7 +725,7 @@ apiKey = '${apiKey}'
 #     headers = {"Authorization": f"Bearer {apiKey}"}
 #     response = requests.post(endpoint, headers=headers, files=files, data=data)
 #     print("Transcription:", response.json().get("text"))`
-        : `# OmniKey AI Speech-to-Text (STT) Request Example (Gemini Format)
+        : `# OmniKey AI Voice (Speech Input) Request Example (Gemini Format)
 import requests
 import base64
 
@@ -1946,7 +1946,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }`}
               >
                 <Mic className="w-3.5 h-3.5" />
-                STT
+                Voice
               </button>
               <button
                 onClick={() => handleModeChange('tts')}

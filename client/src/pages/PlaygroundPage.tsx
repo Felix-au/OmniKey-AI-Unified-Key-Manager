@@ -208,7 +208,7 @@ export default function PlaygroundPage() {
       const start = Date.now()
       let res: Response
 
-      // 🎧 SPEECH-TO-TEXT (STT) MODE
+      // 🎧 VOICE (SPEECH INPUT) MODE
       if (mode === 'stt') {
         if (apiFormat === 'gemini') {
           const keyVal = keyData?.geminiApiKey || ''
@@ -450,7 +450,7 @@ export default function PlaygroundPage() {
         return
       }
 
-      // Handle STT transcription response
+      // Handle Voice response
       if (mode === 'stt') {
         const data = await res.json()
         const via = data._routed_via ?? (routedVia ? {
@@ -566,7 +566,7 @@ export default function PlaygroundPage() {
               <SelectContent>
                 <SelectItem value="chat">Simple Chat</SelectItem>
                 <SelectItem value="vision">Vision Chat</SelectItem>
-                <SelectItem value="stt">Speech to Text</SelectItem>
+                <SelectItem value="stt">Voice</SelectItem>
                 <SelectItem value="tts">Text to Speech</SelectItem>
               </SelectContent>
             </Select>
