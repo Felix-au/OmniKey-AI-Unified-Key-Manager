@@ -535,6 +535,15 @@ export default function PlaygroundPage() {
     ? 'Auto (fallback chain)'
     : availableModels.find(m => m.modelId === selectedModel)?.displayName ?? selectedModel
 
+  const modeLabel = {
+    chat: 'Simple Chat',
+    vision: 'Vision Chat',
+    stt: 'Voice',
+    tts: 'Text to Speech',
+  }[mode]
+
+  const apiFormatLabel = apiFormat === 'openai' ? 'OpenAI Format' : 'Gemini Format'
+
   const placeholderText = () => {
     if (mode === 'stt') {
       return attachedFile ? `Attached: ${attachedFile.name}. Press Send to transcribe.` : "Attach an audio file to transcribe..."
@@ -561,7 +570,7 @@ export default function PlaygroundPage() {
               removeAttachedFile()
             }}>
               <SelectTrigger className="w-full sm:w-[150px] font-semibold bg-background">
-                <SelectValue />
+                <SelectValue>{modeLabel}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="chat">Simple Chat</SelectItem>
@@ -573,7 +582,7 @@ export default function PlaygroundPage() {
 
             <Select value={apiFormat} onValueChange={(v) => setApiFormat(v as 'openai' | 'gemini')}>
               <SelectTrigger className="w-full sm:w-[150px]">
-                <SelectValue />
+                <SelectValue>{apiFormatLabel}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="openai">OpenAI Format</SelectItem>
@@ -583,7 +592,7 @@ export default function PlaygroundPage() {
 
             <Select value={selectedModel} onValueChange={(v) => setSelectedModel(v ?? 'auto')}>
               <SelectTrigger className="flex-1 sm:w-[260px] min-w-[160px]">
-                <SelectValue />
+                <SelectValue>{activeModelLabel}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="auto">Auto (fallback chain)</SelectItem>
