@@ -239,8 +239,8 @@ The React client dashboard has a responsive visual layout:
 * **Models Page**: Complete interactive page featuring columns configuration, name search, sorting, total model counts, and availability check indicators.
 * **Health Check Status**: Dials showing API latency, key states, and exact execution timing timestamps.
 * **Budget Tracking Bars**: Live progress indicators of token quotas.
-* **Playground**: Integrated API Format toggle allowing testing using either standard OpenAI format or Gemini JSON format in real-time.
-* **Developer Corner**: Sandboxed terminal featuring format toggling, auto-compiling JS client code snippet templates for both OpenAI and Gemini, and rendering stream console blocks.
+* **Playground**: Integrated API Format toggle allowing testing using either standard OpenAI format or Gemini JSON format in real-time, with interactive browser-based Voice recording and modality selection.
+* **Developer Corner**: Sandboxed terminal featuring format toggling, Voice (speech input/transcription) console sandbox, auto-compiling JS client code snippet templates for both OpenAI and Gemini, and rendering stream console blocks.
 * **Debate Arena**: Configurable page to stage multi-round debates between two model personas under a Judge model, featuring status prompts and history sanitization.
 * **Responsive Theme Switcher**: Toggle persistently between light and dark modes from the page header.
 * **Switch to Local**: A shortcut button next to the database status label to instantly toggle between local database mode and cloud mode.

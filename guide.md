@@ -130,8 +130,8 @@ The React Dashboard is your command center. It features persistent support for *
 | **Keys Page** | Manage OpenAI and Gemini unified keys side-by-side. Store upstream credentials with duplicate protection, authenticated CSV export/import, and dynamic status toggling. |
 | **Fallback Chain** | Sort the provider priority chain dynamically using drag-and-drop. |
 | **Stats & Logs** | Track token consumption, daily/monthly totals, and historical query latency. |
-| **Playground** | Interactive chat workspace with an API Format toggle (OpenAI vs. Gemini format) to test query responses in real-time. |
-| **Dev Corner** | Premium sandbox featuring format toggling, auto-compiling JS template generators for both OpenAI/Gemini formats, streaming output rendering, and a direct testing console. |
+| **Playground** | Interactive chat workspace with an API Format toggle (OpenAI vs. Gemini format), browser-based microphone Voice recording, and modality selections to test query responses in real-time. |
+| **Dev Corner** | Premium sandbox featuring format toggling, Voice (speech-to-response/transcription) sandbox testing, auto-compiling JS template generators for both OpenAI/Gemini formats, streaming output rendering, and a direct testing console. |
 | **Debate Arena** | Stage structured debates between two model personas (In Favor vs. Against) under a Judge model, with automatic chat history sanitization. |
 | **Admin Console (`/admin`)** | High-level operations center monitoring user distributions, success rates, latency distributions, error breakdowns, and overall savings (in Rupees `₹`). Enables editing model catalogs globally, inspecting logs (with resolved Developer Emails), and rotating admin login credentials (secured with HMAC-SHA256). |
 

@@ -40,8 +40,8 @@
 **OmniKey AI** is a self-hosted, multi-format API gateway proxy that wraps 12 free-tier LLM providers—Gemini, OpenRouter, Cerebras, Groq, Mistral, GitHub Models, SambaNova, Cohere, Cloudflare, Z.ai (Zhipu), HuggingFace, and NVIDIA—into a unified environment. 
 
 The proxy serves two endpoints natively:
-* **OpenAI-Compatible Endpoint (`/v1`)**: Point OpenAI SDKs or clients at `/v1/chat/completions` using your unified OpenAI key (`omnikey-` prefix).
-* **Gemini-Compatible Endpoint (`/v1beta`)**: Point Gemini SDKs or REST clients at `/v1beta/models/:model` (supporting `generateContent` and `streamGenerateContent` methods) using your unified Gemini key (`omnikey-g-` prefix).
+* **OpenAI-Compatible Endpoint (`/v1`)**: Point OpenAI SDKs or clients at `/v1/chat/completions` using your unified OpenAI key (`omnikey-` prefix). Supports standard chat, vision, transcription (Voice STT), and text-to-speech (Voice TTS).
+* **Gemini-Compatible Endpoint (`/v1beta`)**: Point Gemini SDKs or REST clients at `/v1beta/models/:model` (supporting `generateContent` and `streamGenerateContent` methods) using your unified Gemini key (`omnikey-g-` prefix). Supports multimodal inputs including text, images (Vision), and voice (Speech Input & Response Generation).
 
 Behind the scenes, OmniKey AI handles key storage (encrypted using AES-256-GCM), key duplication protection, rate limits, model routing, fallback cascades, and local telemetry logging of daily/monthly token counts.
 
@@ -86,7 +86,7 @@ Behind the scenes, OmniKey AI handles key storage (encrypted using AES-256-GCM),
 |---|---|
 | **Models Catalog Explorer** | Complete page listing 100+ models with sorting, search, column configurators, availability checks, and item count summaries. |
 | **Usage Gauges** | Clean visuals illustrating token budgets and daily/monthly stats. |
-| **Playground & Sandbox** | Premium playground with format toggle (OpenAI vs. Gemini) alongside Dev Corner JS compiler and terminal console. |
+| **Playground & Sandbox** | Premium playground with format toggle (OpenAI vs. Gemini), inline microphone Voice recording, alongside Dev Corner JS compiler and terminal console. |
 | **Admin Console** | Secure page (`/admin`) presenting stats on total users, active key distribution, and overall savings (in Rupees ₹). |
 | **Model Routing Controls** | Enable or disable individual models globally in real-time from the models panel. |
 | **Audit Logs & Security** | View live proxy request trails with mapped developer emails, flush log history, and securely rotate admin credentials (secured with HMAC-SHA256). |
