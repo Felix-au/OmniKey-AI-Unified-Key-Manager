@@ -212,6 +212,17 @@ export default function DocsPage() {
           --color-accent-emphasis: #1f6feb;
           --color-attention-subtle: rgba(187,128,9,0.15);
           --color-danger-fg: #f85149;
+
+          /* github-markdown-css v5+ mappings */
+          --bgColor-default: #0d1117;
+          --bgColor-muted: #151b23;
+          --bgColor-neutral-muted: #656c7633;
+          --fgColor-default: #f0f6fc;
+          --fgColor-muted: #9198a1;
+          --fgColor-accent: #4493f8;
+          --borderColor-default: #3d444d;
+          --borderColor-muted: #3d444db3;
+          --borderColor-neutral-muted: #3d444db3;
         }
         .markdown-body.light-mode {
           --color-fg-default: #24292f;
@@ -226,6 +237,17 @@ export default function DocsPage() {
           --color-accent-emphasis: #0969da;
           --color-attention-subtle: #fff8c5;
           --color-danger-fg: #cf222e;
+
+          /* github-markdown-css v5+ mappings */
+          --bgColor-default: #ffffff;
+          --bgColor-muted: #f6f8fa;
+          --bgColor-neutral-muted: #818b981f;
+          --fgColor-default: #1f2328;
+          --fgColor-muted: #59636e;
+          --fgColor-accent: #0969da;
+          --borderColor-default: #d1d9e0;
+          --borderColor-muted: #d1d9e0b3;
+          --borderColor-neutral-muted: #d1d9e0b3;
           color: #24292f !important;
         }
 
