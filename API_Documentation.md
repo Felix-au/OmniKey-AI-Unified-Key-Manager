@@ -382,6 +382,11 @@ OmniKey AI supports multimodal Vision inputs via both OpenAI and Gemini compatib
 
 OmniKey AI supports speech recognition and transcription through two standard formats:
 
+> [!IMPORTANT]
+> **Functional Differences in Voice Formats**:
+> * **OpenAI-Compatible Format (`/v1/audio/transcriptions`)**: Acts purely as a **transcription pipeline**. The gateway intercepts the upload and restricts the model (e.g. Gemini) via prompt formatting to output *verbatim text transcription only*, returning a simple `{"text": "..."}` JSON payload.
+> * **Gemini-Compatible Format (`/v1beta/models/:model:generateContent`)**: Acts as a **multimodal speech-to-response interface**. Since audio is passed natively in the contents payload, the model uses its reasoning capabilities to comprehend the speech content and *generate a conversational response* matching the prompt request, rather than just transcribing the verbatim text.
+
 ### 1. OpenAI-Compatible Transcription Format
 * **Endpoint**: `POST /v1/audio/transcriptions`
 * **Full URLs**:
