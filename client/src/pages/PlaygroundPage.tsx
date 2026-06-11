@@ -60,7 +60,7 @@ export default function PlaygroundPage() {
   const [loading, setLoading] = useState(false)
   const [selectedModel, setSelectedModel] = useState<string>('auto')
   const [apiFormat, setApiFormat] = useState<'openai' | 'gemini'>('openai')
-  const [mode, setMode] = useState<'chat' | 'vision' | 'stt' | 'tts'>('chat')
+  const [mode, setMode] = useState<'chat' | 'vision' | 'stt' | 'voice_chat' | 'tts'>('chat')
   const [attachedFile, setAttachedFile] = useState<File | null>(null)
   const [filePreview, setFilePreview] = useState<string>('')
   
@@ -134,6 +134,13 @@ export default function PlaygroundPage() {
     }
   }, [mode, availableModels, selectedModel])
 
+  // Lock apiFormat to 'openai' in STT mode
+  useEffect(() => {
+    if (mode === 'stt') {
+      setApiFormat('openai')
+    }
+  }, [mode])
+
   // Revoke object URLs and stop recording on unmount to prevent leaks
   useEffect(() => {
     return () => {
@@ -182,8 +189,9 @@ export default function PlaygroundPage() {
 
   const handleSend = async () => {
     const text = input.trim()
-    if (mode === 'stt' && !attachedFile) return
-    if (mode !== 'stt' && !text) return
+    const isAudioInput = mode === 'stt' || mode === 'voice_chat'
+    if (isAudioInput && !attachedFile) return
+    if (!isAudioInput && !text) return
     if (loading) return
 
     const userMsg: ChatMessage = { role: 'user', content: text || `Uploaded file: ${attachedFile?.name}` }
@@ -208,8 +216,8 @@ export default function PlaygroundPage() {
       const start = Date.now()
       let res: Response
 
-      // 🎧 SPEECH-TO-TEXT (STT) MODE
-      if (mode === 'stt') {
+      // 🎧 SPEECH-TO-TEXT (STT) OR VOICE CHAT MODE
+      if (mode === 'stt' || mode === 'voice_chat') {
         if (apiFormat === 'gemini') {
           const keyVal = keyData?.geminiApiKey || ''
           const urlModel = selectedModel === 'auto' ? 'auto' : selectedModel
@@ -251,7 +259,8 @@ export default function PlaygroundPage() {
           if (keyData?.apiKey) headers['Authorization'] = `Bearer ${keyData.apiKey}`
           headers['X-Required-Modality'] = 'audio_input'
 
-          res = await fetch(`${base}/v1/audio/transcriptions`, {
+          const path = mode === 'stt' ? '/v1/audio/transcriptions' : '/v1/audio/voice-chat'
+          res = await fetch(`${base}${path}`, {
             method: 'POST',
             headers,
             body: formData
@@ -450,8 +459,8 @@ export default function PlaygroundPage() {
         return
       }
 
-      // Handle STT transcription response
-      if (mode === 'stt') {
+      // Handle STT transcription / Voice Chat response
+      if (mode === 'stt' || mode === 'voice_chat') {
         const data = await res.json()
         const via = data._routed_via ?? (routedVia ? {
           platform: routedVia.split('/')[0],
@@ -539,6 +548,9 @@ export default function PlaygroundPage() {
     if (mode === 'stt') {
       return attachedFile ? `Attached: ${attachedFile.name}. Press Send to transcribe.` : "Attach an audio file to transcribe..."
     }
+    if (mode === 'voice_chat') {
+      return attachedFile ? `Attached: ${attachedFile.name}. Press Send to start voice chat.` : "Attach/record audio for Voice Chat..."
+    }
     if (mode === 'vision') {
       return "Type a prompt and attach an image..."
     }
@@ -557,7 +569,7 @@ export default function PlaygroundPage() {
           <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             {/* Mode selection toggle */}
             <Select value={mode} onValueChange={(v) => {
-              setMode(v as 'chat' | 'vision' | 'stt' | 'tts')
+              setMode(v as 'chat' | 'vision' | 'stt' | 'voice_chat' | 'tts')
               removeAttachedFile()
             }}>
               <SelectTrigger className="w-full sm:w-[150px] font-semibold bg-background">
@@ -567,12 +579,13 @@ export default function PlaygroundPage() {
                 <SelectItem value="chat">Simple Chat</SelectItem>
                 <SelectItem value="vision">Vision Chat</SelectItem>
                 <SelectItem value="stt">Speech to Text</SelectItem>
+                <SelectItem value="voice_chat">Voice Chat</SelectItem>
                 <SelectItem value="tts">Text to Speech</SelectItem>
               </SelectContent>
             </Select>
 
             <Select value={apiFormat} onValueChange={(v) => setApiFormat(v as 'openai' | 'gemini')}>
-              <SelectTrigger className="w-full sm:w-[150px]">
+              <SelectTrigger className="w-full sm:w-[150px]" disabled={mode === 'stt'}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -705,10 +718,10 @@ export default function PlaygroundPage() {
               ref={fileInputRef}
               type="file"
               onChange={handleFileChange}
-              accept={mode === 'vision' ? 'image/*' : mode === 'stt' ? 'audio/*' : undefined}
+              accept={mode === 'vision' ? 'image/*' : (mode === 'stt' || mode === 'voice_chat') ? 'audio/*' : undefined}
               className="hidden"
             />
-            {mode === 'vision' || mode === 'stt' ? (
+            {mode === 'vision' || mode === 'stt' || mode === 'voice_chat' ? (
               <Button
                 variant="outline"
                 size="icon"
@@ -719,7 +732,7 @@ export default function PlaygroundPage() {
                 <Paperclip className="size-5 text-muted-foreground" />
               </Button>
             ) : null}
-            {mode === 'stt' && (
+            {(mode === 'stt' || mode === 'voice_chat') && (
               <Button
                 variant="outline"
                 size="icon"
@@ -739,7 +752,7 @@ export default function PlaygroundPage() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              disabled={mode === 'stt'}
+              disabled={mode === 'stt' || mode === 'voice_chat'}
               placeholder={placeholderText()}
               rows={1}
               className="flex-1 resize-none rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50 min-h-[40px] max-h-[160px] disabled:opacity-50"
@@ -752,7 +765,7 @@ export default function PlaygroundPage() {
             />
             <Button
               onClick={handleSend}
-              disabled={loading || (mode === 'stt' ? !attachedFile : !input.trim())}
+              disabled={loading || ((mode === 'stt' || mode === 'voice_chat') ? !attachedFile : !input.trim())}
               size="default"
             >
               {loading ? 'Sending…' : 'Send'}
