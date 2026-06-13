@@ -61,7 +61,6 @@ Authorization: Bearer omnikey-your-unified-openai-key-here
 | **POST** | `/v1/chat/completions` | Create a chat completion (OpenAI compatible) | Client | `chat` |
 | **POST** | `/v1/chat/completions` | Create a vision completion (OpenAI compatible) | Client | `vision` (auto-detected) |
 | **POST** | `/v1/audio/transcriptions` | Transcribe audio files to text (STT) | Client | `audio_input` |
-| **POST** | `/v1/audio/voice-chat` | Conversational reasoning voice chat | Client | `audio_input` |
 | **POST** | `/v1/audio/speech` | Synthesize text to speech (TTS) | Client | `audio_output` |
 | **GET** | `/v1/models` | List all supported models (OpenAI compatible) | Client | - |
 | **POST** | `/v1beta/models/:model:generateContent` | Generate a Gemini-compatible completion | Client | `chat` / `vision` / `audio_input` / `audio_output` |
@@ -379,18 +378,18 @@ OmniKey AI supports multimodal Vision inputs via both OpenAI and Gemini compatib
 
 ---
 
-## Speech Input (STT & Voice Chat)
+## Speech-to-Text (STT) & Speech Input
 
-OmniKey AI supports speech recognition, transcription, and interactive voice chat through three standard endpoints:
+OmniKey AI supports speech recognition and transcription through two standard formats:
 
-### 1. OpenAI-Compatible Transcription Format (Verbatim STT)
+### 1. OpenAI-Compatible Transcription Format
 * **Endpoint**: `POST /v1/audio/transcriptions`
 * **Full URLs**:
   * **Local**: `http://localhost:3001/v1/audio/transcriptions`
   * **Production**: `https://omnikey-ai-unified-key-manager.onrender.com/v1/audio/transcriptions`
 * **Auth**: `Authorization: Bearer omnikey-your-unified-openai-key-here`
 * **Content-Type**: `multipart/form-data`
-* **Modality Requirement**: `audio_input` (Enforced. Resolves to Gemini backed by a strict transcription system instruction.)
+* **Modality Requirement**: `audio_input` (Automatically routed and enforced. Requires a personal Gemini key — promo tier blocked.)
 
 #### Request Parameters
 
@@ -406,30 +405,7 @@ OmniKey AI supports speech recognition, transcription, and interactive voice cha
 }
 ```
 
-### 2. OpenAI-Compatible Conversational Voice Chat Format (Custom Reasoning)
-Unlike standard transcription, this custom endpoint dispatches your speech query to Gemini *without* forcing transcription. The model processes the audio query natively using its reasoning capability and returns a conversational reply.
-
-* **Endpoint**: `POST /v1/audio/voice-chat`
-* **Full URLs**:
-  * **Local**: `http://localhost:3001/v1/audio/voice-chat`
-  * **Production**: `https://omnikey-ai-unified-key-manager.onrender.com/v1/audio/voice-chat`
-* **Auth**: `Authorization: Bearer omnikey-your-unified-openai-key-here`
-* **Content-Type**: `multipart/form-data`
-* **Modality Requirement**: `audio_input`
-
-#### Request Parameters (Same as transcription)
-* `file`: Audio file binary.
-* `model`: Model identifier (e.g. `gemini-2.5-flash` or `"auto"`).
-
-#### Success Response (`200 OK`)
-Returns the model's conversational answer to the voice query:
-```json
-{
-  "text": "I am doing great, thank you! How can I help you today?"
-}
-```
-
-### 3. Gemini-Compatible Speech Input (Multimodal Speech-to-Response)
+### 2. Gemini-Compatible Speech Input (Multimodal Speech-to-Response)
 Rather than a single-purpose transcription API, the Gemini format integrates audio natively as a multimodal part of general content generation. The model understands the speech input and responds to the content of the audio.
 
 * **Endpoint**: `POST /v1beta/models/:model:generateContent?key=omnikey-g-your-key`

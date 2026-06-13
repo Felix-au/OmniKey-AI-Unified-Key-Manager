@@ -27,7 +27,7 @@ interface FallbackEntry {
 }
 
 export default function DevCornerPage() {
-  const [mode, setMode] = useState<'chat' | 'vision' | 'stt' | 'voice_chat' | 'tts'>('chat')
+  const [mode, setMode] = useState<'chat' | 'vision' | 'stt' | 'tts'>('chat')
   const [selectedModel, setSelectedModel] = useState('auto')
   const [temperature, setTemperature] = useState(0.7)
   const [maxTokens, setMaxTokens] = useState('')
@@ -121,10 +121,6 @@ export default function DevCornerPage() {
     completionEndpoint = apiFormat === 'gemini'
       ? `${baseApiUrl}/v1beta/models/${selectedModel}:generateContent`
       : `${baseApiUrl}/v1/audio/transcriptions`
-  } else if (mode === 'voice_chat') {
-    completionEndpoint = apiFormat === 'gemini'
-      ? `${baseApiUrl}/v1beta/models/${selectedModel}:generateContent`
-      : `${baseApiUrl}/v1/audio/voice-chat`
   } else if (mode === 'tts') {
     completionEndpoint = apiFormat === 'gemini'
       ? `${baseApiUrl}/v1beta/models/${selectedModel}:generateContent`
@@ -147,13 +143,6 @@ export default function DevCornerPage() {
     }
   }, [audioOutputUrl])
 
-  // Lock apiFormat to 'openai' in STT mode
-  useEffect(() => {
-    if (mode === 'stt') {
-      setApiFormat('openai')
-    }
-  }, [mode])
-
   // Handle switching model on modality change
   useEffect(() => {
     if (selectedModel !== 'auto' && !filteredModels.some(m => m.modelId === selectedModel)) {
@@ -161,7 +150,7 @@ export default function DevCornerPage() {
     }
   }, [mode, filteredModels, selectedModel])
 
-  const handleModeChange = (newMode: 'chat' | 'vision' | 'stt' | 'voice_chat' | 'tts') => {
+  const handleModeChange = (newMode: 'chat' | 'vision' | 'stt' | 'tts') => {
     setMode(newMode)
     setFile(null)
     setFilePreview('')
@@ -176,7 +165,7 @@ export default function DevCornerPage() {
       setUserPrompt('Hello, tell me a quick developer joke about AI!')
     } else if (newMode === 'vision') {
       setUserPrompt('What is in this image? Describe it in one short sentence.')
-    } else if (newMode === 'stt' || newMode === 'voice_chat') {
+    } else if (newMode === 'stt') {
       setUserPrompt('')
     } else if (newMode === 'tts') {
       setUserPrompt('Welcome to the OmniKey AI Developer Corner.')
@@ -401,20 +390,16 @@ async function generateVisionCompletion() {
 }
 
 generateVisionCompletion();`
-    } else if (mode === 'stt' || mode === 'voice_chat') {
-      const modeLabel = mode === 'stt' ? 'Speech-to-Text (STT)' : 'Voice Chat';
-      const funcName = mode === 'stt' ? 'transcribeAudio' : 'voiceChat';
-      const logLabel = mode === 'stt' ? 'Transcription:' : 'Response:';
-      const fileArg = mode === 'stt' ? 'speech.wav' : 'voice.wav';
+    } else if (mode === 'stt') {
       jsCodeSnippet = apiFormat === 'openai'
-        ? `// OmniKey AI ${modeLabel} Request Example
+        ? `// OmniKey AI Speech-to-Text (STT) Request Example
 const apiKey = '${apiKey}';
 const endpoint = '${completionEndpoint}';
 
-async function ${funcName}(audioBlob) {
+async function transcribeAudio(audioBlob) {
   try {
     const formData = new FormData();
-    formData.append('file', audioBlob, '${fileArg}');
+    formData.append('file', audioBlob, 'speech.wav');
     formData.append('model', '${selectedModel === 'auto' ? 'gemini-2.5-flash' : selectedModel}');
 
     const response = await fetch(endpoint, {
@@ -426,12 +411,12 @@ async function ${funcName}(audioBlob) {
     });
 
     const data = await response.json();
-    console.log('${logLabel}', data.text);
+    console.log('Transcription:', data.text);
   } catch (error) {
-    console.error('Request failed:', error);
+    console.error('Transcription failed:', error);
   }
 }`
-        : `// OmniKey AI ${mode === 'stt' ? 'Speech-to-Text (STT)' : 'Voice Chat'} Request Example (Gemini Format)
+        : `// OmniKey AI Speech-to-Text (STT) Request Example (Gemini Format)
 const apiKey = '${apiKey}';
 const endpoint = '${completionEndpoint}';
 
@@ -442,7 +427,7 @@ const fileToBase64 = (blob) => new Promise((resolve) => {
   reader.readAsDataURL(blob);
 });
 
-async function ${mode === 'stt' ? 'transcribeAudio' : 'voiceChat'}(audioBlob) {
+async function transcribeAudio(audioBlob) {
   try {
     const base64Data = await fileToBase64(audioBlob);
     const url = \`\${endpoint}?key=\${apiKey}\`;
@@ -726,24 +711,21 @@ try:
     print("Response content:", data['candidates'][0]['content']['parts'][0]['text'])
 except Exception as e:
     print("Vision request failed:", e)`
-    } else if (mode === 'stt' || mode === 'voice_chat') {
-      const modeLabel = mode === 'stt' ? 'Speech-to-Text (STT)' : 'Voice Chat';
-      const fileArg = mode === 'stt' ? 'speech.wav' : 'voice.wav';
-      const logLabel = mode === 'stt' ? 'Transcription:' : 'Response:';
+    } else if (mode === 'stt') {
       jsCodeSnippet = apiFormat === 'openai'
-        ? `# OmniKey AI ${modeLabel} Request Example
+        ? `# OmniKey AI Speech-to-Text (STT) Request Example
 import requests
 
 endpoint = '${completionEndpoint}'
 apiKey = '${apiKey}'
 
-# with open("${fileArg}", "rb") as audio_file:
-#     files = {"file": ("${fileArg}", audio_file, "audio/wav")}
+# with open("speech.wav", "rb") as audio_file:
+#     files = {"file": ("speech.wav", audio_file, "audio/wav")}
 #     data = {"model": "${selectedModel === 'auto' ? 'gemini-2.5-flash' : selectedModel}"}
 #     headers = {"Authorization": f"Bearer {apiKey}"}
 #     response = requests.post(endpoint, headers=headers, files=files, data=data)
-#     print("${logLabel}", response.json().get("text"))`
-        : `# OmniKey AI ${mode === 'stt' ? 'Speech-to-Text (STT)' : 'Voice Chat'} Request Example (Gemini Format)
+#     print("Transcription:", response.json().get("text"))`
+        : `# OmniKey AI Speech-to-Text (STT) Request Example (Gemini Format)
 import requests
 import base64
 
@@ -751,7 +733,7 @@ endpoint = '${completionEndpoint}'
 apiKey = '${apiKey}'
 url = f"{endpoint}?key={apiKey}"
 
-# with open("${mode === 'stt' ? 'speech.wav' : 'voice.wav'}", "rb") as audio_file:
+# with open("speech.wav", "rb") as audio_file:
 #     base64_audio = base64.b64encode(audio_file.read()).decode('utf-8')
 #     payload = {
 #         "contents": [{
@@ -770,7 +752,7 @@ url = f"{endpoint}?key={apiKey}"
 #     }
 #     response = requests.post(url, headers=headers, json=payload)
 #     data = response.json()
-#     print("${mode === 'stt' ? 'Transcription:' : 'Response:'}", data['candidates'][0]['content']['parts'][0]['text'])`
+#     print("Transcription:", data['candidates'][0]['content']['parts'][0]['text'])`
     } else if (mode === 'tts') {
       jsCodeSnippet = apiFormat === 'openai'
         ? `# OmniKey AI Text-to-Speech (TTS) Request Example
@@ -1032,8 +1014,7 @@ func main() {
     body, _ := io.ReadAll(resp.Body)
     fmt.Println("Response:", string(body))
 }`
-    } else if (mode === 'stt' || mode === 'voice_chat') {
-      const fileArg = mode === 'stt' ? 'speech.wav' : 'voice.wav';
+    } else if (mode === 'stt') {
       jsCodeSnippet = apiFormat === 'openai'
         ? `package main
 
@@ -1052,8 +1033,8 @@ func main() {
     body := &bytes.Buffer{}
     writer := multipart.NewWriter(body)
     
-    fileWriter, _ := writer.CreateFormFile("file", "${fileArg}")
-    // file, _ := os.Open("${fileArg}")
+    fileWriter, _ := writer.CreateFormFile("file", "speech.wav")
+    // file, _ := os.Open("speech.wav")
     // io.Copy(fileWriter, file)
     
     writer.WriteField("model", "${selectedModel === 'auto' ? 'gemini-2.5-flash' : selectedModel}")
@@ -1090,7 +1071,7 @@ func main() {
     url := endpoint + "?key=" + apiKey
 
     // Read and encode audio file
-    // audioBytes, _ := os.ReadFile("${mode === 'stt' ? 'speech.wav' : 'voice.wav'}")
+    // audioBytes, _ := os.ReadFile("speech.wav")
     // base64Audio := base64.StdEncoding.EncodeToString(audioBytes)
     base64Audio := "..."
 
@@ -1371,8 +1352,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Response: {}", body);
     Ok(())
 }`
-    } else if (mode === 'stt' || mode === 'voice_chat') {
-      const fileArg = mode === 'stt' ? 'speech.wav' : 'voice.wav';
+    } else if (mode === 'stt') {
       jsCodeSnippet = apiFormat === 'openai'
         ? `use reqwest::Client;
 use reqwest::multipart;
@@ -1384,7 +1364,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let form = multipart::Form::new()
         .text("model", "${selectedModel === 'auto' ? 'gemini-2.5-flash' : selectedModel}")
-        // .file("file", "${fileArg}").await?
+        // .file("file", "speech.wav").await?
         ;
 
     let client = Client::new();
@@ -1395,7 +1375,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
 
     let body = res.text().await?;
-    println!("Response: {}", body);
+    println!("Transcription: {}", body);
     Ok(())
 }`
         : `use reqwest::Client;
@@ -1407,7 +1387,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let endpoint = "${completionEndpoint}";
     let url = format!("{}?key={}", endpoint, api_key);
 
-    // let base64_audio = base64::encode(std::fs::read("${mode === 'stt' ? 'speech.wav' : 'voice.wav'}")?);
+    // let base64_audio = base64::encode(std::fs::read("speech.wav")?);
     let base64_audio = "...";
 
     let payload = json!({
@@ -1589,12 +1569,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
       "temperature": ${temperature}
     }
   }'`
-    } else if (mode === 'stt' || mode === 'voice_chat') {
-      const fileArg = mode === 'stt' ? 'speech.wav' : 'voice.wav';
+    } else if (mode === 'stt') {
       jsCodeSnippet = apiFormat === 'openai'
         ? `curl ${completionEndpoint} \\
   -H "Authorization: Bearer ${apiKey}" \\
-  -F "file=@/path/to/${fileArg}" \\
+  -F "file=@/path/to/speech.wav" \\
   -F "model=${selectedModel === 'auto' ? 'gemini-2.5-flash' : selectedModel}"`
         : `curl -X POST "${completionEndpoint}?key=${apiKey}" \\
   -H "Content-Type: application/json" \\
@@ -1607,7 +1586,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
           {
             "inlineData": {
               "mimeType": "audio/wav",
-              "data": "$(base64 -w 0 /path/to/${fileArg})"
+              "data": "$(base64 -w 0 /path/to/speech.wav)"
             }
           }
         ]
@@ -1765,7 +1744,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             body: JSON.stringify(body)
           })
         }
-      } else if (mode === 'stt' || mode === 'voice_chat') {
+      } else if (mode === 'stt') {
         if (!file) {
           throw new Error('Please select or drop an audio file first.')
         }
@@ -1799,8 +1778,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
           formData.append('file', file)
           formData.append('model', selectedModel === 'auto' ? 'gemini-2.5-flash' : selectedModel)
 
-          const path = mode === 'stt' ? '/v1/audio/transcriptions' : '/v1/audio/voice-chat'
-          res = await fetch(`${base}${path}`, {
+          res = await fetch(`${base}/v1/audio/transcriptions`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${apiKey}` },
             body: formData
@@ -1971,17 +1949,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 STT
               </button>
               <button
-                onClick={() => handleModeChange('voice_chat')}
-                className={`flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-all duration-200 ${
-                  mode === 'voice_chat'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-background/25'
-                }`}
-              >
-                <MessageSquare className="w-3.5 h-3.5" />
-                Voice Chat
-              </button>
-              <button
                 onClick={() => handleModeChange('tts')}
                 className={`flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-all duration-200 ${
                   mode === 'tts'
@@ -2004,8 +1971,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
               <select
                 value={apiFormat}
                 onChange={e => setApiFormat(e.target.value as 'openai' | 'gemini')}
-                disabled={mode === 'stt'}
-                className="w-full bg-background border rounded-lg h-8 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
+                className="w-full bg-background border rounded-lg h-8 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
               >
                 <option value="openai">OpenAI Format (Bearer Token, /v1/...)</option>
                 <option value="gemini">Gemini Format (Query Param, /v1beta/...)</option>
@@ -2072,11 +2038,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             </div>
 
             {/* Sandbox Media Upload Area */}
-            {(mode === 'vision' || mode === 'stt' || mode === 'voice_chat') && (
+            {(mode === 'vision' || mode === 'stt') && (
               <div>
                 <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 flex justify-between items-center">
                   <span>Sandbox Payload ({mode === 'vision' ? 'Image' : 'Audio'})</span>
-                  {(mode === 'stt' || mode === 'voice_chat') && (
+                  {mode === 'stt' && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -2150,7 +2116,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                   min="0"
                   max="2"
                   step="0.1"
-                  disabled={mode === 'stt' || mode === 'voice_chat'}
+                  disabled={mode === 'stt'}
                   value={temperature}
                   onChange={e => setTemperature(parseFloat(e.target.value))}
                   className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-violet-600 disabled:opacity-50"
@@ -2164,7 +2130,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 <input
                   type="number"
                   placeholder="Limit"
-                  disabled={mode === 'stt' || mode === 'voice_chat' || mode === 'tts'}
+                  disabled={mode === 'stt' || mode === 'tts'}
                   value={maxTokens}
                   onChange={e => setMaxTokens(e.target.value)}
                   className="w-full bg-background border rounded-lg px-3 h-8 text-xs focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
@@ -2180,7 +2146,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                   step="0.05"
                   min="0"
                   max="1"
-                  disabled={mode === 'stt' || mode === 'voice_chat' || mode === 'tts'}
+                  disabled={mode === 'stt' || mode === 'tts'}
                   value={topP}
                   onChange={e => setTopP(parseFloat(e.target.value))}
                   className="w-full bg-background border rounded-lg px-3 h-8 text-xs focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
@@ -2188,7 +2154,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
               </div>
             </div>
 
-            {mode !== 'stt' && mode !== 'voice_chat' && mode !== 'tts' && (
+            {mode !== 'stt' && mode !== 'tts' && (
               <div>
                 <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
                   Developer System Prompt
@@ -2203,7 +2169,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
               </div>
             )}
 
-            {mode !== 'stt' && mode !== 'voice_chat' && (
+            {mode !== 'stt' && (
               <div>
                 <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
                   {mode === 'tts' ? 'Speech Input Text' : 'User Conversation Prompt'}
