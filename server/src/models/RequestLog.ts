@@ -10,6 +10,7 @@ export interface IRequestLog extends Document {
   outputTokens: number;
   latencyMs: number;
   error: string | null;
+  projectKey?: string | null;
   createdAt: Date;
 }
 
@@ -23,11 +24,13 @@ const RequestLogSchema: Schema = new Schema({
   outputTokens: { type: Number, default: 0 },
   latencyMs: { type: Number, required: true },
   error: { type: String, default: null },
+  projectKey: { type: String, default: null, index: true },
   createdAt: { type: Date, default: Date.now }
 });
 
 // Index by userId and createdAt for fast analytics range filters
 RequestLogSchema.index({ userId: 1, createdAt: -1 });
 RequestLogSchema.index({ fundedByUserId: 1, createdAt: -1 });
+RequestLogSchema.index({ projectKey: 1, createdAt: -1 });
 
 export const RequestLog = mongoose.model<IRequestLog>('RequestLog', RequestLogSchema);
