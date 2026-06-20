@@ -28,11 +28,12 @@ function getSinceTimestamp(range: string): string {
 analyticsRouter.get('/summary', async (req: AuthenticatedRequest, res: Response, next) => {
   try {
     const range = (req.query.range as string) ?? '7d';
+    const projectKey = req.query.projectKey as string | undefined;
     const since = getSinceTimestamp(range);
 
     if (isLocalDbEnabled()) {
       const db = getDb();
-      const stats = db.prepare(`
+      let query = `
         SELECT
           SUM(CASE WHEN status IN ('success', 'error') THEN 1 ELSE 0 END) as total_requests,
           SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success_count,
@@ -41,7 +42,18 @@ analyticsRouter.get('/summary', async (req: AuthenticatedRequest, res: Response,
           AVG(latency_ms) as avg_latency_ms
         FROM requests
         WHERE created_at >= ?
-      `).get(since) as any;
+      `;
+      const params: any[] = [since];
+      if (projectKey && projectKey !== 'all') {
+        if (projectKey === 'default') {
+          query += ' AND project_key IS NULL';
+        } else {
+          query += ' AND project_key = ?';
+          params.push(projectKey);
+        }
+      }
+
+      const stats = db.prepare(query).get(...params) as any;
 
       const totalRequests = stats.total_requests ?? 0;
       const successRate = totalRequests > 0 ? (stats.success_count / totalRequests) * 100 : 0;
@@ -59,8 +71,20 @@ analyticsRouter.get('/summary', async (req: AuthenticatedRequest, res: Response,
         estimatedCostSavings: Math.round((inputCost + outputCost) * 100) / 100,
       });
     } else {
+      const matchStage: any = {
+        $or: [{ userId: req.userId }, { fundedByUserId: req.userId }],
+        createdAt: { $gte: new Date(since) }
+      };
+      if (projectKey && projectKey !== 'all') {
+        if (projectKey === 'default') {
+          matchStage.projectKey = null;
+        } else {
+          matchStage.projectKey = projectKey;
+        }
+      }
+
       const stats = await RequestLog.aggregate([
-        { $match: { $or: [{ userId: req.userId }, { fundedByUserId: req.userId }], createdAt: { $gte: new Date(since) } } },
+        { $match: matchStage },
         {
           $group: {
             _id: null,
@@ -105,11 +129,12 @@ analyticsRouter.get('/summary', async (req: AuthenticatedRequest, res: Response,
 analyticsRouter.get('/by-model', async (req: AuthenticatedRequest, res: Response, next) => {
   try {
     const range = (req.query.range as string) ?? '7d';
+    const projectKey = req.query.projectKey as string | undefined;
     const since = getSinceTimestamp(range);
 
     if (isLocalDbEnabled()) {
       const db = getDb();
-      const rows = db.prepare(`
+      let query = `
         SELECT
           r.platform,
           r.model_id,
@@ -122,9 +147,19 @@ analyticsRouter.get('/by-model', async (req: AuthenticatedRequest, res: Response
         FROM requests r
         LEFT JOIN models m ON m.platform = r.platform AND m.model_id = r.model_id
         WHERE r.created_at >= ?
-        GROUP BY r.platform, r.model_id
-        ORDER BY requests DESC
-      `).all(since) as any[];
+      `;
+      const params: any[] = [since];
+      if (projectKey && projectKey !== 'all') {
+        if (projectKey === 'default') {
+          query += ' AND r.project_key IS NULL';
+        } else {
+          query += ' AND r.project_key = ?';
+          params.push(projectKey);
+        }
+      }
+      query += ' GROUP BY r.platform, r.model_id ORDER BY requests DESC';
+
+      const rows = db.prepare(query).all(...params) as any[];
 
       const mapped = rows.map(r => ({
         platform: r.platform,
@@ -139,8 +174,20 @@ analyticsRouter.get('/by-model', async (req: AuthenticatedRequest, res: Response
 
       return res.json(mapped);
     } else {
+      const matchStage: any = {
+        $or: [{ userId: req.userId }, { fundedByUserId: req.userId }],
+        createdAt: { $gte: new Date(since) }
+      };
+      if (projectKey && projectKey !== 'all') {
+        if (projectKey === 'default') {
+          matchStage.projectKey = null;
+        } else {
+          matchStage.projectKey = projectKey;
+        }
+      }
+
       const rows = await RequestLog.aggregate([
-        { $match: { $or: [{ userId: req.userId }, { fundedByUserId: req.userId }], createdAt: { $gte: new Date(since) } } },
+        { $match: matchStage },
         {
           $group: {
             _id: { platform: '$platform', modelId: '$modelId' },
@@ -179,11 +226,12 @@ analyticsRouter.get('/by-model', async (req: AuthenticatedRequest, res: Response
 analyticsRouter.get('/by-platform', async (req: AuthenticatedRequest, res: Response, next) => {
   try {
     const range = (req.query.range as string) ?? '7d';
+    const projectKey = req.query.projectKey as string | undefined;
     const since = getSinceTimestamp(range);
 
     if (isLocalDbEnabled()) {
       const db = getDb();
-      const rows = db.prepare(`
+      let query = `
         SELECT
           platform,
           COUNT(*) as requests,
@@ -193,9 +241,19 @@ analyticsRouter.get('/by-platform', async (req: AuthenticatedRequest, res: Respo
           SUM(output_tokens) as total_output_tokens
         FROM requests
         WHERE created_at >= ?
-        GROUP BY platform
-        ORDER BY requests DESC
-      `).all(since) as any[];
+      `;
+      const params: any[] = [since];
+      if (projectKey && projectKey !== 'all') {
+        if (projectKey === 'default') {
+          query += ' AND project_key IS NULL';
+        } else {
+          query += ' AND project_key = ?';
+          params.push(projectKey);
+        }
+      }
+      query += ' GROUP BY platform ORDER BY requests DESC';
+
+      const rows = db.prepare(query).all(...params) as any[];
 
       const mapped = rows.map(r => ({
         platform: r.platform,
@@ -208,8 +266,20 @@ analyticsRouter.get('/by-platform', async (req: AuthenticatedRequest, res: Respo
 
       return res.json(mapped);
     } else {
+      const matchStage: any = {
+        $or: [{ userId: req.userId }, { fundedByUserId: req.userId }],
+        createdAt: { $gte: new Date(since) }
+      };
+      if (projectKey && projectKey !== 'all') {
+        if (projectKey === 'default') {
+          matchStage.projectKey = null;
+        } else {
+          matchStage.projectKey = projectKey;
+        }
+      }
+
       const rows = await RequestLog.aggregate([
-        { $match: { $or: [{ userId: req.userId }, { fundedByUserId: req.userId }], createdAt: { $gte: new Date(since) } } },
+        { $match: matchStage },
         {
           $group: {
             _id: '$platform',
@@ -247,13 +317,14 @@ analyticsRouter.get('/timeline', async (req: AuthenticatedRequest, res: Response
   try {
     const range = (req.query.range as string) ?? '7d';
     const interval = (req.query.interval as string) ?? (range === '24h' ? 'hour' : 'day');
+    const projectKey = req.query.projectKey as string | undefined;
     const since = getSinceTimestamp(range);
 
     if (isLocalDbEnabled()) {
       const db = getDb();
       const dateFormat = interval === 'hour' ? '%Y-%m-%dT%H:00:00' : '%Y-%m-%d';
 
-      const rows = db.prepare(`
+      let query = `
         SELECT
           strftime('${dateFormat}', datetime(created_at, '+5 hours', '30 minutes')) as timestamp,
           SUM(CASE WHEN status IN ('success', 'error') THEN 1 ELSE 0 END) as requests,
@@ -261,9 +332,19 @@ analyticsRouter.get('/timeline', async (req: AuthenticatedRequest, res: Response
           SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) as failure_count
         FROM requests
         WHERE created_at >= ?
-        GROUP BY strftime('${dateFormat}', datetime(created_at, '+5 hours', '30 minutes'))
-        ORDER BY timestamp ASC
-      `).all(since) as any[];
+      `;
+      const params: any[] = [since];
+      if (projectKey && projectKey !== 'all') {
+        if (projectKey === 'default') {
+          query += ' AND project_key IS NULL';
+        } else {
+          query += ' AND project_key = ?';
+          params.push(projectKey);
+        }
+      }
+      query += ` GROUP BY strftime('${dateFormat}', datetime(created_at, '+5 hours', '30 minutes')) ORDER BY timestamp ASC`;
+
+      const rows = db.prepare(query).all(...params) as any[];
 
       const mapped = rows.map(r => ({
         timestamp: r.timestamp,
@@ -276,8 +357,20 @@ analyticsRouter.get('/timeline', async (req: AuthenticatedRequest, res: Response
     } else {
       const format = interval === 'hour' ? '%Y-%m-%dT%H:00:00Z' : '%Y-%m-%d';
 
+      const matchStage: any = {
+        $or: [{ userId: req.userId }, { fundedByUserId: req.userId }],
+        createdAt: { $gte: new Date(since) }
+      };
+      if (projectKey && projectKey !== 'all') {
+        if (projectKey === 'default') {
+          matchStage.projectKey = null;
+        } else {
+          matchStage.projectKey = projectKey;
+        }
+      }
+
       const rows = await RequestLog.aggregate([
-        { $match: { $or: [{ userId: req.userId }, { fundedByUserId: req.userId }], createdAt: { $gte: new Date(since) } } },
+        { $match: matchStage },
         {
           $group: {
             _id: { $dateToString: { format: format, date: '$createdAt', timezone: '+05:30' } },
@@ -307,12 +400,13 @@ analyticsRouter.get('/timeline', async (req: AuthenticatedRequest, res: Response
 analyticsRouter.get('/error-distribution', async (req: AuthenticatedRequest, res: Response, next) => {
   try {
     const range = (req.query.range as string) ?? '7d';
+    const projectKey = req.query.projectKey as string | undefined;
     const since = getSinceTimestamp(range);
 
     if (isLocalDbEnabled()) {
       const db = getDb();
 
-      const rows = db.prepare(`
+      let queryRaw = `
         SELECT
           platform,
           model_id,
@@ -329,11 +423,9 @@ analyticsRouter.get('/error-distribution', async (req: AuthenticatedRequest, res
           COUNT(*) as count
         FROM requests
         WHERE status IN ('error', 'fallback') AND created_at >= ?
-        GROUP BY platform, error_category
-        ORDER BY count DESC
-      `).all(since) as any[];
+      `;
 
-      const byCategory = db.prepare(`
+      let queryByCategory = `
         SELECT
           CASE
             WHEN error LIKE '%429%' OR error LIKE '%rate limit%' OR error LIKE '%too many%' OR error LIKE '%quota%' THEN 'Rate Limited (429)'
@@ -348,17 +440,35 @@ analyticsRouter.get('/error-distribution', async (req: AuthenticatedRequest, res
           COUNT(*) as count
         FROM requests
         WHERE status IN ('error', 'fallback') AND created_at >= ?
-        GROUP BY category
-        ORDER BY count DESC
-      `).all(since) as any[];
+      `;
 
-      const byPlatform = db.prepare(`
+      let queryByPlatform = `
         SELECT platform, COUNT(*) as count
         FROM requests
         WHERE status IN ('error', 'fallback') AND created_at >= ?
-        GROUP BY platform
-        ORDER BY count DESC
-      `).all(since) as any[];
+      `;
+
+      const params: any[] = [since];
+      if (projectKey && projectKey !== 'all') {
+        if (projectKey === 'default') {
+          queryRaw += ' AND project_key IS NULL';
+          queryByCategory += ' AND project_key IS NULL';
+          queryByPlatform += ' AND project_key IS NULL';
+        } else {
+          queryRaw += ' AND project_key = ?';
+          queryByCategory += ' AND project_key = ?';
+          queryByPlatform += ' AND project_key = ?';
+          params.push(projectKey);
+        }
+      }
+
+      queryRaw += ' GROUP BY platform, error_category ORDER BY count DESC';
+      queryByCategory += ' GROUP BY category ORDER BY count DESC';
+      queryByPlatform += ' GROUP BY platform ORDER BY count DESC';
+
+      const rows = db.prepare(queryRaw).all(...params) as any[];
+      const byCategory = db.prepare(queryByCategory).all(...params) as any[];
+      const byPlatform = db.prepare(queryByPlatform).all(...params) as any[];
 
       return res.json({
         byCategory,
@@ -366,11 +476,20 @@ analyticsRouter.get('/error-distribution', async (req: AuthenticatedRequest, res
         detailed: rows,
       });
     } else {
-      const errorLogs = await RequestLog.find({
+      const matchStage: any = {
         $or: [{ userId: req.userId }, { fundedByUserId: req.userId }],
         status: { $in: ['error', 'fallback'] },
         createdAt: { $gte: new Date(since) }
-      });
+      };
+      if (projectKey && projectKey !== 'all') {
+        if (projectKey === 'default') {
+          matchStage.projectKey = null;
+        } else {
+          matchStage.projectKey = projectKey;
+        }
+      }
+
+      const errorLogs = await RequestLog.find(matchStage);
 
       const categorize = (err: string | null): string => {
         const error = (err ?? '').toLowerCase();
@@ -446,17 +565,28 @@ analyticsRouter.get('/error-distribution', async (req: AuthenticatedRequest, res
 analyticsRouter.get('/errors', async (req: AuthenticatedRequest, res: Response, next) => {
   try {
     const range = (req.query.range as string) ?? '7d';
+    const projectKey = req.query.projectKey as string | undefined;
     const since = getSinceTimestamp(range);
 
     if (isLocalDbEnabled()) {
       const db = getDb();
-      const rows = db.prepare(`
+      let query = `
         SELECT id, platform, model_id, status, error, latency_ms, created_at
         FROM requests
         WHERE status IN ('error', 'fallback') AND created_at >= ?
-        ORDER BY created_at DESC
-        LIMIT 50
-      `).all(since) as any[];
+      `;
+      const params: any[] = [since];
+      if (projectKey && projectKey !== 'all') {
+        if (projectKey === 'default') {
+          query += ' AND project_key IS NULL';
+        } else {
+          query += ' AND project_key = ?';
+          params.push(projectKey);
+        }
+      }
+      query += ' ORDER BY created_at DESC LIMIT 50';
+
+      const rows = db.prepare(query).all(...params) as any[];
 
       const mapped = rows.map(r => ({
         id: r.id.toString(),
@@ -470,11 +600,20 @@ analyticsRouter.get('/errors', async (req: AuthenticatedRequest, res: Response, 
 
       return res.json(mapped);
     } else {
-      const rows = await RequestLog.find({
+      const matchStage: any = {
         $or: [{ userId: req.userId }, { fundedByUserId: req.userId }],
         status: { $in: ['error', 'fallback'] },
         createdAt: { $gte: new Date(since) }
-      })
+      };
+      if (projectKey && projectKey !== 'all') {
+        if (projectKey === 'default') {
+          matchStage.projectKey = null;
+        } else {
+          matchStage.projectKey = projectKey;
+        }
+      }
+
+      const rows = await RequestLog.find(matchStage)
       .sort({ createdAt: -1 })
       .limit(50);
 
