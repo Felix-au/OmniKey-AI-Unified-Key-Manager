@@ -7,6 +7,7 @@ import {
 import { apiFetch } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PageHeader } from '@/components/page-header'
 
 type TimeRange = '24h' | '7d' | '30d'
@@ -51,35 +52,41 @@ const primaryFill = 'var(--foreground)'
 
 export default function AnalyticsPage() {
   const [range, setRange] = useState<TimeRange>('7d')
+  const [projectKey, setProjectKey] = useState<string>('all')
+
+  const { data: projectKeys = [] } = useQuery({
+    queryKey: ['project-keys'],
+    queryFn: () => apiFetch<any[]>('/api/project-keys'),
+  })
 
   const { data: summary } = useQuery({
-    queryKey: ['analytics', 'summary', range],
-    queryFn: () => apiFetch<any>(`/api/analytics/summary?range=${range}`),
+    queryKey: ['analytics', 'summary', range, projectKey],
+    queryFn: () => apiFetch<any>(`/api/analytics/summary?range=${range}&projectKey=${encodeURIComponent(projectKey)}`),
   })
 
   const { data: byPlatform = [] } = useQuery({
-    queryKey: ['analytics', 'by-platform', range],
-    queryFn: () => apiFetch<any[]>(`/api/analytics/by-platform?range=${range}`),
+    queryKey: ['analytics', 'by-platform', range, projectKey],
+    queryFn: () => apiFetch<any[]>(`/api/analytics/by-platform?range=${range}&projectKey=${encodeURIComponent(projectKey)}`),
   })
 
   const { data: timeline = [] } = useQuery({
-    queryKey: ['analytics', 'timeline', range],
-    queryFn: () => apiFetch<any[]>(`/api/analytics/timeline?range=${range}`),
+    queryKey: ['analytics', 'timeline', range, projectKey],
+    queryFn: () => apiFetch<any[]>(`/api/analytics/timeline?range=${range}&projectKey=${encodeURIComponent(projectKey)}`),
   })
 
   const { data: byModel = [] } = useQuery({
-    queryKey: ['analytics', 'by-model', range],
-    queryFn: () => apiFetch<any[]>(`/api/analytics/by-model?range=${range}`),
+    queryKey: ['analytics', 'by-model', range, projectKey],
+    queryFn: () => apiFetch<any[]>(`/api/analytics/by-model?range=${range}&projectKey=${encodeURIComponent(projectKey)}`),
   })
 
   const { data: errors = [] } = useQuery({
-    queryKey: ['analytics', 'errors', range],
-    queryFn: () => apiFetch<any[]>(`/api/analytics/errors?range=${range}`),
+    queryKey: ['analytics', 'errors', range, projectKey],
+    queryFn: () => apiFetch<any[]>(`/api/analytics/errors?range=${range}&projectKey=${encodeURIComponent(projectKey)}`),
   })
 
   const { data: errorDist } = useQuery({
-    queryKey: ['analytics', 'error-distribution', range],
-    queryFn: () => apiFetch<{ byCategory: any[]; byPlatform: any[]; detailed: any[] }>(`/api/analytics/error-distribution?range=${range}`),
+    queryKey: ['analytics', 'error-distribution', range, projectKey],
+    queryFn: () => apiFetch<{ byCategory: any[]; byPlatform: any[]; detailed: any[] }>(`/api/analytics/error-distribution?range=${range}&projectKey=${encodeURIComponent(projectKey)}`),
   })
 
   return (
@@ -88,17 +95,35 @@ export default function AnalyticsPage() {
         title="Analytics"
         description="Request volume, latency, token usage, and failures."
         actions={
-          <div className="flex gap-1 rounded-md border p-0.5">
-            {(['24h', '7d', '30d'] as TimeRange[]).map(r => (
-              <Button
-                key={r}
-                variant={range === r ? 'secondary' : 'ghost'}
-                size="xs"
-                onClick={() => setRange(r)}
-              >
-                {r}
-              </Button>
-            ))}
+          <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+            <Select value={projectKey} onValueChange={(v) => setProjectKey(v ?? 'all')}>
+              <SelectTrigger className="w-[180px] h-8 text-xs bg-background">
+                <SelectValue placeholder="Select Key" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Keys</SelectItem>
+                <SelectItem value="default">Default Keys</SelectItem>
+                {projectKeys.map((pk: any) => (
+                  <SelectItem key={pk.id} value={pk.projectKey}>
+                    {pk.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="flex gap-1 rounded-md border p-0.5 h-8 items-center bg-background">
+              {(['24h', '7d', '30d'] as TimeRange[]).map(r => (
+                <Button
+                  key={r}
+                  variant={range === r ? 'secondary' : 'ghost'}
+                  size="xs"
+                  onClick={() => setRange(r)}
+                  className="h-7 px-2 text-xs"
+                >
+                  {r}
+                </Button>
+              ))}
+            </div>
           </div>
         }
       />
