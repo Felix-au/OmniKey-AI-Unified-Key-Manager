@@ -15,6 +15,7 @@ if (admin.apps.length === 0) {
 export interface AuthenticatedRequest extends Request {
   userId?: string;
   userEmail?: string;
+  projectKey?: string;
 }
 
 /**
