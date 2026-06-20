@@ -11,6 +11,7 @@ import { UserSettings } from '../models/UserSettings.js';
 import { RequestLog } from '../models/RequestLog.js';
 import { Model } from '../models/Model.js';
 import { PromoUser } from '../models/PromoUser.js';
+import { ProjectKey } from '../models/ProjectKey.js';
 import { isRetryableError } from './proxy.js';
 
 export const geminiProxyRouter = Router();
@@ -209,15 +210,16 @@ function logRequest(
   latencyMs: number,
   error: string | null,
   userId = 'local-dev-user-uid',
-  fundedByUserId?: string
+  fundedByUserId?: string,
+  projectKey?: string
 ) {
   if (isLocalDbEnabled()) {
     try {
       const db = getDb();
       db.prepare(`
-        INSERT INTO requests (platform, model_id, status, input_tokens, output_tokens, latency_ms, error)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(platform, modelId, status, inputTokens, outputTokens, latencyMs, error);
+        INSERT INTO requests (platform, model_id, status, input_tokens, output_tokens, latency_ms, error, project_key)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(platform, modelId, status, inputTokens, outputTokens, latencyMs, error, projectKey || null);
     } catch (e) {
       console.error('Failed to log request locally:', e);
     }
@@ -231,7 +233,8 @@ function logRequest(
       inputTokens,
       outputTokens,
       latencyMs,
-      error
+      error,
+      projectKey: projectKey || null
     }).catch(e => {
       console.error('Failed to log request to MongoDB:', e);
     });
@@ -353,19 +356,31 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
   // 1. Check cloud database (if URI present)
   if (process.env.MONGODB_URI) {
     try {
-      if (token.startsWith('omnikey-g-')) {
-        const settings = await UserSettings.findOne({ unifiedGeminiApiKey: token });
-        if (settings) {
-          userId = settings.userId;
-          isLocal = false;
-          authenticated = true;
-        }
-      } else if (token.startsWith('omnikey-')) {
-        const settings = await UserSettings.findOne({ unifiedApiKey: token });
-        if (settings) {
-          userId = settings.userId;
-          isLocal = false;
-          authenticated = true;
+      const projKey = await ProjectKey.findOne({ projectKey: token, enabled: true });
+      if (projKey) {
+        userId = projKey.userId;
+        isLocal = false;
+        authenticated = true;
+        (req as any).projectKey = projKey.projectKey;
+      } else {
+        if (token.startsWith('omnikey-g-')) {
+          const settings = await UserSettings.findOne({ unifiedGeminiApiKey: token });
+          if (settings) {
+            userId = settings.userId;
+            isLocal = false;
+            authenticated = true;
+            const promoted = await ProjectKey.findOne({ projectKey: token, userId: settings.userId, enabled: true });
+            if (promoted) (req as any).projectKey = promoted.projectKey;
+          }
+        } else if (token.startsWith('omnikey-')) {
+          const settings = await UserSettings.findOne({ unifiedApiKey: token });
+          if (settings) {
+            userId = settings.userId;
+            isLocal = false;
+            authenticated = true;
+            const promoted = await ProjectKey.findOne({ projectKey: token, userId: settings.userId, enabled: true });
+            if (promoted) (req as any).projectKey = promoted.projectKey;
+          }
         }
       }
     } catch (e) {
@@ -376,17 +391,29 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
   // 2. Fall back to local SQLite
   if (!authenticated) {
     try {
-      if (token.startsWith('omnikey-g-')) {
-        const unifiedGeminiKey = getUnifiedGeminiApiKey();
-        if (timingSafeStringEqual(token, unifiedGeminiKey)) {
-          isLocal = true;
-          authenticated = true;
-        }
-      } else if (token.startsWith('omnikey-')) {
-        const unifiedKey = getUnifiedApiKey();
-        if (timingSafeStringEqual(token, unifiedKey)) {
-          isLocal = true;
-          authenticated = true;
+      const db = getDb();
+      const projRow = db.prepare("SELECT * FROM project_keys WHERE project_key = ? AND enabled = 1").get(token) as any;
+      if (projRow) {
+        isLocal = true;
+        authenticated = true;
+        (req as any).projectKey = projRow.project_key;
+      } else {
+        if (token.startsWith('omnikey-g-')) {
+          const unifiedGeminiKey = getUnifiedGeminiApiKey();
+          if (timingSafeStringEqual(token, unifiedGeminiKey)) {
+            isLocal = true;
+            authenticated = true;
+            const promoted = db.prepare("SELECT * FROM project_keys WHERE project_key = ? AND enabled = 1").get(token) as any;
+            if (promoted) (req as any).projectKey = promoted.project_key;
+          }
+        } else if (token.startsWith('omnikey-')) {
+          const unifiedKey = getUnifiedApiKey();
+          if (timingSafeStringEqual(token, unifiedKey)) {
+            isLocal = true;
+            authenticated = true;
+            const promoted = db.prepare("SELECT * FROM project_keys WHERE project_key = ? AND enabled = 1").get(token) as any;
+            if (promoted) (req as any).projectKey = promoted.project_key;
+          }
         }
       }
     } catch (e) {
@@ -613,7 +640,8 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
             result.usage?.prompt_tokens ?? 0,
             result.usage?.completion_tokens ?? 0,
             Date.now() - start, null, userId,
-            route.isPromo ? route.fundedByUserId : undefined
+            route.isPromo ? route.fundedByUserId : undefined,
+            (req as any).projectKey
           );
           return;
         } else {
@@ -694,7 +722,7 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
 
             recordTokens(route.platform, route.modelId, route.keyId as any, estimatedInputTokens + totalOutputTokens);
             recordSuccess(route.modelDbId);
-            logRequest(route.platform, route.modelId, 'success', estimatedInputTokens, totalOutputTokens, Date.now() - start, null, userId, route.isPromo ? route.fundedByUserId : undefined);
+            logRequest(route.platform, route.modelId, 'success', estimatedInputTokens, totalOutputTokens, Date.now() - start, null, userId, route.isPromo ? route.fundedByUserId : undefined, (req as any).projectKey);
             return;
           } catch (streamErr: any) {
             if (streamStarted) {
@@ -707,7 +735,7 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
                 try { res.write(`, \n${JSON.stringify(payload)}\n]\n`); } catch {}
               }
               try { res.end(); } catch {}
-              logRequest(route.platform, route.modelId, 'error', estimatedInputTokens, totalOutputTokens, Date.now() - start, streamErr.message, userId, route.isPromo ? route.fundedByUserId : undefined);
+              logRequest(route.platform, route.modelId, 'error', estimatedInputTokens, totalOutputTokens, Date.now() - start, streamErr.message, userId, route.isPromo ? route.fundedByUserId : undefined, (req as any).projectKey);
               return;
             }
             throw streamErr;
@@ -717,7 +745,7 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
         const latency = Date.now() - start;
 
         if (isRetryableError(err) && attempt < MAX_RETRIES - 1) {
-          logRequest(route!.platform, route!.modelId, 'fallback', estimatedInputTokens, 0, latency, err.message, userId, route!.isPromo ? route!.fundedByUserId : undefined);
+          logRequest(route!.platform, route!.modelId, 'fallback', estimatedInputTokens, 0, latency, err.message, userId, route!.isPromo ? route!.fundedByUserId : undefined, (req as any).projectKey);
           const skipId = `${route!.platform}:${route!.modelId}:${route!.keyId}`;
           skipKeys.add(skipId);
           setCooldown(route!.platform, route!.modelId, route!.keyId as any, 120_000);
@@ -727,7 +755,7 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
           continue;
         }
 
-        logRequest(route!.platform, route!.modelId, 'error', estimatedInputTokens, 0, latency, err.message, userId, route!.isPromo ? route!.fundedByUserId : undefined);
+        logRequest(route!.platform, route!.modelId, 'error', estimatedInputTokens, 0, latency, err.message, userId, route!.isPromo ? route!.fundedByUserId : undefined, (req as any).projectKey);
         return res.status(502).json({
           error: {
             code: 502,

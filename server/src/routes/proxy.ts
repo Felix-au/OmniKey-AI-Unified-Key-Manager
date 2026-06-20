@@ -13,6 +13,7 @@ import { UserSettings } from '../models/UserSettings.js';
 import { RequestLog } from '../models/RequestLog.js';
 import { Model } from '../models/Model.js';
 import { PromoUser } from '../models/PromoUser.js';
+import { ProjectKey } from '../models/ProjectKey.js';
 
 export const proxyRouter = Router();
 
@@ -28,25 +29,51 @@ async function authenticateRequest(req: Request): Promise<{ authenticated: boole
   let authenticated = false;
   let userId = 'local-dev-user-uid';
 
-  if (process.env.MONGODB_URI && token.startsWith('omnikey-')) {
+  // 1. Check ProjectKey in MongoDB first
+  if (process.env.MONGODB_URI) {
     try {
-      const settings = await UserSettings.findOne({ unifiedApiKey: token });
-      if (settings) {
-        userId = settings.userId;
+      const projKey = await ProjectKey.findOne({ projectKey: token, enabled: true });
+      if (projKey) {
+        userId = projKey.userId;
         isLocal = false;
         authenticated = true;
+        (req as any).projectKey = projKey.projectKey;
+      } else if (token.startsWith('omnikey-')) {
+        const settings = await UserSettings.findOne({ unifiedApiKey: token });
+        if (settings) {
+          userId = settings.userId;
+          isLocal = false;
+          authenticated = true;
+          const promoted = await ProjectKey.findOne({ projectKey: token, userId: settings.userId, enabled: true });
+          if (promoted) {
+            (req as any).projectKey = promoted.projectKey;
+          }
+        }
       }
     } catch (e) {
       console.warn('[Proxy] Failed to query MongoDB key:', e);
     }
   }
 
+  // 2. Check ProjectKey in SQLite
   if (!authenticated) {
     try {
-      const unifiedKey = getUnifiedApiKey();
-      if (timingSafeStringEqual(token, unifiedKey)) {
+      const db = getDb();
+      const projRow = db.prepare("SELECT * FROM project_keys WHERE project_key = ? AND enabled = 1").get(token) as any;
+      if (projRow) {
         isLocal = true;
         authenticated = true;
+        (req as any).projectKey = projRow.project_key;
+      } else {
+        const unifiedKey = getUnifiedApiKey();
+        if (timingSafeStringEqual(token, unifiedKey)) {
+          isLocal = true;
+          authenticated = true;
+          const promoted = db.prepare("SELECT * FROM project_keys WHERE project_key = ? AND enabled = 1").get(token) as any;
+          if (promoted) {
+            (req as any).projectKey = promoted.project_key;
+          }
+        }
       }
     } catch (e) {
       console.warn('[Proxy] Failed to query SQLite key:', e);
@@ -288,13 +315,25 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
   let authenticated = false;
 
   // 1. Check cloud database (if URI present)
-  if (process.env.MONGODB_URI && token.startsWith('omnikey-')) {
+  if (process.env.MONGODB_URI) {
     try {
-      const settings = await UserSettings.findOne({ unifiedApiKey: token });
-      if (settings) {
-        userId = settings.userId;
+      const projKey = await ProjectKey.findOne({ projectKey: token, enabled: true });
+      if (projKey) {
+        userId = projKey.userId;
         isLocal = false;
         authenticated = true;
+        (req as any).projectKey = projKey.projectKey;
+      } else if (token.startsWith('omnikey-')) {
+        const settings = await UserSettings.findOne({ unifiedApiKey: token });
+        if (settings) {
+          userId = settings.userId;
+          isLocal = false;
+          authenticated = true;
+          const promoted = await ProjectKey.findOne({ projectKey: token, userId: settings.userId, enabled: true });
+          if (promoted) {
+            (req as any).projectKey = promoted.projectKey;
+          }
+        }
       }
     } catch (e) {
       console.warn('[Proxy] Failed to query MongoDB key:', e);
@@ -304,10 +343,22 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
   // 2. Fall back to local SQLite
   if (!authenticated) {
     try {
-      const unifiedKey = getUnifiedApiKey();
-      if (timingSafeStringEqual(token, unifiedKey)) {
+      const db = getDb();
+      const projRow = db.prepare("SELECT * FROM project_keys WHERE project_key = ? AND enabled = 1").get(token) as any;
+      if (projRow) {
         isLocal = true;
         authenticated = true;
+        (req as any).projectKey = projRow.project_key;
+      } else {
+        const unifiedKey = getUnifiedApiKey();
+        if (timingSafeStringEqual(token, unifiedKey)) {
+          isLocal = true;
+          authenticated = true;
+          const promoted = db.prepare("SELECT * FROM project_keys WHERE project_key = ? AND enabled = 1").get(token) as any;
+          if (promoted) {
+            (req as any).projectKey = promoted.project_key;
+          }
+        }
       }
     } catch (e) {
       console.warn('[Proxy] Failed to query SQLite key:', e);
@@ -531,7 +582,7 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
             recordTokens(route.platform, route.modelId, route.keyId as any, estimatedInputTokens + totalOutputTokens);
             recordSuccess(route.modelDbId);
             setStickyModel(messages, route.modelDbId);
-            logRequest(route.platform, route.modelId, 'success', estimatedInputTokens, totalOutputTokens, Date.now() - start, null, userId, route.isPromo ? route.fundedByUserId : undefined);
+            logRequest(route.platform, route.modelId, 'success', estimatedInputTokens, totalOutputTokens, Date.now() - start, null, userId, route.isPromo ? route.fundedByUserId : undefined, (req as any).projectKey);
             return;
           } catch (streamErr: any) {
             if (streamStarted) {
@@ -539,7 +590,7 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
               const payload = { error: { message: `Provider error (${route.displayName}): stream interrupted`, type: 'stream_error' } };
               try { res.write(`data: ${JSON.stringify(payload)}\n\n`); } catch {}
               try { res.write('data: [DONE]\n\n'); res.end(); } catch {}
-              logRequest(route.platform, route.modelId, 'error', estimatedInputTokens, totalOutputTokens, Date.now() - start, streamErr.message, userId, route.isPromo ? route.fundedByUserId : undefined);
+              logRequest(route.platform, route.modelId, 'error', estimatedInputTokens, totalOutputTokens, Date.now() - start, streamErr.message, userId, route.isPromo ? route.fundedByUserId : undefined, (req as any).projectKey);
               return;
             }
             throw streamErr;
@@ -588,7 +639,8 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
             result.usage?.prompt_tokens ?? 0,
             result.usage?.completion_tokens ?? 0,
             Date.now() - start, null, userId,
-            route.isPromo ? route.fundedByUserId : undefined
+            route.isPromo ? route.fundedByUserId : undefined,
+            (req as any).projectKey
           );
           return;
         }
@@ -596,7 +648,7 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
         const latency = Date.now() - start;
 
         if (isRetryableError(err) && attempt < MAX_RETRIES - 1) {
-          logRequest(route!.platform, route!.modelId, 'fallback', estimatedInputTokens, 0, latency, err.message, userId, route!.isPromo ? route!.fundedByUserId : undefined);
+          logRequest(route!.platform, route!.modelId, 'fallback', estimatedInputTokens, 0, latency, err.message, userId, route!.isPromo ? route!.fundedByUserId : undefined, (req as any).projectKey);
           const skipId = `${route!.platform}:${route!.modelId}:${route!.keyId}`;
           skipKeys.add(skipId);
           setCooldown(route!.platform, route!.modelId, route!.keyId as any, 120_000);
@@ -606,7 +658,7 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
           continue;
         }
 
-        logRequest(route!.platform, route!.modelId, 'error', estimatedInputTokens, 0, latency, err.message, userId, route!.isPromo ? route!.fundedByUserId : undefined);
+        logRequest(route!.platform, route!.modelId, 'error', estimatedInputTokens, 0, latency, err.message, userId, route!.isPromo ? route!.fundedByUserId : undefined, (req as any).projectKey);
         res.status(502).json({
           error: {
             message: `Provider error (${route!.displayName}): ${err.message}`,
@@ -710,7 +762,8 @@ proxyRouter.post('/audio/transcriptions', upload.single('file'), async (req: Req
         route.platform, route.modelId, 'success',
         promptTokens, completionTokens,
         Date.now() - start, null, auth.userId,
-        route.isPromo ? route.fundedByUserId : undefined
+        route.isPromo ? route.fundedByUserId : undefined,
+        (req as any).projectKey
       );
 
       res.json({ text: transcription });
@@ -834,7 +887,8 @@ proxyRouter.post('/audio/speech', async (req: Request, res: Response) => {
         route.platform, route.modelId, 'success',
         promptTokens, completionTokens,
         Date.now() - start, null, auth.userId,
-        route.isPromo ? route.fundedByUserId : undefined
+        route.isPromo ? route.fundedByUserId : undefined,
+        (req as any).projectKey
       );
 
       res.setHeader('Content-Type', mimeType);
@@ -858,15 +912,16 @@ function logRequest(
   latencyMs: number,
   error: string | null,
   userId = 'local-dev-user-uid',
-  fundedByUserId?: string
+  fundedByUserId?: string,
+  projectKey?: string
 ) {
   if (isLocalDbEnabled()) {
     try {
       const db = getDb();
       db.prepare(`
-        INSERT INTO requests (platform, model_id, status, input_tokens, output_tokens, latency_ms, error)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(platform, modelId, status, inputTokens, outputTokens, latencyMs, error);
+        INSERT INTO requests (platform, model_id, status, input_tokens, output_tokens, latency_ms, error, project_key)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(platform, modelId, status, inputTokens, outputTokens, latencyMs, error, projectKey || null);
     } catch (e) {
       console.error('Failed to log request locally:', e);
     }
@@ -881,7 +936,8 @@ function logRequest(
       inputTokens,
       outputTokens,
       latencyMs,
-      error
+      error,
+      projectKey: projectKey || null
     }).catch(e => {
       console.error('Failed to log request to MongoDB:', e);
     });
