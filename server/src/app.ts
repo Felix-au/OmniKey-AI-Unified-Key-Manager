@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { keysRouter } from './routes/keys.js';
+import { projectKeysRouter } from './routes/projectKeys.js';
 import { modelsRouter } from './routes/models.js';
 import { proxyRouter } from './routes/proxy.js';
 import { geminiProxyRouter } from './routes/gemini-proxy.js';
@@ -64,6 +65,7 @@ export function createApp() {
 
   // API routes
   app.use('/api/keys', keysRouter);
+  app.use('/api/project-keys', projectKeysRouter);
   app.use('/api/models', modelsRouter);
   app.use('/api/fallback', fallbackRouter);
   app.use('/api/analytics', analyticsRouter);
