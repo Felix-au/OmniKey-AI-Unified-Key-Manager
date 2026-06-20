@@ -146,6 +146,16 @@ function createTables(db: Database.Database) {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS project_keys (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      project_key TEXT NOT NULL UNIQUE,
+      format TEXT NOT NULL,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      is_promoted INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE INDEX IF NOT EXISTS idx_requests_created_at ON requests(created_at);
     CREATE INDEX IF NOT EXISTS idx_requests_platform ON requests(platform);
     CREATE INDEX IF NOT EXISTS idx_api_keys_platform ON api_keys(platform);
@@ -153,6 +163,12 @@ function createTables(db: Database.Database) {
 
   try {
     db.exec("ALTER TABLE admin_emails ADD COLUMN is_funding_provider INTEGER NOT NULL DEFAULT 0");
+  } catch (err) {
+    // Ignore if column already exists
+  }
+
+  try {
+    db.exec("ALTER TABLE requests ADD COLUMN project_key TEXT");
   } catch (err) {
     // Ignore if column already exists
   }
