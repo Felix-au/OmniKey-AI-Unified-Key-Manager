@@ -333,7 +333,7 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
       vy: number
     }> = []
 
-    const count = window.innerWidth < 768 ? 32 : 65
+    const count = window.innerWidth < 768 ? 30 : 60
     const mouse = { x: -9999, y: -9999, inside: false }
 
     const onMouse = (e: MouseEvent) => {
