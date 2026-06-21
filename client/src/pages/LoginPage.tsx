@@ -157,12 +157,12 @@ export default function LoginPage() {
         </div>
 
         {promoStatus?.isActive && (
-          <div className="mb-6 p-4 rounded-2xl border border-emerald-500/10 bg-emerald-500/[0.03] text-center animate-fade-in relative overflow-hidden">
+          <div className="mb-6 p-4 rounded-2xl border border-emerald-500/40 bg-emerald-500/[0.03] shadow-[0_0_15px_rgba(16,185,129,0.25)] text-center animate-fade-in relative overflow-hidden">
             <div className="absolute top-0 right-0 -mr-1 -mt-1 w-2.5 h-2.5 bg-emerald-500/10 rounded-full blur-[1px] animate-pulse" />
             <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300 flex items-center justify-center gap-1.5">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-450 opacity-75 animate-duration-1000"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 animate-pulse"></span>
               </span>
               10M Promotional Token Credit Active
             </p>

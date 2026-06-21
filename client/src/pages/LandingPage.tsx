@@ -1361,7 +1361,7 @@ export default function LandingPage() {
       {/* HERO SECTION - BIFURCATED GRID */}
       <section ref={heroRef} className="relative min-h-[calc(100vh-80px)] flex items-center py-6 px-6 md:px-12 max-w-7xl mx-auto z-10">
         <div className="grid md:grid-cols-12 gap-12 items-center w-full">
-          
+
           {/* Left Column - Large Logo & Supported Providers (Centered) */}
           <div className="md:col-span-6 flex flex-col justify-center items-center text-center gap-6">
 
@@ -1405,17 +1405,17 @@ export default function LandingPage() {
 
           {/* Right Column - Launch Offer, Stats Grid & Description Text */}
           <div className="md:col-span-6 flex flex-col justify-center items-center gap-6 w-full">
-            
+
             {/* Launch Offer Banner */}
             <div>
               {promoStatus?.isActive ? (
                 <div
                   onClick={() => navigate('/keys')}
-                  className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 text-xs font-semibold text-emerald-600 dark:text-emerald-400 cursor-pointer transition-all duration-300 transform hover:scale-[1.02]"
+                  className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-emerald-500/40 bg-emerald-500/5 shadow-[0_0_15px_rgba(16,185,129,0.25)] hover:shadow-[0_0_22px_rgba(16,185,129,0.5)] hover:bg-emerald-500/10 text-xs font-semibold text-emerald-600 dark:text-emerald-400 cursor-pointer transition-all duration-300 transform hover:scale-[1.02]"
                 >
                   <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-450 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 animate-pulse"></span>
                   </span>
                   <span>Launch Offer: Get 10M tokens free!</span>
                 </div>
@@ -1640,7 +1640,6 @@ export default function LandingPage() {
         <div className="text-center mb-10">
           <Pill label="⚔ Debate Arena" color="rose" />
           <SectionHeading>Watch Two AIs Argue It Out</SectionHeading>
-          <p className="text-muted-foreground max-w-xl mx-auto">Pick a topic, assign In Favor and Against models, set the number of rounds, and let a Judge model moderate the entire debate.</p>
         </div>
         <MockCard>
           <div ref={debateSim.containerRef} className="grid md:grid-cols-[280px_1fr]">
@@ -1769,7 +1768,7 @@ export default function LandingPage() {
       <Section id="faq" alt>
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-8">
-            <Pill label="FAQ" color="violet" />
+            <Pill label="Got Questions?" color="violet" />
             <SectionHeading>Frequently Asked Questions</SectionHeading>
           </div>
 
@@ -1853,11 +1852,8 @@ export default function LandingPage() {
       <Section id="contact" alt>
         <div className="max-w-lg mx-auto animate-fade-up">
           <div className="text-center mb-6">
-            <Pill label="Contact" color="violet" />
+            <Pill label="Get In Touch" color="violet" />
             <SectionHeading>Contact Developer</SectionHeading>
-            <p className="text-muted-foreground max-w-xl mx-auto text-sm sm:text-base leading-relaxed">
-              Submit a request to developers or report an issue in the workspace.
-            </p>
           </div>
 
           <div className="rounded-2xl border border-border bg-card/85 backdrop-blur-xl shadow-xl overflow-hidden p-6 md:p-8 relative">
