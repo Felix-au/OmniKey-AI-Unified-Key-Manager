@@ -207,7 +207,8 @@ export default function AdminPage() {
   })
 
   // Registered projects sorting
-  const [projectSortKey, setProjectSortKey] = useState<'name' | 'userEmail' | 'format' | 'totalRequests' | 'successRate' | 'errorRate' | 'avgLatencyMs' | 'totalTokens' | 'createdAt'>('createdAt')
+  // Registered projects sorting
+  const [projectSortKey, setProjectSortKey] = useState<'name' | 'userEmail' | 'totalRequests' | 'errorRate' | 'avgLatencyMs' | 'totalTokens' | 'createdAt'>('createdAt')
   const [projectSortOrder, setProjectSortOrder] = useState<'asc' | 'desc'>('desc')
 
   const handleProjectSort = (key: typeof projectSortKey) => {
@@ -215,7 +216,7 @@ export default function AdminPage() {
       setProjectSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'))
     } else {
       setProjectSortKey(key)
-      setProjectSortOrder(key === 'createdAt' || key === 'name' || key === 'userEmail' || key === 'format' ? 'asc' : 'desc')
+      setProjectSortOrder(key === 'createdAt' || key === 'name' || key === 'userEmail' ? 'asc' : 'desc')
     }
   }
 
@@ -238,16 +239,9 @@ export default function AdminPage() {
       aVal = a.userEmail.toLowerCase()
       bVal = b.userEmail.toLowerCase()
       return projectSortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
-    } else if (projectSortKey === 'format') {
-      aVal = a.format.toLowerCase()
-      bVal = b.format.toLowerCase()
-      return projectSortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
     } else if (projectSortKey === 'totalRequests') {
       aVal = a.metrics?.totalRequests ?? 0
       bVal = b.metrics?.totalRequests ?? 0
-    } else if (projectSortKey === 'successRate') {
-      aVal = a.metrics?.successRate ?? 100
-      bVal = b.metrics?.successRate ?? 100
     } else if (projectSortKey === 'errorRate') {
       aVal = a.metrics?.errorRate ?? 0
       bVal = b.metrics?.errorRate ?? 0
@@ -1282,22 +1276,10 @@ export default function AdminPage() {
                       Owner {renderProjectSortIndicator('userEmail')}
                     </th>
                     <th
-                      onClick={() => handleProjectSort('format')}
-                      className="pb-3 text-center cursor-pointer hover:text-slate-800 dark:hover:text-slate-200 transition-colors select-none"
-                    >
-                      Format {renderProjectSortIndicator('format')}
-                    </th>
-                    <th
                       onClick={() => handleProjectSort('totalRequests')}
                       className="pb-3 text-center cursor-pointer hover:text-slate-800 dark:hover:text-slate-200 transition-colors select-none"
                     >
                       Requests {renderProjectSortIndicator('totalRequests')}
-                    </th>
-                    <th
-                      onClick={() => handleProjectSort('successRate')}
-                      className="pb-3 text-center cursor-pointer hover:text-slate-800 dark:hover:text-slate-200 transition-colors select-none"
-                    >
-                      Success Rate {renderProjectSortIndicator('successRate')}
                     </th>
                     <th
                       onClick={() => handleProjectSort('errorRate')}
@@ -1328,14 +1310,7 @@ export default function AdminPage() {
                 <tbody>
                   {sortedProjects && sortedProjects.length > 0 ? (
                     sortedProjects.map((p) => {
-                      const successRate = p.metrics?.successRate ?? 100
                       const errorRate = p.metrics?.errorRate ?? 0
-
-                      const successColor = successRate >= 95
-                        ? 'text-emerald-500 font-medium'
-                        : successRate >= 80
-                          ? 'text-amber-500 font-medium'
-                          : 'text-rose-500 font-bold'
 
                       const errorColor = errorRate === 0
                         ? 'text-slate-400 dark:text-slate-500 font-medium'
@@ -1361,16 +1336,8 @@ export default function AdminPage() {
                           <td className="py-4 font-mono text-[10px] text-slate-500 dark:text-slate-400">
                             {p.userEmail}
                           </td>
-                          <td className="py-4 text-center">
-                            <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-850 text-slate-600 dark:text-slate-400 border border-slate-350 dark:border-slate-800">
-                              {p.format}
-                            </span>
-                          </td>
                           <td className="py-4 text-center font-semibold text-slate-800 dark:text-slate-300 tabular-nums">
                             {p.metrics?.totalRequests ?? 0} hits
-                          </td>
-                          <td className={`py-4 text-center font-semibold tabular-nums ${successColor}`}>
-                            {successRate.toFixed(1)}%
                           </td>
                           <td className={`py-4 text-center font-semibold tabular-nums ${errorColor}`}>
                             {errorRate.toFixed(1)}%
@@ -1389,7 +1356,7 @@ export default function AdminPage() {
                     })
                   ) : (
                     <tr>
-                      <td colSpan={9} className="py-10 text-slate-550 dark:text-slate-500 text-center">No projects registered.</td>
+                      <td colSpan={7} className="py-10 text-slate-550 dark:text-slate-500 text-center">No projects registered.</td>
                     </tr>
                   )}
                 </tbody>
