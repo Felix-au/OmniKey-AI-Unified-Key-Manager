@@ -1158,7 +1158,7 @@ export default function LandingPage() {
   }, [])
 
   return (
-    <div className="min-h-screen text-foreground relative">
+    <div className="min-h-screen text-foreground relative pb-10">
       <Helmet>
         <title>OmniKey AI - One Key. Every Model.</title>
         <meta name="description" content="Route requests across Gemini, Groq, Mistral, and more with automatic fallbacks for 100% uptime. Explore our API proxy gateway with Groq fallback routing and free Gemini API failover." />
@@ -1827,18 +1827,26 @@ export default function LandingPage() {
         </div>
       </Section>
 
-      {/* FOOTER */}
-      <footer className="border-t border-border py-10 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <img src={logoUrl} alt="OmniKey AI" className="h-5 w-5 object-contain opacity-70" />
-            <span className="font-semibold text-foreground">OmniKey AI</span>
+      {/* ── FOOTER: Persistent Frosted Glass Footer ── */}
+      <footer className="fixed bottom-0 left-0 right-0 z-40 h-10 bg-background/20 backdrop-blur-[24px] border-t-[1.5px] border-cyan-500/30 shadow-[0_-4px_12px_rgba(6,182,212,0.15)] flex items-center px-6">
+        <div className="w-full max-w-6xl mx-auto flex items-center justify-between relative text-[11px] text-muted-foreground">
+          {/* Centered Copyright */}
+          <span className="absolute left-1/2 -translate-x-1/2 font-medium tracking-wide">
+            &copy; 2026 OmniKey AI. All rights reserved.
+          </span>
+          
+          {/* Right-aligned GitHub repository link */}
+          <div className="ml-auto flex items-center gap-1.5 z-10">
+            <a 
+              href="https://github.com/Felix-au/OmniKey-AI-Unified-Key-Manager" 
+              target="_blank" 
+              rel="noreferrer" 
+              className="text-muted-foreground hover:text-cyan-400 transition-colors duration-300 flex items-center gap-1.5 font-semibold hover:drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="opacity-80 hover:opacity-100"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z" /></svg>
+              GitHub
+            </a>
           </div>
-          <span>Seemlessly develop without worrying about rate limits and juggling between API keys.</span>
-          <a href="https://github.com/Felix-au/OmniKey-AI-Unified-Key-Manager" target="_blank" rel="noreferrer" className="cta-btn hover:text-foreground transition-colors flex items-center gap-1.5">
-            <GitHubIcon size={15} />
-            GitHub
-          </a>
         </div>
       </footer>
     </div>
