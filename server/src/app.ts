@@ -13,6 +13,7 @@ import { analyticsRouter } from './routes/analytics.js';
 import { healthRouter } from './routes/health.js';
 import { settingsRouter } from './routes/settings.js';
 import { adminRouter } from './routes/admin.js';
+import { contactRouter } from './routes/contact.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { isLocalDbEnabled, dbModeStorage } from './db/context.js';
 
@@ -72,6 +73,7 @@ export function createApp() {
   app.use('/api/health', healthRouter);
   app.use('/api/settings', settingsRouter);
   app.use('/api/admin', adminRouter);
+  app.use('/api/contact', contactRouter);
 
   // OpenAI-compatible proxy
   app.use('/v1', proxyRouter);

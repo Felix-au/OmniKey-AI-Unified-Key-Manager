@@ -1058,6 +1058,59 @@ export default function LandingPage() {
   const stat6 = useCountUp(successRateTarget, 1200, 2)
   const [promoStatus, setPromoStatus] = useState<{ activePromoUsers: number; totalPromoLimit: number; remainingSlots: number; isActive: boolean } | null>(null)
 
+  const [contactName, setContactName] = useState('')
+  const [contactEmail, setContactEmail] = useState('')
+  const [contactMessage, setContactMessage] = useState('')
+  const [contactSubmitting, setContactSubmitting] = useState(false)
+  const [contactError, setContactError] = useState<string | null>(null)
+  const [contactSuccess, setContactSuccess] = useState<string | null>(null)
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setContactError(null)
+    setContactSuccess(null)
+
+    if (!contactName.trim() || !contactEmail.trim() || !contactMessage.trim()) {
+      setContactError("All fields are required.")
+      return
+    }
+
+    if (!contactEmail.includes('@')) {
+      setContactError("Please enter a valid email address.")
+      return
+    }
+
+    setContactSubmitting(true)
+    try {
+      const base = (import.meta.env.VITE_API_URL || import.meta.env.BASE_URL).replace(/\/$/, '')
+      const res = await fetch(`${base}/api/contact`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: contactName,
+          email: contactEmail,
+          message: contactMessage,
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.message || `HTTP error ${res.status}`)
+      }
+
+      setContactSuccess("Your message has been sent successfully!")
+      setContactName('')
+      setContactEmail('')
+      setContactMessage('')
+    } catch (err: any) {
+      setContactError(err.message || "Failed to send message. Please try again.")
+    } finally {
+      setContactSubmitting(false)
+    }
+  }
+
   useEffect(() => {
     const fetchPromoStatus = async () => {
       try {
@@ -1143,6 +1196,10 @@ export default function LandingPage() {
             <a href="#faq" className="hover:text-foreground transition-colors flex items-center gap-1.5">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
               FAQ
+            </a>
+            <a href="#contact" className="hover:text-foreground transition-colors flex items-center gap-1.5">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+              Contact
             </a>
             <a
               href="/docs"
@@ -1642,6 +1699,93 @@ export default function LandingPage() {
                   </div>
                 );
               })}
+          </div>
+        </div>
+      </Section>
+
+      {/* ── SECTION: Contact Developer ── */}
+      <Section id="contact" alt>
+        <div className="max-w-xl mx-auto animate-fade-up">
+          <div className="text-center mb-10">
+            <Pill label="Contact" color="violet" />
+            <SectionHeading>Contact Developer</SectionHeading>
+            <p className="text-muted-foreground max-w-xl mx-auto text-sm sm:text-base leading-relaxed">
+              Submit a request to developers or report an issue in the workspace.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-card/85 backdrop-blur-xl shadow-xl overflow-hidden p-6 md:p-8 relative">
+            <div className="absolute -top-10 -right-10 w-40 h-40 bg-violet-500/10 rounded-full blur-[48px] pointer-events-none" />
+            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-[48px] pointer-events-none" />
+
+            <form onSubmit={handleContactSubmit} className="space-y-5 relative z-10">
+              {contactError && (
+                <div className="text-xs font-semibold text-rose-500 dark:text-rose-450 bg-rose-500/10 border border-rose-500/20 rounded-xl p-4">
+                  {contactError}
+                </div>
+              )}
+              {contactSuccess && (
+                <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
+                  {contactSuccess}
+                </div>
+              )}
+
+              <div>
+                <label htmlFor="contact-name" className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                  Name
+                </label>
+                <input
+                  id="contact-name"
+                  type="text"
+                  required
+                  value={contactName}
+                  onChange={(e) => setContactName(e.target.value)}
+                  placeholder="Your Name"
+                  disabled={contactSubmitting}
+                  className="w-full bg-background/50 border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/35 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-all"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="contact-email" className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                  Email Address
+                </label>
+                <input
+                  id="contact-email"
+                  type="email"
+                  required
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  placeholder="your.email@example.com"
+                  disabled={contactSubmitting}
+                  className="w-full bg-background/50 border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/35 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-all"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="contact-message" className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                  Message
+                </label>
+                <textarea
+                  id="contact-message"
+                  required
+                  rows={4}
+                  value={contactMessage}
+                  onChange={(e) => setContactMessage(e.target.value)}
+                  placeholder="How can we help you?"
+                  disabled={contactSubmitting}
+                  className="w-full bg-background/50 border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/35 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-all resize-none"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={contactSubmitting}
+                className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-sm font-semibold rounded-xl py-3.5 text-center cursor-pointer shadow-lg shadow-violet-500/20 hover:from-violet-550 hover:to-indigo-550 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {contactSubmitting ? 'Sending Message...' : 'Send Message'}
+              </button>
+            </form>
           </div>
         </div>
       </Section>
