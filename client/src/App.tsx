@@ -5,6 +5,7 @@ import { Helmet } from 'react-helmet-async'
 import { AuthProvider, useAuth } from '@/lib/AuthContext'
 import LoginPage from '@/pages/LoginPage'
 import KeysPage from '@/pages/KeysPage'
+import ProjectsPage from '@/pages/ProjectsPage'
 import PlaygroundPage from '@/pages/PlaygroundPage'
 import FallbackPage from '@/pages/FallbackPage'
 import AnalyticsPage from '@/pages/AnalyticsPage'
@@ -48,6 +49,11 @@ const IconDebate = () => (
 const IconKeys = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/>
+  </svg>
+)
+const IconProjects = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
   </svg>
 )
 const IconFallback = () => (
@@ -270,6 +276,7 @@ function DashboardLayout() {
           <SectionLabel label="Manage" collapsed={collapsed && !mobile} />
           <SideNavItem to="/models"    icon={<IconModels />}   label="Models"    collapsed={collapsed && !mobile} />
           <SideNavItem to="/keys"      icon={<IconKeys />}     label="Keys"      collapsed={collapsed && !mobile} />
+          <SideNavItem to="/projects"  icon={<IconProjects />} label="Projects"  collapsed={collapsed && !mobile} />
           <SideNavItem to="/fallback"  icon={<IconFallback />} label="Fallback"  collapsed={collapsed && !mobile} />
           <SideNavItem to="/analytics" icon={<IconAnalytics />}label="Analytics" collapsed={collapsed && !mobile} />
 
@@ -382,6 +389,7 @@ function DashboardLayout() {
             <Route path="/compare"    element={<ComparePage />} />
             <Route path="/debate"     element={<DebatePage />} />
             <Route path="/keys"       element={<KeysPage />} />
+            <Route path="/projects"   element={<ProjectsPage />} />
             <Route path="/fallback"   element={<FallbackPage />} />
             <Route path="/analytics"  element={<AnalyticsPage />} />
             <Route path="/models"     element={<ModelsPage />} />
@@ -433,6 +441,10 @@ function RouteMeta() {
     case '/keys':
       title = 'Provider Keys Configuration | OmniKey AI'
       description = 'Configure developer API keys for Google Gemini, Groq, Cerebras, SambaNova, NVIDIA, and other upstream providers.'
+      break
+    case '/projects':
+      title = 'Project Keys Configuration | OmniKey AI'
+      description = 'Create and manage app-specific project credentials, track real-time requests, success rates, latency, and token consumption.'
       break
     case '/fallback':
       title = 'Smart Fallback Chain | OmniKey AI'
