@@ -64,6 +64,124 @@ const auroraCSS = `
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* ── 3D Token Cascade Styles ── */
+@keyframes descendTile {
+  0% { top: -40px; opacity: 0; transform: rotateX(25deg) rotateY(-15deg) translateZ(-40px) scale(0.85); }
+  15% { opacity: 0.85; }
+  75% { opacity: 0.95; }
+  80% { 
+    opacity: 1; 
+    border-color: #ffffff; 
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.4); 
+    transform: rotateX(25deg) rotateY(-15deg) translateZ(0) scale(1.05); 
+  }
+  90% { opacity: 0.3; }
+  100% { top: 260px; opacity: 0; transform: rotateX(25deg) rotateY(-15deg) translateZ(40px) scale(0.85); }
+}
+
+.cascade-3d {
+  width: 200px;
+  height: 280px;
+  position: relative;
+  transform-style: preserve-3d;
+  overflow: hidden;
+}
+
+.cascade-tile {
+  position: absolute;
+  width: 110px;
+  height: 32px;
+  left: 45px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: oklch(0.20 0.005 240); /* Light mode text color (dark charcoal) */
+  transform: rotateX(25deg) rotateY(-15deg);
+  animation: descendTile var(--cascade-speed) linear infinite;
+  opacity: 0;
+}
+
+.dark .cascade-tile {
+  color: #ffffff; /* Dark mode text color (white) */
+}
+
+/* Light mode styles */
+.tile-type-system {
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+}
+.tile-type-vector {
+  background: rgba(6, 182, 212, 0.08);
+  border: 1px solid rgba(6, 182, 212, 0.4);
+}
+.tile-type-attention {
+  background: rgba(236, 72, 153, 0.08);
+  border: 1px solid rgba(236, 72, 153, 0.4);
+}
+.tile-type-proxy {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+.tile-type-model {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+/* Dark mode styles */
+.dark .tile-type-system {
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.5);
+  text-shadow: 0 0 4px #6366f1;
+}
+.dark .tile-type-vector {
+  background: rgba(6, 182, 212, 0.15);
+  border: 1px solid rgba(6, 182, 212, 0.5);
+  text-shadow: 0 0 4px #06b6d4;
+}
+.dark .tile-type-attention {
+  background: rgba(236, 72, 153, 0.15);
+  border: 1px solid rgba(236, 72, 153, 0.5);
+  text-shadow: 0 0 4px #ec4899;
+}
+.dark .tile-type-proxy {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  text-shadow: 0 0 4px #10b981;
+}
+.dark .tile-type-model {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  text-shadow: 0 0 4px #f59e0b;
+}
+
+.tile-text {
+  position: relative;
+  z-index: 2;
+}
+
+.tile-glow {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 10px rgba(255,255,255,0.05);
+  z-index: 1;
+}
+
+.target-compiler-line {
+  position: absolute;
+  bottom: 40px;
+  left: 10px;
+  right: 10px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(6, 182, 212, 0.6) 50%, transparent 100%);
+  box-shadow: 0 0 8px rgba(6, 182, 212, 0.8);
+  pointer-events: none;
+}
 `
 
 // ── Interactive Neural Mesh Background ──────────────────────────────────────────
@@ -934,6 +1052,20 @@ const providerLogos: Record<string, string> = {
   Zhipu: '/logos/zai.svg',
   GitHub: '/logos/github.svg',
 }
+
+// ── Generated token phrases for Autoregressive Cascade ─────────────────────────
+const SIMULATED_TOKENS = [
+  { val: "System", type: "system" },
+  { val: "Prompt", type: "system" },
+  { val: "Vector", type: "vector" },
+  { val: "Weights", type: "attention" },
+  { val: "Query", type: "proxy" },
+  { val: "Resolve", type: "proxy" },
+  { val: "Model", type: "model" },
+  { val: "Decode", type: "attention" },
+  { val: "Cache", type: "proxy" },
+  { val: "Response", type: "model" },
+]
 
 // ── Mock Chat Messages ────────────────────────────────────────────────────────
 const mockChat = [
@@ -1931,6 +2063,41 @@ export default function LandingPage() {
           </div>
         </div>
       </Section>
+
+      {/* ── 3D Token Cascade Background Element ── */}
+      <div 
+        className="fixed bottom-0 z-10 pointer-events-none select-none flex items-center justify-center"
+        style={{
+          right: '-25px',
+          width: '220px',
+          height: '280px',
+          perspective: '500px',
+          transformStyle: 'preserve-3d',
+        }}
+      >
+        <div className="cascade-3d" style={{ '--cascade-speed': '4.5s' } as React.CSSProperties}>
+          {Array.from({ length: 5 }).map((_, i) => {
+            const delay = (i * 0.9).toFixed(1)
+            const tokenObj = SIMULATED_TOKENS[i % SIMULATED_TOKENS.length]
+            const displayValue = tokenObj.val
+
+            return (
+              <div
+                key={i}
+                className={`cascade-tile tile-type-${tokenObj.type}`}
+                style={{
+                  animationDelay: `${delay}s`,
+                  transformStyle: 'preserve-3d',
+                }}
+              >
+                <span className="tile-text">{displayValue}</span>
+                <div className="tile-glow"></div>
+              </div>
+            )
+          })}
+          <div className="target-compiler-line"></div>
+        </div>
+      </div>
 
       {/* ── FOOTER: Persistent Frosted Glass Footer ── */}
       <footer className="fixed bottom-0 left-0 right-0 z-40 h-10 bg-background/20 backdrop-blur-[24px] border-t border-cyan-400/40 rounded-t-2xl shadow-[0_-4px_24px_rgba(6,182,212,0.35)] flex items-center px-6">
