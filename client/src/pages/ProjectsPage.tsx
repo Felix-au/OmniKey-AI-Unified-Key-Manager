@@ -50,13 +50,13 @@ export default function ProjectsPage() {
   const queryClient = useQueryClient()
   const [createName, setCreateName] = useState('')
   const [createFormat, setCreateFormat] = useState<'openai' | 'gemini'>('openai')
-  
+
   const [promoteName, setPromoteName] = useState('')
   const [promoteFormat, setPromoteFormat] = useState<'openai' | 'gemini'>('openai')
 
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [keyToDelete, setKeyToDelete] = useState<ProjectKey | null>(null)
-  
+
   const [revealedKeys, setRevealedKeys] = useState<Record<string, boolean>>({})
   const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null)
 
@@ -223,10 +223,11 @@ export default function ProjectsPage() {
 
                 return (
                   <div key={k.id} className="flex flex-col gap-4 p-5 hover:bg-muted/30 transition-colors">
-                    {/* Top line: Name & Metadata / Actions */}
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex flex-col gap-0.5">
-                        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    {/* Top Row: Responsive grid arranging Name (left), Key (centered on desktop, wrapped below on mobile), Controls (right on all screens) */}
+                    <div className="grid grid-cols-2 md:grid-cols-[1fr_auto_1fr] items-center gap-4 w-full">
+                      {/* Name, Info */}
+                      <div className="col-span-1 order-1 md:order-1 flex flex-col gap-0.5">
+                        <h3 className="text-sm font-semibold text-foreground flex flex-wrap items-center gap-2">
                           {k.name}
                           <span className="text-[10px] bg-muted text-muted-foreground border px-2 py-0.5 rounded capitalize">
                             {k.format}
@@ -242,7 +243,34 @@ export default function ProjectsPage() {
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-3">
+                      {/* Styled key value field (exactly like Keys page) with fixed width - CENTERED on desktop, wrapped below on mobile */}
+                      <div className="col-span-2 md:col-span-1 order-3 md:order-2 flex items-center justify-center md:justify-self-center gap-2 w-full md:w-auto mt-2 md:mt-0">
+                        <Input
+                          type="text"
+                          value={isRevealed ? k.projectKey : masked}
+                          readOnly
+                          className="w-[260px] md:w-[372px] h-8 font-mono text-xs bg-muted/40 select-all cursor-text text-center"
+                        />
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          onClick={() => setRevealedKeys(prev => ({ ...prev, [k.id]: !prev[k.id] }))}
+                          className="h-8 text-xs px-2.5"
+                        >
+                          {isRevealed ? 'Hide' : 'Show'}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          onClick={() => handleCopy(k.id, k.projectKey)}
+                          className="h-8 text-xs px-2.5"
+                        >
+                          {copiedKeyId === k.id ? 'Copied' : 'Copy'}
+                        </Button>
+                      </div>
+
+                      {/* Enabled/Remove Controls */}
+                      <div className="col-span-1 order-2 md:order-3 flex items-center gap-3 justify-self-end">
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs text-muted-foreground">{k.enabled ? 'Enabled' : 'Disabled'}</span>
                           <Switch
@@ -254,36 +282,13 @@ export default function ProjectsPage() {
                         <Button
                           variant="ghost"
                           size="xs"
-                          className="text-muted-foreground hover:text-destructive h-7"
+                          className="text-muted-foreground hover:text-destructive h-8"
                           onClick={() => handleDeleteClick(k)}
                           disabled={deleteKey.isPending}
                         >
                           Remove
                         </Button>
                       </div>
-                    </div>
-
-                    {/* Middle Line: Key Display / Actions */}
-                    <div className="flex flex-wrap items-center gap-2">
-                      <code className="text-xs font-mono bg-muted px-2.5 py-1.5 rounded truncate max-w-full sm:max-w-md">
-                        {isRevealed ? k.projectKey : masked}
-                      </code>
-                      <Button
-                        variant="outline"
-                        size="xs"
-                        onClick={() => setRevealedKeys(prev => ({ ...prev, [k.id]: !prev[k.id] }))}
-                        className="h-7 text-xs"
-                      >
-                        {isRevealed ? 'Hide' : 'Show'}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="xs"
-                        onClick={() => handleCopy(k.id, k.projectKey)}
-                        className="h-7 text-xs"
-                      >
-                        {copiedKeyId === k.id ? 'Copied' : 'Copy'}
-                      </Button>
                     </div>
 
                     {/* Bottom Line: Aggregated Key Metrics */}
@@ -294,9 +299,8 @@ export default function ProjectsPage() {
                       </div>
                       <div className="rounded-md border bg-card/40 px-3 py-1.5">
                         <span className="text-[9px] text-muted-foreground uppercase tracking-wider block">Success Rate</span>
-                        <span className={`text-xs font-medium tabular-nums ${
-                          reqs === 0 ? '' : rate >= 95 ? 'text-emerald-500' : rate >= 80 ? 'text-amber-500' : 'text-rose-500'
-                        }`}>
+                        <span className={`text-xs font-medium tabular-nums ${reqs === 0 ? '' : rate >= 95 ? 'text-emerald-500' : rate >= 80 ? 'text-amber-500' : 'text-rose-500'
+                          }`}>
                           {reqs === 0 ? '—' : `${rate}%`}
                         </span>
                       </div>
