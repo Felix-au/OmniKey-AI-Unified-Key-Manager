@@ -1828,7 +1828,7 @@ export default function LandingPage() {
       </Section>
 
       {/* ── FOOTER: Persistent Frosted Glass Footer ── */}
-      <footer className="fixed bottom-0 left-0 right-0 z-40 h-10 bg-background/20 backdrop-blur-[24px] border-t-[1.5px] border-cyan-400/50 rounded-t-2xl shadow-[0_-6px_24px_rgba(6,182,212,0.35),_0_-2px_8px_rgba(6,182,212,0.2)] flex items-center px-6">
+      <footer className="fixed bottom-0 left-0 right-0 z-40 h-10 bg-background/20 backdrop-blur-[24px] border-t-[1.5px] border-cyan-400/70 rounded-t-2xl shadow-[0_-8px_32px_rgba(6,182,212,0.6),_0_-2px_10px_rgba(6,182,212,0.3)] flex items-center px-6">
         <div className="w-full max-w-6xl mx-auto flex items-center justify-between relative text-[11px] text-muted-foreground">
           {/* Centered Copyright */}
           <span className="absolute left-1/2 -translate-x-1/2 font-medium tracking-wide">
