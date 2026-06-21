@@ -395,13 +395,16 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
 
       // User list mock
       const localKeys = db.prepare('SELECT COUNT(*) as cnt FROM api_keys').get() as { cnt: number };
+      const localErrorsRow = db.prepare("SELECT COUNT(*) as cnt FROM requests WHERE status = 'error'").get() as { cnt: number };
+      const localErrors = localErrorsRow?.cnt || 0;
       usersList = [{
         userId: 'local-dev-user-uid',
         email: 'local-dev-user@example.com',
         keysCount: localKeys.cnt,
         requestsCount: totalRequests,
         tokensConsumed: totalInput + totalOutput,
-        costSaved: Number(costSaved.toFixed(4))
+        costSaved: Number(costSaved.toFixed(4)),
+        errorRate: totalRequests > 0 ? Number(((localErrors / totalRequests) * 100).toFixed(1)) : 0
       }];
 
     } else {
@@ -591,6 +594,15 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
             email: 1,
             keysCount: { $size: '$keys' },
             requestsCount: { $size: '$logs' },
+            errorsCount: {
+              $size: {
+                $filter: {
+                  input: '$logs',
+                  as: 'log',
+                  cond: { $eq: ['$$log.status', 'error'] }
+                }
+              }
+            },
             tokensConsumed: {
               $sum: {
                 $map: {
@@ -621,7 +633,8 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
 
       usersList = users.map(u => ({
         ...u,
-        costSaved: Number(u.costSaved.toFixed(4))
+        costSaved: Number(u.costSaved.toFixed(4)),
+        errorRate: u.requestsCount > 0 ? Number(((u.errorsCount || 0) / u.requestsCount * 100).toFixed(1)) : 0
       }));
     }
 

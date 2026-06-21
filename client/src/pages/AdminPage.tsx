@@ -70,6 +70,7 @@ interface AdminStats {
     requestsCount: number;
     tokensConsumed: number;
     costSaved: number;
+    errorRate?: number;
   }>;
   adminEmails?: Array<{ email: string; isFundingProvider: boolean }>;
   promoUsers?: Array<{
@@ -106,6 +107,41 @@ export default function AdminPage() {
   const [statsLoading, setStatsLoading] = useState(false)
   const [removingPromoUserId, setRemovingPromoUserId] = useState<string | null>(null)
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null)
+
+  // Developer accounts sorting
+  const [userSortKey, setUserSortKey] = useState<'email' | 'keysCount' | 'requestsCount' | 'tokensConsumed' | 'costSaved' | 'errorRate'>('requestsCount')
+  const [userSortOrder, setUserSortOrder] = useState<'asc' | 'desc'>('desc')
+
+  const handleUserSort = (key: typeof userSortKey) => {
+    if (userSortKey === key) {
+      setUserSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setUserSortKey(key)
+      setUserSortOrder(key === 'email' ? 'asc' : 'desc')
+    }
+  }
+
+  const renderSortIndicator = (key: typeof userSortKey) => {
+    if (userSortKey !== key) {
+      return <span className="text-slate-350 dark:text-slate-650 ml-1 text-[10px] select-none opacity-40 hover:opacity-100">↕</span>
+    }
+    return <span className="text-violet-500 dark:text-violet-400 font-bold ml-1 text-[10px] select-none">{userSortOrder === 'asc' ? '▲' : '▼'}</span>
+  }
+
+  const sortedUsers = [...(stats?.users || [])].sort((a, b) => {
+    let aVal: any = a[userSortKey] ?? 0
+    let bVal: any = b[userSortKey] ?? 0
+
+    if (userSortKey === 'email') {
+      aVal = a.email.toLowerCase()
+      bVal = b.email.toLowerCase()
+      return userSortOrder === 'asc'
+        ? aVal.localeCompare(bVal)
+        : bVal.localeCompare(aVal)
+    }
+
+    return userSortOrder === 'asc' ? aVal - bVal : bVal - aVal
+  })
   
   // Navigation Tabs
   const [activeTab, setActiveTab] = useState<'dashboard' | 'models' | 'logs' | 'security' | 'promo'>('dashboard')
@@ -944,44 +980,87 @@ export default function AdminPage() {
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
-                      <th className="pb-3 pl-4">Developer Account</th>
-                      <th className="pb-3 text-center">Keys Whitelisted</th>
-                      <th className="pb-3 text-center">API Requests</th>
-                      <th className="pb-3 text-center">Tokens Saved</th>
-                      <th className="pb-3 text-center">Total Savings (INR)</th>
+                      <th
+                        onClick={() => handleUserSort('email')}
+                        className="pb-3 pl-4 cursor-pointer hover:text-slate-800 dark:hover:text-slate-200 transition-colors select-none"
+                      >
+                        Developer Account {renderSortIndicator('email')}
+                      </th>
+                      <th
+                        onClick={() => handleUserSort('keysCount')}
+                        className="pb-3 text-center cursor-pointer hover:text-slate-800 dark:hover:text-slate-200 transition-colors select-none"
+                      >
+                        Keys Whitelisted {renderSortIndicator('keysCount')}
+                      </th>
+                      <th
+                        onClick={() => handleUserSort('requestsCount')}
+                        className="pb-3 text-center cursor-pointer hover:text-slate-800 dark:hover:text-slate-200 transition-colors select-none"
+                      >
+                        API Requests {renderSortIndicator('requestsCount')}
+                      </th>
+                      <th
+                        onClick={() => handleUserSort('errorRate')}
+                        className="pb-3 text-center cursor-pointer hover:text-slate-800 dark:hover:text-slate-200 transition-colors select-none"
+                      >
+                        Error Rate {renderSortIndicator('errorRate')}
+                      </th>
+                      <th
+                        onClick={() => handleUserSort('tokensConsumed')}
+                        className="pb-3 text-center cursor-pointer hover:text-slate-800 dark:hover:text-slate-200 transition-colors select-none"
+                      >
+                        Tokens Saved {renderSortIndicator('tokensConsumed')}
+                      </th>
+                      <th
+                        onClick={() => handleUserSort('costSaved')}
+                        className="pb-3 text-center cursor-pointer hover:text-slate-800 dark:hover:text-slate-200 transition-colors select-none"
+                      >
+                        Total Savings (INR) {renderSortIndicator('costSaved')}
+                      </th>
                       {!localDbEnabled && <th className="pb-3 text-right pr-4">Actions</th>}
                     </tr>
                   </thead>
                   <tbody>
-                    {stats?.users && stats.users.length > 0 ? (
-                      stats.users.map(u => (
-                        <tr key={u.userId} className="border-b border-slate-100 dark:border-slate-800/40 hover:bg-slate-50 dark:hover:bg-slate-900/10 transition-colors text-slate-700 dark:text-slate-300">
-                          <td className="py-4 pl-4 font-semibold text-slate-900 dark:text-slate-200">
-                            <div>{u.email}</div>
-                            <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono mt-0.5">UID: {u.userId}</div>
-                          </td>
-                          <td className="py-4 text-center text-slate-800 dark:text-slate-300 font-semibold">{u.keysCount} keys</td>
-                          <td className="py-4 text-center text-slate-800 dark:text-slate-300 font-semibold">{u.requestsCount} reqs</td>
-                          <td className="py-4 text-center text-slate-500 dark:text-slate-400 font-mono">{(u.tokensConsumed / 1000).toFixed(1)}k</td>
-                          <td className="py-4 text-center font-bold text-emerald-600 dark:text-emerald-400">₹{(u.costSaved * 83).toFixed(2)}</td>
-                          {!localDbEnabled && (
-                            <td className="py-4 text-right pr-4">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                disabled={deletingUserId === u.userId}
-                                onClick={() => handleDeleteUser(u.userId)}
-                                className="text-xs font-semibold text-rose-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl px-3 py-1 h-7 border border-transparent hover:border-rose-500/20"
-                              >
-                                {deletingUserId === u.userId ? 'Deleting...' : 'Delete'}
-                              </Button>
+                    {sortedUsers && sortedUsers.length > 0 ? (
+                      sortedUsers.map(u => {
+                        const errRate = u.errorRate ?? 0
+                        const errRateColor = errRate === 0
+                          ? 'text-slate-400 dark:text-slate-500 font-medium'
+                          : errRate < 5
+                            ? 'text-emerald-500 font-medium'
+                            : errRate < 20
+                              ? 'text-amber-500 font-medium'
+                              : 'text-rose-500 font-bold'
+
+                        return (
+                          <tr key={u.userId} className="border-b border-slate-100 dark:border-slate-800/40 hover:bg-slate-50 dark:hover:bg-slate-900/10 transition-colors text-slate-700 dark:text-slate-300">
+                            <td className="py-4 pl-4 font-semibold text-slate-900 dark:text-slate-200">
+                              <div>{u.email}</div>
+                              <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono mt-0.5">UID: {u.userId}</div>
                             </td>
-                          )}
-                        </tr>
-                      ))
+                            <td className="py-4 text-center text-slate-800 dark:text-slate-300 font-semibold">{u.keysCount} keys</td>
+                            <td className="py-4 text-center text-slate-800 dark:text-slate-300 font-semibold">{u.requestsCount} reqs</td>
+                            <td className={`py-4 text-center font-semibold tabular-nums ${errRateColor}`}>{errRate.toFixed(1)}%</td>
+                            <td className="py-4 text-center text-slate-500 dark:text-slate-400 font-mono">{(u.tokensConsumed / 1000).toFixed(1)}k</td>
+                            <td className="py-4 text-center font-bold text-emerald-600 dark:text-emerald-400">₹{(u.costSaved * 83).toFixed(2)}</td>
+                            {!localDbEnabled && (
+                              <td className="py-4 text-right pr-4">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  disabled={deletingUserId === u.userId}
+                                  onClick={() => handleDeleteUser(u.userId)}
+                                  className="text-xs font-semibold text-rose-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl px-3 py-1 h-7 border border-transparent hover:border-rose-500/20"
+                                >
+                                  {deletingUserId === u.userId ? 'Deleting...' : 'Delete'}
+                                </Button>
+                              </td>
+                            )}
+                          </tr>
+                        )
+                      })
                     ) : (
                       <tr>
-                        <td colSpan={localDbEnabled ? 5 : 6} className="py-10 text-slate-550 dark:text-slate-500 text-center">No active user accounts.</td>
+                        <td colSpan={localDbEnabled ? 6 : 7} className="py-10 text-slate-550 dark:text-slate-500 text-center">No active user accounts.</td>
                       </tr>
                     )}
                   </tbody>
