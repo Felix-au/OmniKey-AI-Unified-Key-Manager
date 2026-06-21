@@ -147,27 +147,13 @@ export default function LoginPage() {
       {/* Main glass card */}
       <div className="w-full max-w-[420px] bg-card/60 backdrop-blur-xl border border-border rounded-3xl p-8 shadow-2xl relative z-10 transition-all duration-300">
 
-        {/* Brand header */}
-        <div className="flex flex-col items-center text-center mb-8">
-          <div className="w-20 h-20 bg-background border border-border rounded-3xl flex items-center justify-center p-3.5 shadow-md mb-4">
-            <img src={logo} alt="OmniKey AI Logo" className="w-full h-full object-contain" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground mb-1.5">OmniKey AI</h1>
-          <p className="text-xs text-muted-foreground font-medium">Unified Proxy Server for all LLM Providers</p>
+        <div className="flex flex-col items-center text-center mb-0">
+          <img 
+            src={logo} 
+            alt="OmniKey AI Logo" 
+            className="max-h-[220px] w-auto object-contain transition-all duration-300 transform hover:scale-[1.02]" 
+          />
         </div>
-
-        {promoStatus?.isActive && (
-          <div className="mb-6 p-4 rounded-2xl border border-emerald-500/40 bg-emerald-500/[0.03] shadow-[0_0_15px_rgba(16,185,129,0.25)] text-center animate-fade-in relative overflow-hidden">
-            <div className="absolute top-0 right-0 -mr-1 -mt-1 w-2.5 h-2.5 bg-emerald-500/10 rounded-full blur-[1px] animate-pulse" />
-            <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300 flex items-center justify-center gap-1.5">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 animate-pulse"></span>
-              </span>
-              10M Promotional Token Credit Active
-            </p>
-          </div>
-        )}
 
         {/* Google Sign In */}
         <Button
