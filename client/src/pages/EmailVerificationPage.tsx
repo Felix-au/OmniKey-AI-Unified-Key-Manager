@@ -2,9 +2,13 @@ import { useState } from 'react'
 import { sendEmailVerification } from 'firebase/auth'
 import { useAuth } from '@/lib/AuthContext'
 import { Button } from '@/components/ui/button'
-import logoUrl from '../assets/logo.png'
+import logoDark from '../assets/logo-dark-theme.png'
+import logoLight from '../assets/logo-light-theme.png'
+import { useTheme } from '@/lib/useTheme'
 
 export default function EmailVerificationPage() {
+  const dark = useTheme()
+  const logo = dark ? logoDark : logoLight
   const { user, reloadUser, logout } = useAuth()
   const [loading, setLoading] = useState(false)
   const [resending, setResending] = useState(false)
@@ -60,8 +64,8 @@ export default function EmailVerificationPage() {
         
         {/* Brand header */}
         <div className="flex flex-col items-center mb-6">
-          <div className="w-16 h-16 bg-slate-50 dark:bg-white border border-border rounded-2xl flex items-center justify-center p-3 shadow-md mb-4">
-            <img src={logoUrl} alt="OmniKey AI Logo" className="w-full h-full object-contain" />
+          <div className="w-16 h-16 bg-background border border-border rounded-2xl flex items-center justify-center p-3 shadow-md mb-4">
+            <img src={logo} alt="OmniKey AI Logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-xl font-bold tracking-tight text-foreground mb-1">Verify Your Email</h1>
           <p className="text-xs text-muted-foreground">Confirm ownership of your account</p>

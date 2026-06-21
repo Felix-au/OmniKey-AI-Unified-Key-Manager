@@ -3,7 +3,9 @@ import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithP
 import { auth } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import { Button } from '@/components/ui/button'
-import logoUrl from '../assets/logo.png'
+import logoDark from '../assets/logo-dark-theme.png'
+import logoLight from '../assets/logo-light-theme.png'
+import { useTheme } from '@/lib/useTheme'
 import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 
 function DarkModeToggle() {
@@ -44,6 +46,8 @@ function DarkModeToggle() {
 }
 
 export default function LoginPage() {
+  const dark = useTheme()
+  const logo = dark ? logoDark : logoLight
   const { setDatabaseMode } = useAuth()
   const [rememberMode, setRememberMode] = useState(true)
   const [isRegister, setIsRegister] = useState(false)
@@ -145,8 +149,8 @@ export default function LoginPage() {
 
         {/* Brand header */}
         <div className="flex flex-col items-center text-center mb-8">
-          <div className="w-20 h-20 bg-slate-50 dark:bg-white border border-border rounded-3xl flex items-center justify-center p-3.5 shadow-md mb-4">
-            <img src={logoUrl} alt="OmniKey AI Logo" className="w-full h-full object-contain" />
+          <div className="w-20 h-20 bg-background border border-border rounded-3xl flex items-center justify-center p-3.5 shadow-md mb-4">
+            <img src={logo} alt="OmniKey AI Logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground mb-1.5">OmniKey AI</h1>
           <p className="text-xs text-muted-foreground font-medium">Unified Proxy Server for all LLM Providers</p>

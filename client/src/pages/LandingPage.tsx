@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import logoUrl from '../assets/logo.png'
+import logoUrl from '../assets/logo-without-text.png'
 
 // ── Aurora background CSS ────────────────────────────────────────────────────
 const auroraCSS = `

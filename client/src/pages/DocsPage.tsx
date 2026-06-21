@@ -7,7 +7,7 @@ import rehypeSlug from 'rehype-slug'
 import rehypeRaw from 'rehype-raw'
 import remarkGithubBlockquoteAlert from 'remark-github-blockquote-alert'
 import { useNavigate } from 'react-router-dom'
-import logoUrl from '../assets/logo.png'
+import logoUrl from '../assets/logo-without-text.png'
 
 // Official GitHub markdown body CSS
 import 'github-markdown-css/github-markdown.css'
