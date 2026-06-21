@@ -75,19 +75,6 @@ const auroraCSS = `
 .animate-footer-pulse {
   animation: footerCyanPulse 3.5s infinite ease-in-out;
 }
-@keyframes headerCyanPulse {
-  0%, 100% {
-    box-shadow: 0 8px 32px rgba(6, 182, 212, 0.6), 0 2px 10px rgba(6, 182, 212, 0.3);
-    border-color: rgba(34, 211, 238, 0.7);
-  }
-  50% {
-    box-shadow: 0 14px 44px rgba(6, 182, 212, 0.85), 0 4px 16px rgba(6, 182, 212, 0.45);
-    border-color: rgba(34, 211, 238, 0.95);
-  }
-}
-.animate-header-pulse {
-  animation: headerCyanPulse 3.5s infinite ease-in-out;
-}
 `
 
 // ── Ocean wave background ─────────────────────────────────────────────────────
@@ -1207,7 +1194,7 @@ export default function LandingPage() {
       <OceanBackground dark={dark} />
 
       {/* NAV */}
-      <header className={`sticky top-0 z-50 transition-all duration-300 bg-background/20 backdrop-blur-[24px] border-b-[1.5px] border-cyan-400/70 shadow-[0_8px_32px_rgba(6,182,212,0.6),_0_2px_10px_rgba(6,182,212,0.3)] animate-header-pulse ${scrolled ? 'h-12' : 'h-20'}`}>
+      <header className={`sticky top-0 z-50 transition-all duration-300 bg-background/10 backdrop-blur-[24px] border-b border-cyan-400/30 shadow-[0_4px_20px_rgba(6,182,212,0.25)] rounded-b-2xl ${scrolled ? 'h-12' : 'h-20'}`}>
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between relative h-full transition-all duration-300">
           <div className="flex items-center gap-2 shrink-0">
             <span className={`font-bold tracking-tight transition-all duration-300 ${scrolled ? 'text-sm' : 'text-xl text-foreground'}`}>OmniKey AI</span>
