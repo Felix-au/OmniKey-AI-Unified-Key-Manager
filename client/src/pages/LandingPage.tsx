@@ -83,18 +83,21 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
     }> = []
 
     const count = 72
-    const mouse = { x: 0, y: 0, inside: false }
+    const mouse = { x: -9999, y: -9999, inside: false }
 
     const onMouse = (e: MouseEvent) => {
       mouse.x = e.clientX
       mouse.y = e.clientY
+      mouse.inside = true
     }
-    const onEnter = () => { mouse.inside = true }
-    const onLeave = () => { mouse.inside = false }
+    const onLeave = () => {
+      mouse.inside = false
+      mouse.x = -9999
+      mouse.y = -9999
+    }
 
     window.addEventListener('mousemove', onMouse)
-    window.addEventListener('mouseenter', onEnter)
-    window.addEventListener('mouseleave', onLeave)
+    document.addEventListener('mouseleave', onLeave)
 
     const resize = () => {
       canvas.width = window.innerWidth
@@ -161,7 +164,7 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
 
       // Draw connections between nearby particles (dynamic paths)
       ctx.save()
-      ctx.shadowBlur = 8
+      ctx.shadowBlur = dark ? 18 : 8
       ctx.shadowColor = '#06b6d4'
       for (let i = 0; i < count; i++) {
         for (let j = i + 1; j < count; j++) {
@@ -171,10 +174,10 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
           const dy = p1.y - p2.y
           const dist = Math.sqrt(dx * dx + dy * dy)
 
-          if (dist < 120) {
-            const opacity = (1 - dist / 120) * 0.15
+          if (dist < 160) {
+            const opacity = (1 - dist / 160) * (dark ? 0.65 : 0.4)
             ctx.strokeStyle = `rgba(6, 182, 212, ${opacity})`
-            ctx.lineWidth = 0.8
+            ctx.lineWidth = dark ? 1.2 : 0.7
             ctx.beginPath()
             ctx.moveTo(p1.x, p1.y)
             ctx.lineTo(p2.x, p2.y)
@@ -184,20 +187,20 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
       }
       ctx.restore()
 
-      // Draw connections to mouse cursor when inside
+      // Draw connections to mouse cursor when hovering
       if (mouse.inside) {
         ctx.save()
-        ctx.shadowBlur = 12
+        ctx.shadowBlur = dark ? 28 : 16
         ctx.shadowColor = '#06b6d4'
         particles.forEach((n) => {
           const dx = n.x - mouse.x
           const dy = n.y - mouse.y
           const dist = Math.sqrt(dx * dx + dy * dy)
 
-          if (dist < 195) {
-            const opacity = (1 - dist / 195) * 0.8
+          if (dist < 140) {
+            const opacity = (1 - dist / 140) * (dark ? 1.0 : 0.85)
             ctx.strokeStyle = `rgba(6, 182, 212, ${opacity})`
-            ctx.lineWidth = 1.8
+            ctx.lineWidth = dark ? 2.2 : 1.6
             ctx.beginPath()
             ctx.moveTo(n.x, n.y)
             ctx.lineTo(mouse.x, mouse.y)
@@ -209,7 +212,7 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
 
       // Draw particle nodes with a heavy cyan glow
       ctx.save()
-      ctx.shadowBlur = 12
+      ctx.shadowBlur = 22
       ctx.shadowColor = '#06b6d4'
       ctx.fillStyle = 'rgba(6, 182, 212, 0.95)'
       particles.forEach((n) => {
@@ -228,8 +231,7 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
       cancelAnimationFrame(animId)
       window.removeEventListener('resize', resize)
       window.removeEventListener('mousemove', onMouse)
-      window.removeEventListener('mouseenter', onEnter)
-      window.removeEventListener('mouseleave', onLeave)
+      document.removeEventListener('mouseleave', onLeave)
     }
   }, [dark])
 
