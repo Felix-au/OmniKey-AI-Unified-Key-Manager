@@ -182,7 +182,138 @@ const auroraCSS = `
   box-shadow: 0 0 8px rgba(6, 182, 212, 0.8);
   pointer-events: none;
 }
+
+/* ── 3D MLP Pipeline Styles ── */
+@keyframes gentleSwingMLP {
+  0%, 100% { transform: rotateY(-18deg) rotateX(8deg); }
+  50% { transform: rotateY(-12deg) rotateX(3deg); }
+}
+
+.mlp-detailed-3d {
+  width: 320px;
+  height: 280px;
+  position: relative;
+  transform-style: preserve-3d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: gentleSwingMLP 10s ease-in-out infinite;
+}
+
+.mlp-detailed-layer {
+  position: absolute;
+  width: 65px;
+  height: 240px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(3px);
+  transform-style: preserve-3d;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  box-sizing: border-box;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+}
+
+.dark .mlp-detailed-layer {
+  background: rgba(13, 17, 23, 0.75);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+
+.neuron-flex-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  align-items: center;
+  width: 100%;
+  transform-style: preserve-3d;
+}
+
+.neuron-node-detailed {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1.5px solid currentColor;
+  position: relative;
+  transform-style: preserve-3d;
+}
+
+@keyframes pulseNodeRing {
+  0% { transform: scale(0.8) translateZ(0); opacity: 0.8; }
+  100% { transform: scale(2.4) translateZ(10px); opacity: 0; }
+}
+
+.pulse-ring {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  animation: pulseNodeRing 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+.synapse-bundle {
+  position: absolute;
+  width: 90px;
+  height: 1px;
+  left: 8px;
+  top: 3.5px;
+  transform-style: preserve-3d;
+}
+
+.synapse-track {
+  position: absolute;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+  transform-origin: left center;
+  opacity: 0.22;
+}
+
+.dark .synapse-track {
+  opacity: 0.12;
+}
+
+@keyframes signalTravelDetailed {
+  0% { left: 0%; opacity: 0; transform: scale(0.6); }
+  15%, 85% { opacity: 1; transform: scale(1.5); }
+  100% { left: 100%; opacity: 0; transform: scale(0.6); }
+}
+
+.activation-pulse {
+  position: absolute;
+  width: 4.8px;
+  height: 4.8px;
+  border-radius: 50%;
+  top: -1.9px;
+  background: #00f3ff;
+  box-shadow: 0 0 8px #00f3ff, 0 0 3px #00f3ff;
+  animation: signalTravelDetailed 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes backpropTravel {
+  0% { left: 100%; opacity: 0; transform: scale(0.6); }
+  15%, 85% { opacity: 1; transform: scale(1.5); }
+  100% { left: 0%; opacity: 0; transform: scale(0.6); }
+}
+
+.backprop-pulse {
+  position: absolute;
+  width: 4.8px;
+  height: 4.8px;
+  border-radius: 50%;
+  top: -1.9px;
+  background: #ff2a5f;
+  box-shadow: 0 0 8px #ff2a5f, 0 0 3px #ff2a5f;
+  animation: backpropTravel 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
 `
+
 
 // ── Interactive Neural Mesh Background ──────────────────────────────────────────
 function NeuralMeshBackground({ dark }: { dark: boolean }) {
@@ -259,6 +390,22 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
         // Natural Drift (Brownian drift)
         n.vx += (Math.random() - 0.5) * 0.008
         n.vy += (Math.random() - 0.5) * 0.008
+
+        // Repulsion from 3D MLP construct (Top-Left)
+        const isDesktop = window.innerWidth >= 768
+        if (isDesktop) {
+          const cX = 170
+          const cY = 270 // Statically 102px top + 168px half height
+          const dx = n.x - cX
+          const dy = n.y - cY
+          const dist = Math.sqrt(dx * dx + dy * dy)
+          const radius = 220
+          if (dist < radius && dist > 0) {
+            const force = (1 - dist / radius) * 0.5
+            n.vx += (dx / dist) * force
+            n.vy += (dy / dist) * force
+          }
+        }
 
         // Clamp Speed between 0.3 and 1.4
         const speed = Math.sqrt(n.vx * n.vx + n.vy * n.vy)
@@ -2063,6 +2210,92 @@ export default function LandingPage() {
           </div>
         </div>
       </Section>
+
+      <div 
+        className="fixed z-10 pointer-events-none select-none hidden md:flex items-center justify-center animate-fade-in"
+        style={{
+          top: '102px',
+          left: '-20px',
+          width: '320px',
+          height: '280px',
+          perspective: '800px',
+          transformStyle: 'preserve-3d',
+          transform: 'scale(1.2)',
+          transformOrigin: 'top left'
+        }}
+      >
+        <div className="mlp-detailed-3d">
+          {/* 4 Layers of Nodes */}
+          {[
+            { name: "Input", nodes: 3, color: "#8b5cf6", shadow: "rgba(139,92,246,0.5)" },
+            { name: "Hidden 1", nodes: 5, color: "#06b6d4", shadow: "rgba(6,182,212,0.5)" },
+            { name: "Hidden 2", nodes: 4, color: "#ec4899", shadow: "rgba(236,72,153,0.5)" },
+            { name: "Output", nodes: 3, color: "#10b981", shadow: "rgba(16,185,129,0.5)" }
+          ].map((layer, layerIdx) => (
+            <div 
+              key={layerIdx} 
+              className={`mlp-detailed-layer layer-idx-${layerIdx}`}
+              style={{
+                transform: `rotateY(-20deg) translateZ(${(layerIdx - 1.5) * 90}px)`
+              }}
+            >
+              <div className="mlp-layer-header flex justify-between w-full px-2">
+                <span className="text-[7px] text-slate-500 dark:text-muted-foreground/60 tracking-wider uppercase font-bold">{layer.name}</span>
+                <span className="text-[7px] text-violet-600 dark:text-violet-400 font-mono">L{layerIdx}</span>
+              </div>
+              
+              <div className="neuron-flex-container">
+                {Array.from({ length: layer.nodes }).map((_, nIdx) => (
+                  <div 
+                    key={nIdx} 
+                    className="neuron-node-detailed"
+                    style={{
+                      borderColor: layer.color,
+                      boxShadow: `0 0 12px ${layer.shadow}`
+                    }}
+                  >
+                    <span className="pulse-ring" style={{ animationDelay: `${nIdx * 0.2}s` }} />
+
+                    {/* Connective Synapse Tracks */}
+                    {layerIdx < 3 && (
+                      <div className="synapse-bundle">
+                        {Array.from({ length: [5, 4, 3][layerIdx] || 0 }).map((_, linkIdx) => {
+                          const skewAngle = (linkIdx - (([5, 4, 3][layerIdx] - 1) / 2)) * 14;
+                          return (
+                            <div 
+                              key={linkIdx} 
+                              className="synapse-track"
+                              style={{
+                                transform: `rotateZ(${skewAngle}deg)`,
+                                opacity: 0.12
+                              }}
+                            >
+                              {/* Forward Propagation Activation (Cyan/Blue) */}
+                              <span 
+                                className="activation-pulse" 
+                                style={{
+                                  animationDelay: `${nIdx * 0.35 + linkIdx * 0.25 + layerIdx * 0.6}s`
+                                }}
+                              />
+                              {/* Backward Propagation Gradient (Rose Red) */}
+                              <span 
+                                className="backprop-pulse" 
+                                style={{
+                                  animationDelay: `${(4 - nIdx) * 0.35 + (3 - linkIdx) * 0.25 + (3 - layerIdx) * 0.6}s`
+                                }}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* ── 3D Token Cascade Background Element ── */}
       <div 
