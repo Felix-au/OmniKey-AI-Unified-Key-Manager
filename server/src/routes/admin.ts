@@ -12,6 +12,7 @@ import { Model } from '../models/Model.js';
 import admin from 'firebase-admin';
 import { AdminEmail } from '../models/AdminEmail.js';
 import { PromoUser } from '../models/PromoUser.js';
+import { ProjectKey } from '../models/ProjectKey.js';
 
 export const adminRouter = Router();
 
@@ -214,7 +215,8 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
       successRate: 100,
       overallCostSaved: 0,
       averageCostSavedPerRequest: 0,
-      averageLatencyMs: 0
+      averageLatencyMs: 0,
+      totalProjects: 0
     };
 
     let platformBreakdown: any[] = [];
@@ -225,6 +227,7 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
     let errorBreakdown: Array<{ error: string; count: number }> = [];
     let recentLogs: any[] = [];
     let modelsCatalog: any[] = [];
+    let projectsList: any[] = [];
 
     if (isLocalDbEnabled()) {
       const db = getDb();
@@ -233,6 +236,8 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
       const usersCount = 1; // Single-user local-first DB
       const keysCountRow = db.prepare('SELECT COUNT(*) as cnt FROM api_keys').get() as { cnt: number };
       const activeKeysRow = db.prepare('SELECT COUNT(*) as cnt FROM api_keys WHERE enabled = 1 AND status = "healthy"').get() as { cnt: number };
+      const totalProjectsRow = db.prepare('SELECT COUNT(*) as cnt FROM project_keys').get() as { cnt: number };
+      const totalProjectsCount = totalProjectsRow?.cnt || 0;
       
       const usageRow = db.prepare(`
         SELECT 
@@ -260,7 +265,8 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
         successRate: totalRequests > 0 ? (successfulRequests / totalRequests) * 100 : 100,
         overallCostSaved: Number(costSaved.toFixed(4)),
         averageCostSavedPerRequest: totalRequests > 0 ? Number((costSaved / totalRequests).toFixed(6)) : 0,
-        averageLatencyMs: Math.round(avgLatency)
+        averageLatencyMs: Math.round(avgLatency),
+        totalProjects: totalProjectsCount
       };
 
       // Platform breakdown
@@ -407,11 +413,60 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
         errorRate: totalRequests > 0 ? Number(((localErrors / totalRequests) * 100).toFixed(1)) : 0
       }];
 
+      // Projects list
+      const projectsQuery = `
+        SELECT 
+          pk.id,
+          pk.name,
+          pk.project_key,
+          pk.format,
+          pk.enabled,
+          pk.is_promoted,
+          pk.created_at,
+          COUNT(r.id) as total_requests,
+          SUM(CASE WHEN r.status = 'success' THEN 1 ELSE 0 END) as success_requests,
+          SUM(CASE WHEN r.status = 'error' THEN 1 ELSE 0 END) as error_requests,
+          SUM(IFNULL(r.input_tokens, 0) + IFNULL(r.output_tokens, 0)) as total_tokens,
+          AVG(r.latency_ms) as avg_latency,
+          MAX(r.created_at) as last_used_at
+        FROM project_keys pk
+        LEFT JOIN requests r ON r.project_key = pk.project_key
+        GROUP BY pk.id
+        ORDER BY pk.created_at DESC
+      `;
+      const projRows = db.prepare(projectsQuery).all() as any[];
+      projectsList = projRows.map(r => {
+        const totalRequests = r.total_requests ?? 0;
+        const successRequests = r.success_requests ?? 0;
+        const errorRequests = r.error_requests ?? 0;
+        const successRate = totalRequests > 0 ? Math.round((successRequests / totalRequests) * 100 * 10) / 10 : 100;
+        const errorRate = totalRequests > 0 ? Math.round((errorRequests / totalRequests) * 100 * 10) / 10 : 0;
+        return {
+          id: r.id.toString(),
+          name: r.name,
+          projectKey: r.project_key,
+          format: r.format,
+          enabled: r.enabled === 1,
+          isPromoted: r.is_promoted === 1,
+          createdAt: r.created_at,
+          userEmail: 'local-dev-user@example.com',
+          metrics: {
+            totalRequests,
+            successRate,
+            errorRate,
+            totalTokens: r.total_tokens ?? 0,
+            avgLatencyMs: Math.round(r.avg_latency ?? 0),
+            lastUsedAt: r.last_used_at || null,
+          }
+        };
+      });
+
     } else {
       // MongoDB calculations
       const totalUsers = await UserSettings.countDocuments();
       const totalKeys = await ApiKey.countDocuments();
       const activeKeys = await ApiKey.countDocuments({ enabled: true, status: 'healthy' });
+      const totalProjects = await ProjectKey.countDocuments();
 
       const requestStats = await RequestLog.aggregate([
         {
@@ -445,7 +500,8 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
         successRate: totalRequests > 0 ? (globalUsage.successfulRequests / totalRequests) * 100 : 100,
         overallCostSaved: Number(costSaved.toFixed(4)),
         averageCostSavedPerRequest: totalRequests > 0 ? Number((costSaved / totalRequests).toFixed(6)) : 0,
-        averageLatencyMs: Math.round(globalUsage.avgLatencyMs)
+        averageLatencyMs: Math.round(globalUsage.avgLatencyMs),
+        totalProjects
       };
 
       // Platform Breakdown
@@ -636,6 +692,61 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
         costSaved: Number(u.costSaved.toFixed(4)),
         errorRate: u.requestsCount > 0 ? Number(((u.errorsCount || 0) / u.requestsCount * 100).toFixed(1)) : 0
       }));
+
+      // Projects list (MongoDB lookup)
+      const allProjectKeys = await ProjectKey.find().sort({ createdAt: -1 }).lean();
+      const uniqueProjectUserIds = Array.from(new Set(allProjectKeys.map(pk => pk.userId)));
+      const projectUserSettings = await UserSettings.find({ userId: { $in: uniqueProjectUserIds } }).lean();
+      const projectUserEmailMap = new Map(projectUserSettings.map((u: any) => [u.userId, u.email]));
+
+      for (const pk of allProjectKeys) {
+        const stats = await RequestLog.aggregate([
+          { $match: { projectKey: pk.projectKey } },
+          {
+            $group: {
+              _id: null,
+              totalRequests: { $sum: 1 },
+              successRequests: { $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] } },
+              errorRequests: { $sum: { $cond: [{ $eq: ['$status', 'error'] }, 1, 0] } },
+              totalTokens: { $sum: { $add: [{ $ifNull: ['$inputTokens', 0] }, { $ifNull: ['$outputTokens', 0] }] } },
+              avgLatency: { $avg: '$latencyMs' },
+              lastUsedAt: { $max: '$createdAt' }
+            }
+          }
+        ]);
+        const s = stats[0] || {
+          totalRequests: 0,
+          successRequests: 0,
+          errorRequests: 0,
+          totalTokens: 0,
+          avgLatency: 0,
+          lastUsedAt: null
+        };
+        const totalRequests = s.totalRequests ?? 0;
+        const successRequests = s.successRequests ?? 0;
+        const errorRequests = s.errorRequests ?? 0;
+        const successRate = totalRequests > 0 ? Math.round((successRequests / totalRequests) * 100 * 10) / 10 : 100;
+        const errorRate = totalRequests > 0 ? Math.round((errorRequests / totalRequests) * 100 * 10) / 10 : 0;
+
+        projectsList.push({
+          id: pk._id.toString(),
+          name: pk.name,
+          projectKey: pk.projectKey,
+          format: pk.format,
+          enabled: !!pk.enabled,
+          isPromoted: !!pk.isPromoted,
+          createdAt: pk.createdAt,
+          userEmail: projectUserEmailMap.get(pk.userId) || pk.userId || 'unknown-user',
+          metrics: {
+            totalRequests,
+            successRate,
+            errorRate,
+            totalTokens: s.totalTokens ?? 0,
+            avgLatencyMs: Math.round(s.avgLatency ?? 0),
+            lastUsedAt: s.lastUsedAt || null,
+          }
+        });
+      }
     }
 
     let adminEmails: { email: string; isFundingProvider: boolean }[] = [];
@@ -695,6 +806,7 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
       users: usersList,
       adminEmails,
       promoUsers: promoUsersList,
+      projects: projectsList
     });
   } catch (error) {
     next(error);

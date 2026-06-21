@@ -16,6 +16,7 @@ interface AdminStats {
     overallCostSaved: number;
     averageCostSavedPerRequest: number;
     averageLatencyMs: number;
+    totalProjects?: number;
   };
   platformBreakdown: Array<{
     platform: string;
@@ -83,6 +84,24 @@ interface AdminStats {
     outputTokens: number;
     requestsCount: number;
   }>;
+  projects?: Array<{
+    id: string;
+    name: string;
+    projectKey: string;
+    format: string;
+    enabled: boolean;
+    isPromoted: boolean;
+    createdAt: string;
+    userEmail: string;
+    metrics: {
+      totalRequests: number;
+      successRate: number;
+      errorRate: number;
+      totalTokens: number;
+      avgLatencyMs: number;
+      lastUsedAt: string | null;
+    };
+  }>;
 }
 
 function formatTokens(n: number): string {
@@ -142,9 +161,112 @@ export default function AdminPage() {
 
     return userSortOrder === 'asc' ? aVal - bVal : bVal - aVal
   })
-  
+
+  // Promo user accounts sorting
+  const [promoSortKey, setPromoSortKey] = useState<'email' | 'tokensLimit' | 'remaining' | 'tokensUsed' | 'inputTokens' | 'outputTokens' | 'requestsCount' | 'usedPct'>('requestsCount')
+  const [promoSortOrder, setPromoSortOrder] = useState<'asc' | 'desc'>('desc')
+
+  const handlePromoSort = (key: typeof promoSortKey) => {
+    if (promoSortKey === key) {
+      setPromoSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setPromoSortKey(key)
+      setPromoSortOrder(key === 'email' ? 'asc' : 'desc')
+    }
+  }
+
+  const renderPromoSortIndicator = (key: typeof promoSortKey) => {
+    if (promoSortKey !== key) {
+      return <span className="text-slate-350 dark:text-slate-650 ml-1 text-[10px] select-none opacity-40 hover:opacity-100">↕</span>
+    }
+    return <span className="text-violet-500 dark:text-violet-400 font-bold ml-1 text-[10px] select-none">{promoSortOrder === 'asc' ? '▲' : '▼'}</span>
+  }
+
+  const sortedPromoUsers = [...(stats?.promoUsers || [])].sort((a, b) => {
+    let aVal: any = 0
+    let bVal: any = 0
+
+    if (promoSortKey === 'email') {
+      aVal = a.email.toLowerCase()
+      bVal = b.email.toLowerCase()
+      return promoSortOrder === 'asc'
+        ? aVal.localeCompare(bVal)
+        : bVal.localeCompare(aVal)
+    } else if (promoSortKey === 'remaining') {
+      aVal = Math.max(0, a.tokensLimit - a.tokensUsed)
+      bVal = Math.max(0, b.tokensLimit - b.tokensUsed)
+    } else if (promoSortKey === 'usedPct') {
+      aVal = a.tokensLimit > 0 ? (a.tokensUsed / a.tokensLimit) : 0
+      bVal = b.tokensLimit > 0 ? (b.tokensUsed / b.tokensLimit) : 0
+    } else {
+      aVal = a[promoSortKey] ?? 0
+      bVal = b[promoSortKey] ?? 0
+    }
+
+    return promoSortOrder === 'asc' ? aVal - bVal : bVal - aVal
+  })
+
+  // Registered projects sorting
+  const [projectSortKey, setProjectSortKey] = useState<'name' | 'userEmail' | 'format' | 'totalRequests' | 'successRate' | 'errorRate' | 'avgLatencyMs' | 'totalTokens' | 'createdAt'>('createdAt')
+  const [projectSortOrder, setProjectSortOrder] = useState<'asc' | 'desc'>('desc')
+
+  const handleProjectSort = (key: typeof projectSortKey) => {
+    if (projectSortKey === key) {
+      setProjectSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setProjectSortKey(key)
+      setProjectSortOrder(key === 'createdAt' || key === 'name' || key === 'userEmail' || key === 'format' ? 'asc' : 'desc')
+    }
+  }
+
+  const renderProjectSortIndicator = (key: typeof projectSortKey) => {
+    if (projectSortKey !== key) {
+      return <span className="text-slate-350 dark:text-slate-650 ml-1 text-[10px] select-none opacity-40 hover:opacity-100">↕</span>
+    }
+    return <span className="text-violet-500 dark:text-violet-400 font-bold ml-1 text-[10px] select-none">{projectSortOrder === 'asc' ? '▲' : '▼'}</span>
+  }
+
+  const sortedProjects = [...(stats?.projects || [])].sort((a, b) => {
+    let aVal: any = 0
+    let bVal: any = 0
+
+    if (projectSortKey === 'name') {
+      aVal = a.name.toLowerCase()
+      bVal = b.name.toLowerCase()
+      return projectSortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
+    } else if (projectSortKey === 'userEmail') {
+      aVal = a.userEmail.toLowerCase()
+      bVal = b.userEmail.toLowerCase()
+      return projectSortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
+    } else if (projectSortKey === 'format') {
+      aVal = a.format.toLowerCase()
+      bVal = b.format.toLowerCase()
+      return projectSortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
+    } else if (projectSortKey === 'totalRequests') {
+      aVal = a.metrics?.totalRequests ?? 0
+      bVal = b.metrics?.totalRequests ?? 0
+    } else if (projectSortKey === 'successRate') {
+      aVal = a.metrics?.successRate ?? 100
+      bVal = b.metrics?.successRate ?? 100
+    } else if (projectSortKey === 'errorRate') {
+      aVal = a.metrics?.errorRate ?? 0
+      bVal = b.metrics?.errorRate ?? 0
+    } else if (projectSortKey === 'avgLatencyMs') {
+      aVal = a.metrics?.avgLatencyMs ?? 0
+      bVal = b.metrics?.avgLatencyMs ?? 0
+    } else if (projectSortKey === 'totalTokens') {
+      aVal = a.metrics?.totalTokens ?? 0
+      bVal = b.metrics?.totalTokens ?? 0
+    } else if (projectSortKey === 'createdAt') {
+      aVal = new Date(a.createdAt).getTime()
+      bVal = new Date(b.createdAt).getTime()
+    }
+
+    return projectSortOrder === 'asc' ? aVal - bVal : bVal - aVal
+  })
+
   // Navigation Tabs
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'models' | 'logs' | 'security' | 'promo'>('dashboard')
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'models' | 'projects' | 'logs' | 'security' | 'promo'>('dashboard')
 
   // Theme support
   const [dark, setDark] = useState(() =>
@@ -698,7 +820,7 @@ export default function AdminPage() {
 
       {/* Navigation tabs row */}
       <section className="max-w-7xl mx-auto flex justify-center items-center border-b border-slate-200 dark:border-slate-800 mb-8">
-        {(['dashboard', 'models', 'logs', 'security', 'promo'] as const).map(tab => (
+        {(['dashboard', 'models', 'projects', 'logs', 'security', 'promo'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => {
@@ -725,7 +847,7 @@ export default function AdminPage() {
           </div>
         )}
         {successMsg && (
-          <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
+          <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-450 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
             {successMsg}
           </div>
         )}
@@ -734,7 +856,7 @@ export default function AdminPage() {
         {activeTab === 'dashboard' && (
           <>
             {/* System High-Level Cards Grid */}
-            <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               <div className="bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-sm">
                 <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Users</span>
                 <div className="text-2xl font-bold text-slate-900 dark:text-white mt-1.5">{stats?.system?.totalUsers ?? '—'}</div>
@@ -742,16 +864,22 @@ export default function AdminPage() {
               </div>
 
               <div className="bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-sm">
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Projects Registered</span>
+                <div className="text-2xl font-bold text-slate-900 dark:text-white mt-1.5">{stats?.system?.totalProjects ?? '—'}</div>
+                <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Registered project API keys</div>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-sm">
                 <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">API Keys</span>
                 <div className="text-2xl font-bold text-slate-900 dark:text-white mt-1.5">{stats?.system?.totalKeys ?? '—'}</div>
-                <div className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mt-1">
+                <div className="text-[10px] text-emerald-600 dark:text-emerald-450 flex items-center gap-1 mt-1">
                   <span>{stats?.system?.activeKeys ?? 0} healthy / active</span>
                 </div>
               </div>
 
               <div className="bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-sm relative overflow-hidden">
                 <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Overall Savings</span>
-                <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1.5">₹{stats?.system?.overallCostSaved !== undefined ? (stats.system.overallCostSaved * 83).toFixed(2) : '—'}</div>
+                <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-450 mt-1.5">₹{stats?.system?.overallCostSaved !== undefined ? (stats.system.overallCostSaved * 83).toFixed(2) : '—'}</div>
                 <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Free-tier value mapped</div>
               </div>
 
@@ -1122,6 +1250,154 @@ export default function AdminPage() {
           </section>
         )}
 
+        {/* -------------------- Projects TAB -------------------- */}
+        {activeTab === 'projects' && (
+          <section className="bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800/80 rounded-xl p-6 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-violet-400" />
+                  Registered Workspace Projects
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  View and manage API client keys grouped by registered developer project workspaces.
+                </p>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
+                    <th
+                      onClick={() => handleProjectSort('name')}
+                      className="pb-3 pl-4 cursor-pointer hover:text-slate-800 dark:hover:text-slate-200 transition-colors select-none"
+                    >
+                      Project Name {renderProjectSortIndicator('name')}
+                    </th>
+                    <th
+                      onClick={() => handleProjectSort('userEmail')}
+                      className="pb-3 cursor-pointer hover:text-slate-800 dark:hover:text-slate-200 transition-colors select-none"
+                    >
+                      Owner {renderProjectSortIndicator('userEmail')}
+                    </th>
+                    <th
+                      onClick={() => handleProjectSort('format')}
+                      className="pb-3 text-center cursor-pointer hover:text-slate-800 dark:hover:text-slate-200 transition-colors select-none"
+                    >
+                      Format {renderProjectSortIndicator('format')}
+                    </th>
+                    <th
+                      onClick={() => handleProjectSort('totalRequests')}
+                      className="pb-3 text-center cursor-pointer hover:text-slate-800 dark:hover:text-slate-200 transition-colors select-none"
+                    >
+                      Requests {renderProjectSortIndicator('totalRequests')}
+                    </th>
+                    <th
+                      onClick={() => handleProjectSort('successRate')}
+                      className="pb-3 text-center cursor-pointer hover:text-slate-800 dark:hover:text-slate-200 transition-colors select-none"
+                    >
+                      Success Rate {renderProjectSortIndicator('successRate')}
+                    </th>
+                    <th
+                      onClick={() => handleProjectSort('errorRate')}
+                      className="pb-3 text-center cursor-pointer hover:text-slate-800 dark:hover:text-slate-200 transition-colors select-none"
+                    >
+                      Error Rate {renderProjectSortIndicator('errorRate')}
+                    </th>
+                    <th
+                      onClick={() => handleProjectSort('totalTokens')}
+                      className="pb-3 text-center cursor-pointer hover:text-slate-800 dark:hover:text-slate-200 transition-colors select-none"
+                    >
+                      Tokens {renderProjectSortIndicator('totalTokens')}
+                    </th>
+                    <th
+                      onClick={() => handleProjectSort('avgLatencyMs')}
+                      className="pb-3 text-center cursor-pointer hover:text-slate-800 dark:hover:text-slate-200 transition-colors select-none"
+                    >
+                      Avg Latency {renderProjectSortIndicator('avgLatencyMs')}
+                    </th>
+                    <th
+                      onClick={() => handleProjectSort('createdAt')}
+                      className="pb-3 text-right pr-4 cursor-pointer hover:text-slate-800 dark:hover:text-slate-200 transition-colors select-none"
+                    >
+                      Registered At {renderProjectSortIndicator('createdAt')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedProjects && sortedProjects.length > 0 ? (
+                    sortedProjects.map((p) => {
+                      const successRate = p.metrics?.successRate ?? 100
+                      const errorRate = p.metrics?.errorRate ?? 0
+
+                      const successColor = successRate >= 95
+                        ? 'text-emerald-500 font-medium'
+                        : successRate >= 80
+                          ? 'text-amber-500 font-medium'
+                          : 'text-rose-500 font-bold'
+
+                      const errorColor = errorRate === 0
+                        ? 'text-slate-400 dark:text-slate-500 font-medium'
+                        : errorRate < 5
+                          ? 'text-emerald-500 font-medium'
+                          : errorRate < 20
+                            ? 'text-amber-500 font-medium'
+                            : 'text-rose-500 font-bold'
+
+                      return (
+                        <tr key={p.id} className="border-b border-slate-100 dark:border-slate-800/40 hover:bg-slate-50 dark:hover:bg-slate-900/10 transition-colors text-slate-700 dark:text-slate-300">
+                          <td className="py-4 pl-4 font-semibold text-slate-900 dark:text-slate-200">
+                            <div className="flex items-center gap-2">
+                              <span>{p.name}</span>
+                              {p.isPromoted && (
+                                <span className="text-[9px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
+                                  Promoted
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono mt-0.5 select-all">Key: {p.projectKey}</div>
+                          </td>
+                          <td className="py-4 font-mono text-[10px] text-slate-500 dark:text-slate-400">
+                            {p.userEmail}
+                          </td>
+                          <td className="py-4 text-center">
+                            <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-850 text-slate-600 dark:text-slate-400 border border-slate-350 dark:border-slate-800">
+                              {p.format}
+                            </span>
+                          </td>
+                          <td className="py-4 text-center font-semibold text-slate-800 dark:text-slate-300 tabular-nums">
+                            {p.metrics?.totalRequests ?? 0} hits
+                          </td>
+                          <td className={`py-4 text-center font-semibold tabular-nums ${successColor}`}>
+                            {successRate.toFixed(1)}%
+                          </td>
+                          <td className={`py-4 text-center font-semibold tabular-nums ${errorColor}`}>
+                            {errorRate.toFixed(1)}%
+                          </td>
+                          <td className="py-4 text-center text-slate-500 dark:text-slate-400 font-mono">
+                            {formatTokens(p.metrics?.totalTokens ?? 0)}
+                          </td>
+                          <td className="py-4 text-center text-slate-800 dark:text-slate-300 font-semibold tabular-nums">
+                            {p.metrics?.avgLatencyMs ?? 0} ms
+                          </td>
+                          <td className="py-4 text-right pr-4 font-mono text-[10px] text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                            {new Date(p.createdAt).toLocaleString()}
+                          </td>
+                        </tr>
+                      )
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={9} className="py-10 text-slate-550 dark:text-slate-500 text-center">No projects registered.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
         {/* -------------------- 3. AUDIT LOGS TAB -------------------- */}
         {activeTab === 'logs' && (
           <section className="bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800/80 rounded-xl p-6 shadow-sm">
@@ -1371,19 +1647,49 @@ export default function AdminPage() {
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
                         <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
-                          <th className="pb-3 pl-4">User Details</th>
-                          <th className="pb-3 text-center">Allocated</th>
-                          <th className="pb-3 text-center">Remaining</th>
-                          <th className="pb-3 text-center">Used (Aggregate)</th>
+                          <th
+                            onClick={() => handlePromoSort('email')}
+                            className="pb-3 pl-4 cursor-pointer hover:text-slate-800 dark:hover:text-slate-200 transition-colors select-none"
+                          >
+                            User Details {renderPromoSortIndicator('email')}
+                          </th>
+                          <th
+                            onClick={() => handlePromoSort('tokensLimit')}
+                            className="pb-3 text-center cursor-pointer hover:text-slate-800 dark:hover:text-slate-200 transition-colors select-none"
+                          >
+                            Allocated {renderPromoSortIndicator('tokensLimit')}
+                          </th>
+                          <th
+                            onClick={() => handlePromoSort('remaining')}
+                            className="pb-3 text-center cursor-pointer hover:text-slate-800 dark:hover:text-slate-200 transition-colors select-none"
+                          >
+                            Remaining {renderPromoSortIndicator('remaining')}
+                          </th>
+                          <th
+                            onClick={() => handlePromoSort('tokensUsed')}
+                            className="pb-3 text-center cursor-pointer hover:text-slate-800 dark:hover:text-slate-200 transition-colors select-none"
+                          >
+                            Used (Aggregate) {renderPromoSortIndicator('tokensUsed')}
+                          </th>
                           <th className="pb-3 text-center">Split (Input/Output)</th>
-                          <th className="pb-3 text-center">Requests</th>
-                          <th className="pb-3 text-center">Progress</th>
+                          <th
+                            onClick={() => handlePromoSort('requestsCount')}
+                            className="pb-3 text-center cursor-pointer hover:text-slate-800 dark:hover:text-slate-200 transition-colors select-none"
+                          >
+                            Requests {renderPromoSortIndicator('requestsCount')}
+                          </th>
+                          <th
+                            onClick={() => handlePromoSort('usedPct')}
+                            className="pb-3 text-center cursor-pointer hover:text-slate-800 dark:hover:text-slate-200 transition-colors select-none"
+                          >
+                            Progress {renderPromoSortIndicator('usedPct')}
+                          </th>
                           <th className="pb-3 text-right pr-4">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {stats?.promoUsers && stats.promoUsers.length > 0 ? (
-                          stats.promoUsers.map((u) => {
+                        {sortedPromoUsers && sortedPromoUsers.length > 0 ? (
+                          sortedPromoUsers.map((u) => {
                             const remaining = Math.max(0, u.tokensLimit - u.tokensUsed)
                             const usedPct = u.tokensLimit > 0 ? Math.min(100, Math.round((u.tokensUsed / u.tokensLimit) * 100)) : 0
                             return (
