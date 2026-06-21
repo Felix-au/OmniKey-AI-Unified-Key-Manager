@@ -62,7 +62,6 @@ const auroraCSS = `
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
-
 `
 
 // ── Interactive Neural Mesh Background ──────────────────────────────────────────
@@ -114,8 +113,6 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
       })
     }
 
-    let helixAngle = 0
-
     const draw = () => {
       const W = canvas.width
       const H = canvas.height
@@ -134,7 +131,7 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
         ctx.fillRect(0, 0, W, H)
       }
 
-      // Update and draw particles
+      // Update particles
       particles.forEach((n) => {
         // Natural Drift (Brownian drift)
         n.vx += (Math.random() - 0.5) * 0.008
@@ -162,9 +159,9 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
         if (n.y > H) n.y -= H
       })
 
-      // Draw connections between nearby particles (dynamic paths) with a heavy cyan glow
+      // Draw connections between nearby particles (dynamic paths)
       ctx.save()
-      ctx.shadowBlur = 10
+      ctx.shadowBlur = 8
       ctx.shadowColor = '#06b6d4'
       for (let i = 0; i < count; i++) {
         for (let j = i + 1; j < count; j++) {
@@ -175,9 +172,9 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
           const dist = Math.sqrt(dx * dx + dy * dy)
 
           if (dist < 120) {
-            const opacity = (1 - dist / 120) * 0.25
+            const opacity = (1 - dist / 120) * 0.15
             ctx.strokeStyle = `rgba(6, 182, 212, ${opacity})`
-            ctx.lineWidth = 1.0
+            ctx.lineWidth = 0.8
             ctx.beginPath()
             ctx.moveTo(p1.x, p1.y)
             ctx.lineTo(p2.x, p2.y)
@@ -187,19 +184,7 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
       }
       ctx.restore()
 
-      // Draw particle nodes with a heavy cyan glow
-      ctx.save()
-      ctx.shadowBlur = 12
-      ctx.shadowColor = '#06b6d4'
-      ctx.fillStyle = 'rgba(6, 182, 212, 0.95)'
-      particles.forEach((n) => {
-        ctx.beginPath()
-        ctx.arc(n.x, n.y, 3, 0, Math.PI * 2)
-        ctx.fill()
-      })
-      ctx.restore()
-
-      // Draw glowing connections to mouse cursor (treating it as an interactive node)
+      // Draw connections to mouse cursor when inside
       if (mouse.inside) {
         ctx.save()
         ctx.shadowBlur = 12
@@ -221,6 +206,18 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
         })
         ctx.restore()
       }
+
+      // Draw particle nodes with a heavy cyan glow
+      ctx.save()
+      ctx.shadowBlur = 12
+      ctx.shadowColor = '#06b6d4'
+      ctx.fillStyle = 'rgba(6, 182, 212, 0.95)'
+      particles.forEach((n) => {
+        ctx.beginPath()
+        ctx.arc(n.x, n.y, 3, 0, Math.PI * 2)
+        ctx.fill()
+      })
+      ctx.restore()
 
       animId = requestAnimationFrame(draw)
     }
@@ -1238,7 +1235,7 @@ export default function LandingPage() {
       <NeuralMeshBackground dark={dark} />
 
       {/* NAV */}
-      <header className={`sticky top-0 z-50 transition-all duration-300 bg-background/10 backdrop-blur-[24px] border-b-[1.5px] border-cyan-400/45 shadow-[0_4px_24px_rgba(6,182,212,0.35)] rounded-b-2xl ${scrolled ? 'h-12' : 'h-20'}`}>
+      <header className={`sticky top-0 z-50 transition-all duration-300 bg-background/10 backdrop-blur-[24px] border-b border-cyan-400/40 shadow-[0_4px_24px_rgba(6,182,212,0.35)] rounded-b-2xl ${scrolled ? 'h-12' : 'h-20'}`}>
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between relative h-full transition-all duration-300">
           <div className="flex items-center gap-2 shrink-0">
             <span className={`font-bold tracking-tight transition-all duration-300 ${scrolled ? 'text-sm' : 'text-xl text-foreground'}`}>OmniKey AI</span>
@@ -1407,6 +1404,7 @@ export default function LandingPage() {
         </div>
       </div>
 
+      {/* ── SECTION: Chat Playground ── */}
       {/* ── SECTION: Smart Routing ── */}
       <Section id="routing" alt>
         <div className="grid md:grid-cols-2 gap-12 items-center">
@@ -1722,8 +1720,7 @@ export default function LandingPage() {
               )}
             </div>
           </div>
-        </div>
-      </MockCard>
+        </MockCard>
       </Section>
 
       {/* ── SECTION: FAQ & How it Works ── */}
@@ -1898,7 +1895,7 @@ export default function LandingPage() {
       </Section>
 
       {/* ── FOOTER: Persistent Frosted Glass Footer ── */}
-      <footer className="fixed bottom-0 left-0 right-0 z-40 h-10 bg-background/20 backdrop-blur-[24px] border-t-[1.5px] border-cyan-400/45 shadow-[0_-4px_24px_rgba(6,182,212,0.35)] flex items-center px-6">
+      <footer className="fixed bottom-0 left-0 right-0 z-40 h-10 bg-background/20 backdrop-blur-[24px] border-t border-cyan-400/40 rounded-t-2xl shadow-[0_-4px_24px_rgba(6,182,212,0.35)] flex items-center px-6">
         <div className="w-full max-w-6xl mx-auto flex items-center justify-between relative text-[11px] text-muted-foreground">
           {/* Centered Copyright */}
           <span className="absolute left-1/2 -translate-x-1/2 font-medium tracking-wide">
