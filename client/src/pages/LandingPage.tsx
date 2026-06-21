@@ -1358,8 +1358,53 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* HERO */}
-      <section ref={heroRef} className="relative pt-2 pb-28 px-6 text-center">
+      {/* HERO SECTION - BIFURCATED GRID */}
+      <section ref={heroRef} className="relative min-h-[calc(100vh-80px)] flex items-center py-6 px-6 md:px-12 max-w-7xl mx-auto z-10">
+        <div className="grid md:grid-cols-12 gap-12 items-center w-full">
+          
+          {/* Left Column - Large Logo & Supported Providers (Centered) */}
+          <div className="md:col-span-6 flex flex-col justify-center items-center text-center gap-6">
+
+            {/* Combined Logo & Providers Container with 0 gap */}
+            <div className="flex flex-col items-center gap-0 w-full">
+              {/* Big Logo */}
+              <div className="w-full flex justify-center items-center">
+                <img
+                  src={dark ? logoDark : logoLight}
+                  alt="OmniKey AI - One Key. Every Model."
+                  className="max-h-[38vh] md:max-h-[33vh] w-auto object-contain transition-all duration-300 transform hover:scale-[1.01]"
+                />
+              </div>
+
+              {/* Supported Providers Badges */}
+              <div className="w-full mt-0">
+                <div className="flex flex-wrap justify-center gap-2">
+                  {providers.map(p => {
+                    const logo = providerLogos[p]
+                    const isGitHub = p === 'GitHub'
+                    return (
+                      <span key={p} className="provider-pill flex items-center gap-2 text-xs px-3.5 py-2 rounded-full border border-border bg-card/60 text-muted-foreground">
+                        {isGitHub ? (
+                          <span className="text-foreground dark:text-white flex items-center justify-center">
+                            <GitHubIcon size={14} />
+                          </span>
+                        ) : logo ? (
+                          <img src={logo} alt={p} className="w-4 h-4 object-contain" />
+                        ) : (
+                          <span className={`w-1.5 h-1.5 rounded-full ${providerColors[p]}`} />
+                        )}
+                        {p}
+                      </span>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Right Column - Title, Promo Banner, Buttons & Description */}
+          <div className="md:col-span-6 flex flex-col justify-center items-center gap-6 w-full text-center">
         {promoStatus?.isActive ? (
           <div
             onClick={() => navigate('/keys')}
@@ -1399,14 +1444,8 @@ export default function LandingPage() {
             View on GitHub
           </a>
         </div>
-        {/* Provider pills */}
-        <div className="flex flex-wrap justify-center gap-2 max-w-2xl mx-auto">
-          {providers.map(p => (
-            <span key={p} className="provider-pill flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-border bg-card/60 text-muted-foreground">
-              <span className={`w-2 h-2 rounded-full ${providerColors[p]}`} />
-              {p}
-            </span>
-          ))}
+          </div>
+
         </div>
       </section>
 
