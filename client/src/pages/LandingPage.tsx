@@ -77,126 +77,228 @@ const auroraCSS = `
 }
 `
 
-// ── Ocean wave background ─────────────────────────────────────────────────────
-function OceanBackground({ dark }: { dark: boolean }) {
+// ── Interactive Neural Mesh Background ──────────────────────────────────────────
+function NeuralMeshBackground({ dark }: { dark: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
+
     let animId: number
-    let phase = 0
-    let t = 0
-    const mouse = { x: 0.5, y: 0.5, inside: false }
+    const particles: Array<{
+      x: number
+      y: number
+      vx: number
+      vy: number
+    }> = []
+
+    const count = 72
+    const mouse = { x: 0, y: 0, inside: false }
+
     const onMouse = (e: MouseEvent) => {
-      mouse.x = e.clientX / window.innerWidth
-      mouse.y = e.clientY / window.innerHeight
+      mouse.x = e.clientX
+      mouse.y = e.clientY
     }
     const onEnter = () => { mouse.inside = true }
     const onLeave = () => { mouse.inside = false }
+
     window.addEventListener('mousemove', onMouse)
     window.addEventListener('mouseenter', onEnter)
     window.addEventListener('mouseleave', onLeave)
-    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight }
+
+    const resize = () => {
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+    }
     resize()
     window.addEventListener('resize', resize)
-    // Wave layers: noiseA=random amp range, noiseF/noiseS=slow beat freqs
-    const darkWaves = [
-      { amp: 68, freq: 0.0045, speed: 0.008, yBase: 0.42, color: 'rgba(15,23,71,0.9)', noiseA: 19, noiseF: 0.00031, noiseS: 0.00019 },
-      { amp: 55, freq: 0.007, speed: 0.013, yBase: 0.52, color: 'rgba(23,37,110,0.75)', noiseA: 15, noiseF: 0.00042, noiseS: 0.00024 },
-      { amp: 47, freq: 0.006, speed: 0.018, yBase: 0.60, color: 'rgba(30,58,138,0.65)', noiseA: 12, noiseF: 0.00038, noiseS: 0.00031 },
-      { amp: 38, freq: 0.009, speed: 0.024, yBase: 0.68, color: 'rgba(37,99,235,0.40)', noiseA: 10, noiseF: 0.00055, noiseS: 0.00027 },
-      { amp: 30, freq: 0.011, speed: 0.032, yBase: 0.76, color: 'rgba(99,102,241,0.30)', noiseA: 9, noiseF: 0.00061, noiseS: 0.00035 },
-    ]
-    const lightWaves = [
-      { amp: 68, freq: 0.0045, speed: 0.008, yBase: 0.42, color: 'rgba(186,230,253,0.85)', noiseA: 19, noiseF: 0.00031, noiseS: 0.00019 },
-      { amp: 55, freq: 0.007, speed: 0.013, yBase: 0.52, color: 'rgba(125,211,252,0.70)', noiseA: 15, noiseF: 0.00042, noiseS: 0.00024 },
-      { amp: 47, freq: 0.006, speed: 0.018, yBase: 0.60, color: 'rgba(56,189,248,0.55)', noiseA: 12, noiseF: 0.00038, noiseS: 0.00031 },
-      { amp: 38, freq: 0.009, speed: 0.024, yBase: 0.68, color: 'rgba(14,165,233,0.40)', noiseA: 10, noiseF: 0.00055, noiseS: 0.00027 },
-      { amp: 30, freq: 0.011, speed: 0.032, yBase: 0.76, color: 'rgba(2,132,199,0.30)', noiseA: 9, noiseF: 0.00061, noiseS: 0.00035 },
-    ]
-    const waves = dark ? darkWaves : lightWaves
-    // 15 particles with per-particle random params
-    const particles = Array.from({ length: dark ? 15 : 45 }, () => ({
-      x: Math.random(), y: 0.3 + Math.random() * 0.7,
-      r: 1.2 + Math.random() * 2.8,
-      speed: 0.00008 + Math.random() * 0.00014,
-      wobble: Math.random() * Math.PI * 2,
-      wobbleSpeed: 0.008 + Math.random() * 0.012,
-      alpha: 0.15 + Math.random() * 0.55,
-      phase: Math.random() * Math.PI * 2,
-      twinkleSpeed: 0.02 + Math.random() * 0.04,
-    }))
+
+    // Initialize 72 particles with random positions and velocities
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 2,
+        vy: (Math.random() - 0.5) * 2,
+      })
+    }
+
+    let helixAngle = 0
+
     const draw = () => {
-      const W = canvas.width, H = canvas.height
+      const W = canvas.width
+      const H = canvas.height
+      ctx.clearRect(0, 0, W, H)
+
+      // Background gradient
       const grad = ctx.createLinearGradient(0, 0, 0, H)
       if (dark) {
-        grad.addColorStop(0, '#020817'); grad.addColorStop(0.5, '#030d1e'); grad.addColorStop(1, '#0a1628')
+        grad.addColorStop(0, '#020817')
+        grad.addColorStop(0.5, '#030d1e')
+        grad.addColorStop(1, '#0a1628')
       } else {
-        grad.addColorStop(0, '#e0f4ff'); grad.addColorStop(0.5, '#bae8ff'); grad.addColorStop(1, '#7dd3fc')
+        grad.addColorStop(0, '#e0f4ff')
+        grad.addColorStop(0.5, '#bae8ff')
+        grad.addColorStop(1, '#7dd3fc')
       }
-      ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H)
-      waves.forEach(({ amp, freq, speed, yBase, color, noiseA, noiseF, noiseS }, wi) => {
-        const p = phase * speed + wi * 0.6
-        // Two slow-beat sines = organic random amplitude per wave
-        const ampNoise = noiseA * (Math.sin(t * noiseF + wi * 1.7) * 0.6 + Math.sin(t * noiseS * 1.3 + wi * 2.9) * 0.4)
-        const eAmp = amp + ampNoise
-        ctx.beginPath(); ctx.moveTo(0, H)
-        for (let x = 0; x <= W + 2; x += 2) {
-          const y = yBase * H
-            + Math.sin(x * freq + p) * eAmp
-            + Math.sin(x * freq * 1.7 + p * 1.3) * eAmp * 0.35
-          ctx.lineTo(x, y)
+      ctx.fillStyle = grad
+      ctx.fillRect(0, 0, W, H)
+
+      // DNA Helix center in bottom-right corner
+      const helixCenterX = W - 150
+      const helixCenterY = H - 150
+      const avoidanceRadius = 150
+
+      // Update and draw particles
+      particles.forEach((n) => {
+        // Natural Drift (Brownian drift)
+        n.vx += (Math.random() - 0.5) * 0.008
+        n.vy += (Math.random() - 0.5) * 0.008
+
+        // Bottom-Right Helix Repulsion
+        const dxHelix = n.x - helixCenterX
+        const dyHelix = n.y - helixCenterY
+        const distHelix = Math.sqrt(dxHelix * dxHelix + dyHelix * dyHelix)
+
+        if (distHelix < avoidanceRadius && distHelix > 0) {
+          const F_repulse = (1 - distHelix / avoidanceRadius) * 0.28
+          const ux = dxHelix / distHelix
+          const uy = dyHelix / distHelix
+          n.vx += F_repulse * ux
+          n.vy += F_repulse * uy
         }
-        ctx.lineTo(W, H); ctx.closePath()
-        ctx.fillStyle = color; ctx.fill()
+
+        // Clamp Speed between 0.3 and 1.4
+        const speed = Math.sqrt(n.vx * n.vx + n.vy * n.vy)
+        if (speed < 0.3) {
+          const angle = speed > 0 ? Math.atan2(n.vy, n.vx) : Math.random() * Math.PI * 2
+          n.vx = Math.cos(angle) * 0.3
+          n.vy = Math.sin(angle) * 0.3
+        } else if (speed > 1.4) {
+          n.vx = (n.vx / speed) * 1.4
+          n.vy = (n.vy / speed) * 1.4
+        }
+
+        // Update Position
+        n.x += n.vx
+        n.y += n.vy
+
+        // Screen Boundary Wrapping
+        if (n.x < 0) n.x += W
+        if (n.x > W) n.x -= W
+        if (n.y < 0) n.y += H
+        if (n.y > H) n.y -= H
+
+        // Draw particle node
+        ctx.fillStyle = 'rgba(6, 182, 212, 0.85)'
+        ctx.beginPath()
+        ctx.arc(n.x, n.y, 2.5, 0, Math.PI * 2)
+        ctx.fill()
       })
-      particles.forEach((pt, i) => {
-        pt.y -= pt.speed; pt.wobble += pt.wobbleSpeed; pt.phase += pt.twinkleSpeed
-        if (pt.y < -0.05) { pt.y = 1.05; pt.x = Math.random() }
-        // Cursor pull — only when mouse is inside window
-        if (mouse.inside) {
-          pt.x += (mouse.x - pt.x) * 0.0022
-          pt.y += (mouse.y - pt.y) * 0.0015
-        }
-        // Particle repulsion — push away from nearby particles
-        for (let j = i + 1; j < particles.length; j++) {
-          const other = particles[j]
-          const dx = (pt.x - other.x) * W
-          const dy = (pt.y - other.y) * H
+
+      // Draw connections between nearby particles (dynamic paths)
+      for (let i = 0; i < count; i++) {
+        for (let j = i + 1; j < count; j++) {
+          const p1 = particles[i]
+          const p2 = particles[j]
+          const dx = p1.x - p2.x
+          const dy = p1.y - p2.y
           const dist = Math.sqrt(dx * dx + dy * dy)
-          const minDist = 40 // px — minimum separation
-          if (dist < minDist && dist > 0) {
-            const force = (minDist - dist) / minDist * 0.00035
-            const nx = dx / dist, ny = dy / dist
-            pt.x += nx * force; pt.y += ny * force / H * W
-            other.x -= nx * force; other.y -= ny * force / H * W
+
+          if (dist < 120) {
+            const opacity = (1 - dist / 120) * 0.15
+            ctx.strokeStyle = `rgba(6, 182, 212, ${opacity})`
+            ctx.lineWidth = 0.8
+            ctx.beginPath()
+            ctx.moveTo(p1.x, p1.y)
+            ctx.lineTo(p2.x, p2.y)
+            ctx.stroke()
           }
         }
-        const px = pt.x * W + Math.sin(pt.wobble) * 6
-        const py = pt.y * H
-        const a = pt.alpha * (0.5 + 0.5 * Math.sin(pt.phase))
-        if (dark) {
-          const g = ctx.createRadialGradient(px, py, 0, px, py, pt.r * 3.5)
-          g.addColorStop(0, `rgba(200,240,255,${a})`); g.addColorStop(0.4, `rgba(147,210,255,${a * 0.5})`); g.addColorStop(1, 'rgba(99,180,255,0)')
-          ctx.beginPath(); ctx.arc(px, py, pt.r * 3.5, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill()
-          ctx.beginPath(); ctx.arc(px, py, pt.r * 0.6, 0, Math.PI * 2); ctx.fillStyle = `rgba(230,248,255,${Math.min(a * 1.4, 0.9)})`; ctx.fill()
-        } else {
-          // Silver glow + black core
-          const g = ctx.createRadialGradient(px, py, 0, px, py, pt.r * 3.5)
-          g.addColorStop(0, `rgba(220,220,230,${a})`)
-          g.addColorStop(0.4, `rgba(160,165,175,${a * 0.5})`)
-          g.addColorStop(1, 'rgba(100,105,115,0)')
-          ctx.beginPath(); ctx.arc(px, py, pt.r * 3.5, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill()
-          // Black core
-          ctx.beginPath(); ctx.arc(px, py, pt.r * 0.6, 0, Math.PI * 2); ctx.fillStyle = `rgba(5,5,8,${Math.min(a * 1.4, 0.95)})`; ctx.fill()
-        }
-      })
-      phase += 0.6; t++
+      }
+
+      // Draw glowing connections to mouse cursor (Cyber Cyan laser glow)
+      if (mouse.inside) {
+        particles.forEach((n) => {
+          const dx = n.x - mouse.x
+          const dy = n.y - mouse.y
+          const dist = Math.sqrt(dx * dx + dy * dy)
+
+          if (dist < 195) {
+            const intensity = 1 - dist / 195
+            const opacity = intensity * 0.75
+
+            ctx.save()
+            ctx.shadowBlur = 8
+            ctx.shadowColor = '#06b6d4'
+            ctx.strokeStyle = `rgba(6, 182, 212, ${opacity})`
+            ctx.lineWidth = 1.5
+            ctx.beginPath()
+            ctx.moveTo(n.x, n.y)
+            ctx.lineTo(mouse.x, mouse.y)
+            ctx.stroke()
+            ctx.restore()
+          }
+        })
+      }
+
+      // Render 3D Rotating DNA Helix in bottom-right corner
+      const helixPoints = 15
+      const helixRadius = 32
+      const helixSpacing = 12
+      const halfLength = (helixPoints * helixSpacing) / 2
+
+      for (let i = 0; i < helixPoints; i++) {
+        const pointY = helixCenterY - halfLength + i * helixSpacing
+        const angle = i * 0.35 + helixAngle
+
+        // Strand A
+        const offsetA = Math.sin(angle) * helixRadius
+        const zA = Math.cos(angle) * helixRadius
+        const xA = helixCenterX + offsetA
+        // Strand B (180 degrees out of phase)
+        const offsetB = Math.sin(angle + Math.PI) * helixRadius
+        const zB = Math.cos(angle + Math.PI) * helixRadius
+        const xB = helixCenterX + offsetB
+
+        // Depth opacity/scaling
+        const alphaA = 0.35 + ((zA + helixRadius) / (2 * helixRadius)) * 0.65
+        const alphaB = 0.35 + ((zB + helixRadius) / (2 * helixRadius)) * 0.65
+        const scaleA = 1.5 + ((zA + helixRadius) / (2 * helixRadius)) * 2.5
+        const scaleB = 1.5 + ((zB + helixRadius) / (2 * helixRadius)) * 2.5
+
+        // Connect Strand A & Strand B with rung line
+        const avgZ = (zA + zB) / 2
+        const alphaLine = 0.15 + ((avgZ + helixRadius) / (2 * helixRadius)) * 0.35
+        ctx.strokeStyle = `rgba(6, 182, 212, ${alphaLine})`
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        ctx.moveTo(xA, pointY)
+        ctx.lineTo(xB, pointY)
+        ctx.stroke()
+
+        // Draw Strand A Node
+        ctx.fillStyle = `rgba(6, 182, 212, ${alphaA})`
+        ctx.beginPath()
+        ctx.arc(xA, pointY, scaleA, 0, Math.PI * 2)
+        ctx.fill()
+
+        // Draw Strand B Node
+        ctx.fillStyle = `rgba(6, 182, 212, ${alphaB})`
+        ctx.beginPath()
+        ctx.arc(xB, pointY, scaleB, 0, Math.PI * 2)
+        ctx.fill()
+      }
+
+      helixAngle += 0.015
       animId = requestAnimationFrame(draw)
     }
+
     draw()
+
     return () => {
       cancelAnimationFrame(animId)
       window.removeEventListener('resize', resize)
@@ -205,7 +307,21 @@ function OceanBackground({ dark }: { dark: boolean }) {
       window.removeEventListener('mouseleave', onLeave)
     }
   }, [dark])
-  return <canvas ref={canvasRef} style={{ position: 'fixed', inset: 0, zIndex: -1, pointerEvents: 'none', width: '100%', height: '100%' }} />
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="neural-mesh-canvas"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: -1,
+        pointerEvents: 'none',
+        width: '100%',
+        height: '100%',
+      }}
+    />
+  )
 }
 
 // ── Animated chat hook ───────────────────────────────────────────────────────
@@ -1191,7 +1307,7 @@ export default function LandingPage() {
         <meta name="description" content="Route requests across Gemini, Groq, Mistral, and more with automatic fallbacks for 100% uptime. Explore our API proxy gateway with Groq fallback routing and free Gemini API failover." />
       </Helmet>
       <style>{auroraCSS}</style>
-      <OceanBackground dark={dark} />
+      <NeuralMeshBackground dark={dark} />
 
       {/* NAV */}
       <header className={`sticky top-0 z-50 transition-all duration-300 bg-background/10 backdrop-blur-[24px] border-b border-cyan-400/30 shadow-[0_4px_20px_rgba(6,182,212,0.25)] rounded-b-2xl ${scrolled ? 'h-12' : 'h-20'}`}>
@@ -1199,99 +1315,101 @@ export default function LandingPage() {
           <div className="flex items-center gap-2 shrink-0">
             <span className={`font-bold tracking-tight transition-all duration-300 ${scrolled ? 'text-sm' : 'text-xl text-foreground'}`}>OmniKey AI</span>
           </div>
-          <nav className={`hidden md:flex items-center absolute left-1/2 -translate-x-1/2 text-muted-foreground transition-all duration-300 ${scrolled ? 'gap-5 text-sm' : 'gap-7 text-[15px]'}`}>
-            {/* Features Dropdown */}
-            <div 
-              className="relative py-2"
-              onMouseEnter={() => setFeaturesDropdownOpen(true)}
-              onMouseLeave={() => setFeaturesDropdownOpen(false)}
-            >
-              <button 
-                onClick={() => setFeaturesDropdownOpen(!featuresDropdownOpen)}
-                className={`hover:text-foreground transition-colors flex items-center gap-1 cursor-pointer focus:outline-none transition-all duration-300 ${scrolled ? 'font-medium' : 'font-semibold text-foreground/90'}`}
+          <div className="flex items-center gap-6 ml-auto">
+            <nav className={`hidden md:flex items-center justify-end text-muted-foreground transition-all duration-300 ${scrolled ? 'gap-5 text-sm' : 'gap-7 text-[15px]'}`}>
+              {/* Features Dropdown */}
+              <div 
+                className="relative py-2"
+                onMouseEnter={() => setFeaturesDropdownOpen(true)}
+                onMouseLeave={() => setFeaturesDropdownOpen(false)}
               >
-                Features
-                <svg 
-                  className={`w-2.5 h-2.5 transition-transform duration-200 ${featuresDropdownOpen ? 'rotate-180' : ''}`} 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
+                <button 
+                  onClick={() => setFeaturesDropdownOpen(!featuresDropdownOpen)}
+                  className={`hover:text-foreground transition-colors flex items-center gap-1 cursor-pointer focus:outline-none transition-all duration-300 ${scrolled ? 'font-medium' : 'font-semibold text-foreground/90'}`}
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
-                </svg>
+                  Features
+                  <svg 
+                    className={`w-2.5 h-2.5 transition-transform duration-200 ${featuresDropdownOpen ? 'rotate-180' : ''}`} 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {featuresDropdownOpen && (
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 w-40 rounded-xl border border-border bg-card/95 backdrop-blur-xl shadow-xl py-2 z-50 animate-fade-in flex flex-col">
+                    <a 
+                      href="#routing" 
+                      onClick={() => setFeaturesDropdownOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="18" r="3" /><circle cx="18" cy="6" r="3" /><path d="M6 15c0-3.87 3.13-7 7-7h2" /><polyline points="17 3 21 7 17 11" /></svg>
+                      Routing
+                    </a>
+                    <a 
+                      href="#features" 
+                      onClick={() => setFeaturesDropdownOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                      Playground
+                    </a>
+                    <a 
+                      href="#arena" 
+                      onClick={() => setFeaturesDropdownOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
+                      Arena
+                    </a>
+                    <a 
+                      href="#debate" 
+                      onClick={() => setFeaturesDropdownOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z" /></svg>
+                      Debate
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              <a href="#faq" className={`hover:text-foreground transition-colors flex items-center gap-1.5 transition-all duration-300 ${scrolled ? 'font-medium' : 'font-semibold text-foreground/90'}`}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+                FAQ
+              </a>
+              <a href="#contact" className={`hover:text-foreground transition-colors flex items-center gap-1.5 transition-all duration-300 ${scrolled ? 'font-medium' : 'font-semibold text-foreground/90'}`}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                Contact
+              </a>
+              <a
+                href="/docs"
+                onClick={e => { e.preventDefault(); navigate('/docs') }}
+                className={`hover:text-foreground transition-colors flex items-center gap-1.5 transition-all duration-300 ${scrolled ? 'font-medium' : 'font-semibold text-foreground/90'}`}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /></svg>
+                Docs
+              </a>
+            </nav>
+            <div className="flex items-center gap-3">
+              <button onClick={toggle} title="Toggle theme" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors cursor-pointer">
+                {dark ? <SunIcon /> : <MoonIcon />}
               </button>
-
-              {featuresDropdownOpen && (
-                <div className="absolute top-full left-1/2 -translate-x-1/2 w-40 rounded-xl border border-border bg-card/95 backdrop-blur-xl shadow-xl py-2 z-50 animate-fade-in flex flex-col">
-                  <a 
-                    href="#routing" 
-                    onClick={() => setFeaturesDropdownOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="18" r="3" /><circle cx="18" cy="6" r="3" /><path d="M6 15c0-3.87 3.13-7 7-7h2" /><polyline points="17 3 21 7 17 11" /></svg>
-                    Routing
-                  </a>
-                  <a 
-                    href="#features" 
-                    onClick={() => setFeaturesDropdownOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-                    Playground
-                  </a>
-                  <a 
-                    href="#arena" 
-                    onClick={() => setFeaturesDropdownOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
-                    Arena
-                  </a>
-                  <a 
-                    href="#debate" 
-                    onClick={() => setFeaturesDropdownOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z" /></svg>
-                    Debate
-                  </a>
-                </div>
-              )}
+              <button
+                onClick={() => navigate('/keys')}
+                className="cta-btn bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-sm font-semibold px-5 py-2.5 rounded-2xl shadow-md shadow-violet-500/20 transition-all duration-300 cursor-pointer"
+              >
+                Get Started →
+              </button>
             </div>
-
-            <a href="#faq" className={`hover:text-foreground transition-colors flex items-center gap-1.5 transition-all duration-300 ${scrolled ? 'font-medium' : 'font-semibold text-foreground/90'}`}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
-              FAQ
-            </a>
-            <a href="#contact" className={`hover:text-foreground transition-colors flex items-center gap-1.5 transition-all duration-300 ${scrolled ? 'font-medium' : 'font-semibold text-foreground/90'}`}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
-              Contact
-            </a>
-            <a
-              href="/docs"
-              onClick={e => { e.preventDefault(); navigate('/docs') }}
-              className={`hover:text-foreground transition-colors flex items-center gap-1.5 transition-all duration-300 ${scrolled ? 'font-medium' : 'font-semibold text-foreground/90'}`}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /></svg>
-              Docs
-            </a>
-          </nav>
-          <div className="flex items-center gap-3">
-            <button onClick={toggle} title="Toggle theme" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors cursor-pointer">
-              {dark ? <SunIcon /> : <MoonIcon />}
-            </button>
-            <button
-              onClick={() => navigate('/keys')}
-              className="cta-btn bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-sm font-semibold px-5 py-2.5 rounded-2xl shadow-md shadow-violet-500/20 transition-all duration-300 cursor-pointer"
-            >
-              Get Started →
-            </button>
           </div>
         </div>
       </header>
 
       {/* HERO */}
-      <section ref={heroRef} className="relative py-28 px-6 text-center">
+      <section ref={heroRef} className="relative pt-2 pb-28 px-6 text-center">
         {promoStatus?.isActive ? (
           <div
             onClick={() => navigate('/keys')}
