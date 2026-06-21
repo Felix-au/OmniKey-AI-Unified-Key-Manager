@@ -7,6 +7,7 @@ import { requireDashboardAuth, AuthenticatedRequest } from '../middleware/auth.j
 import { isLocalDbEnabled } from '../db/context.js';
 import { ProjectKey } from '../models/ProjectKey.js';
 import { UserSettings } from '../models/UserSettings.js';
+import { RequestLog } from '../models/RequestLog.js';
 
 export const projectKeysRouter = Router();
 
@@ -23,28 +24,93 @@ projectKeysRouter.get('/', async (req: AuthenticatedRequest, res: Response, next
   try {
     if (isLocalDbEnabled()) {
       const db = getDb();
-      const rows = db.prepare('SELECT * FROM project_keys ORDER BY created_at DESC').all() as any[];
-      const keys = rows.map(r => ({
-        id: r.id.toString(),
-        name: r.name,
-        projectKey: r.project_key,
-        format: r.format,
-        enabled: r.enabled === 1,
-        isPromoted: r.is_promoted === 1,
-        createdAt: r.created_at,
-      }));
+      const query = `
+        SELECT 
+          pk.id,
+          pk.name,
+          pk.project_key,
+          pk.format,
+          pk.enabled,
+          pk.is_promoted,
+          pk.created_at,
+          COUNT(r.id) as total_requests,
+          SUM(CASE WHEN r.status = 'success' THEN 1 ELSE 0 END) as success_requests,
+          SUM(IFNULL(r.input_tokens, 0) + IFNULL(r.output_tokens, 0)) as total_tokens,
+          AVG(r.latency_ms) as avg_latency,
+          MAX(r.created_at) as last_used_at
+        FROM project_keys pk
+        LEFT JOIN requests r ON r.project_key = pk.project_key
+        GROUP BY pk.id
+        ORDER BY pk.created_at DESC
+      `;
+      const rows = db.prepare(query).all() as any[];
+      const keys = rows.map(r => {
+        const totalRequests = r.total_requests ?? 0;
+        const successRequests = r.success_requests ?? 0;
+        const successRate = totalRequests > 0 ? Math.round((successRequests / totalRequests) * 100 * 10) / 10 : 0;
+        return {
+          id: r.id.toString(),
+          name: r.name,
+          projectKey: r.project_key,
+          format: r.format,
+          enabled: r.enabled === 1,
+          isPromoted: r.is_promoted === 1,
+          createdAt: r.created_at,
+          metrics: {
+            totalRequests,
+            successRate,
+            totalTokens: r.total_tokens ?? 0,
+            avgLatencyMs: Math.round(r.avg_latency ?? 0),
+            lastUsedAt: r.last_used_at || null,
+          }
+        };
+      });
       return res.json(keys);
     } else {
       const rows = await ProjectKey.find({ userId: req.userId }).sort({ createdAt: -1 });
-      const keys = rows.map(r => ({
-        id: r._id.toString(),
-        name: r.name,
-        projectKey: r.projectKey,
-        format: r.format,
-        enabled: r.enabled,
-        isPromoted: r.isPromoted,
-        createdAt: r.createdAt.toISOString(),
-      }));
+      const keys = [];
+      for (const r of rows) {
+        const stats = await RequestLog.aggregate([
+          { $match: { projectKey: r.projectKey } },
+          {
+            $group: {
+              _id: null,
+              totalRequests: { $sum: 1 },
+              successRequests: { $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] } },
+              totalTokens: { $sum: { $add: [{ $ifNull: ['$inputTokens', 0] }, { $ifNull: ['$outputTokens', 0] }] } },
+              avgLatency: { $avg: '$latencyMs' },
+              lastUsedAt: { $max: '$createdAt' }
+            }
+          }
+        ]);
+        const s = stats[0] || {
+          totalRequests: 0,
+          successRequests: 0,
+          totalTokens: 0,
+          avgLatency: 0,
+          lastUsedAt: null
+        };
+        const totalRequests = s.totalRequests ?? 0;
+        const successRequests = s.successRequests ?? 0;
+        const successRate = totalRequests > 0 ? Math.round((successRequests / totalRequests) * 100 * 10) / 10 : 0;
+
+        keys.push({
+          id: r._id.toString(),
+          name: r.name,
+          projectKey: r.projectKey,
+          format: r.format,
+          enabled: r.enabled,
+          isPromoted: r.isPromoted,
+          createdAt: r.createdAt.toISOString(),
+          metrics: {
+            totalRequests,
+            successRate,
+            totalTokens: s.totalTokens ?? 0,
+            avgLatencyMs: Math.round(s.avgLatency ?? 0),
+            lastUsedAt: s.lastUsedAt ? s.lastUsedAt.toISOString() : null,
+          }
+        });
+      }
       return res.json(keys);
     }
   } catch (err) {
