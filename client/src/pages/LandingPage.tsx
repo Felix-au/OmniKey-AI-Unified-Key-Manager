@@ -1168,12 +1168,12 @@ export default function LandingPage() {
 
       {/* NAV */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur border-b border-border">
-        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center gap-6">
+        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between relative">
           <div className="flex items-center gap-2 shrink-0">
             <img src={logoUrl} alt="OmniKey AI" className="h-6 w-6 object-contain" />
             <span className="font-semibold text-sm tracking-tight">OmniKey AI</span>
           </div>
-          <nav className="hidden md:flex items-center gap-5 ml-6 text-sm text-muted-foreground">
+          <nav className="hidden md:flex items-center gap-5 text-sm text-muted-foreground absolute left-1/2 -translate-x-1/2">
             {/* Features Dropdown */}
             <div 
               className="relative py-2"
@@ -1200,7 +1200,7 @@ export default function LandingPage() {
                   <a 
                     href="#routing" 
                     onClick={() => setFeaturesDropdownOpen(false)}
-                    className="flex items-center justify-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
+                    className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="18" r="3" /><circle cx="18" cy="6" r="3" /><path d="M6 15c0-3.87 3.13-7 7-7h2" /><polyline points="17 3 21 7 17 11" /></svg>
                     Routing
@@ -1208,7 +1208,7 @@ export default function LandingPage() {
                   <a 
                     href="#features" 
                     onClick={() => setFeaturesDropdownOpen(false)}
-                    className="flex items-center justify-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
+                    className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                     Playground
@@ -1216,7 +1216,7 @@ export default function LandingPage() {
                   <a 
                     href="#arena" 
                     onClick={() => setFeaturesDropdownOpen(false)}
-                    className="flex items-center justify-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
+                    className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
                     Arena
@@ -1224,7 +1224,7 @@ export default function LandingPage() {
                   <a 
                     href="#debate" 
                     onClick={() => setFeaturesDropdownOpen(false)}
-                    className="flex items-center justify-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
+                    className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z" /></svg>
                     Debate
@@ -1254,7 +1254,7 @@ export default function LandingPage() {
               GitHub
             </a>
           </nav>
-          <div className="ml-auto flex items-center gap-3">
+          <div className="flex items-center gap-3">
             <button onClick={toggle} title="Toggle theme" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors">
               {dark ? <SunIcon /> : <MoonIcon />}
             </button>
