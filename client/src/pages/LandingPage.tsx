@@ -1075,9 +1075,13 @@ export default function LandingPage() {
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 20)
+      if (window.scrollY > 20) {
+        setScrolled(true)
+      } else {
+        setScrolled(false)
+      }
     }
-    window.addEventListener('scroll', handleScroll, { passive: true })
+    window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
@@ -1189,13 +1193,12 @@ export default function LandingPage() {
       <OceanBackground dark={dark} />
 
       {/* NAV */}
-      <header className={`sticky top-0 z-50 transition-all duration-300 ${scrolled ? 'bg-background/85 backdrop-blur border-b border-border shadow-sm' : 'bg-background/25 dark:bg-background/15 backdrop-blur-[6px] border-b border-border/15'}`}>
-        <div className={`max-w-6xl mx-auto px-6 flex items-center justify-between relative transition-all duration-300 ${scrolled ? 'h-12' : 'h-24'}`}>
-          <div className="flex items-center gap-2.5 shrink-0">
-            <img src={logoUrl} alt="OmniKey AI" className={`object-contain transition-all duration-300 ${scrolled ? 'h-5 w-5' : 'h-9 w-9'}`} />
-            <span className={`tracking-tight transition-all duration-300 ${scrolled ? 'text-xs font-semibold' : 'text-lg font-bold'}`}>OmniKey AI</span>
+      <header className={`sticky top-0 z-50 transition-all duration-300 bg-background/80 backdrop-blur border-b border-border ${scrolled ? 'h-14 shadow-sm' : 'h-20 border-transparent shadow-none'}`}>
+        <div className="max-w-6xl mx-auto px-6 flex items-center justify-between relative h-full transition-all duration-300">
+          <div className="flex items-center gap-2 shrink-0">
+            <span className={`font-bold tracking-tight transition-all duration-300 ${scrolled ? 'text-sm' : 'text-xl text-foreground'}`}>OmniKey AI</span>
           </div>
-          <nav className={`hidden md:flex items-center absolute left-1/2 -translate-x-1/2 transition-all duration-300 ${scrolled ? 'gap-4 text-xs text-muted-foreground' : 'gap-3.5'}`}>
+          <nav className={`hidden md:flex items-center absolute left-1/2 -translate-x-1/2 text-muted-foreground transition-all duration-300 ${scrolled ? 'gap-5 text-sm' : 'gap-7 text-[15px]'}`}>
             {/* Features Dropdown */}
             <div 
               className="relative py-2"
@@ -1204,7 +1207,7 @@ export default function LandingPage() {
             >
               <button 
                 onClick={() => setFeaturesDropdownOpen(!featuresDropdownOpen)}
-                className={`transition-all duration-300 flex items-center gap-1 cursor-pointer focus:outline-none ${scrolled ? 'hover:text-foreground text-xs text-muted-foreground' : 'text-xs font-semibold text-foreground/90 bg-card/45 dark:bg-card/25 border border-border/80 rounded-full px-3.5 py-1.5 shadow-sm hover:bg-muted/80 dark:hover:bg-muted/20 hover:scale-[1.02] active:scale-[0.98]'}`}
+                className={`hover:text-foreground transition-colors flex items-center gap-1 cursor-pointer focus:outline-none transition-all duration-300 ${scrolled ? 'font-medium' : 'font-semibold text-foreground/90'}`}
               >
                 Features
                 <svg 
@@ -1222,7 +1225,7 @@ export default function LandingPage() {
                   <a 
                     href="#routing" 
                     onClick={() => setFeaturesDropdownOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full text-xs"
+                    className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="18" r="3" /><circle cx="18" cy="6" r="3" /><path d="M6 15c0-3.87 3.13-7 7-7h2" /><polyline points="17 3 21 7 17 11" /></svg>
                     Routing
@@ -1230,7 +1233,7 @@ export default function LandingPage() {
                   <a 
                     href="#features" 
                     onClick={() => setFeaturesDropdownOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full text-xs"
+                    className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                     Playground
@@ -1238,7 +1241,7 @@ export default function LandingPage() {
                   <a 
                     href="#arena" 
                     onClick={() => setFeaturesDropdownOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full text-xs"
+                    className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
                     Arena
@@ -1246,7 +1249,7 @@ export default function LandingPage() {
                   <a 
                     href="#debate" 
                     onClick={() => setFeaturesDropdownOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full text-xs"
+                    className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z" /></svg>
                     Debate
@@ -1255,37 +1258,30 @@ export default function LandingPage() {
               )}
             </div>
 
-            <a 
-              href="#faq" 
-              className={`transition-all duration-300 flex items-center gap-1.5 ${scrolled ? 'hover:text-foreground text-xs text-muted-foreground' : 'text-xs font-semibold text-foreground/90 bg-card/45 dark:bg-card/25 border border-border/80 rounded-full px-3.5 py-1.5 shadow-sm hover:bg-muted/80 dark:hover:bg-muted/20 hover:scale-[1.02] active:scale-[0.98]'}`}
-            >
+            <a href="#faq" className={`hover:text-foreground transition-colors flex items-center gap-1.5 transition-all duration-300 ${scrolled ? 'font-medium' : 'font-semibold text-foreground/90'}`}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
               FAQ
             </a>
-            <a 
-              href="#contact" 
-              className={`transition-all duration-300 flex items-center gap-1.5 ${scrolled ? 'hover:text-foreground text-xs text-muted-foreground' : 'text-xs font-semibold text-foreground/90 bg-card/45 dark:bg-card/25 border border-border/80 rounded-full px-3.5 py-1.5 shadow-sm hover:bg-muted/80 dark:hover:bg-muted/20 hover:scale-[1.02] active:scale-[0.98]'}`}
-            >
+            <a href="#contact" className={`hover:text-foreground transition-colors flex items-center gap-1.5 transition-all duration-300 ${scrolled ? 'font-medium' : 'font-semibold text-foreground/90'}`}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
               Contact
             </a>
             <a
               href="/docs"
               onClick={e => { e.preventDefault(); navigate('/docs') }}
-              className={`transition-all duration-300 flex items-center gap-1.5 ${scrolled ? 'hover:text-foreground text-xs text-muted-foreground' : 'text-xs font-semibold text-foreground/90 bg-card/45 dark:bg-card/25 border border-border/80 rounded-full px-3.5 py-1.5 shadow-sm hover:bg-muted/80 dark:hover:bg-muted/20 hover:scale-[1.02] active:scale-[0.98]'}`}
+              className={`hover:text-foreground transition-colors flex items-center gap-1.5 transition-all duration-300 ${scrolled ? 'font-medium' : 'font-semibold text-foreground/90'}`}
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /></svg>
               Docs
             </a>
-
           </nav>
           <div className="flex items-center gap-3">
-            <button onClick={toggle} title="Toggle theme" className={`rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-all duration-300 ${scrolled ? 'p-1.5' : 'p-2'}`}>
+            <button onClick={toggle} title="Toggle theme" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors cursor-pointer">
               {dark ? <SunIcon /> : <MoonIcon />}
             </button>
             <button
               onClick={() => navigate('/keys')}
-              className={`cta-btn bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold shadow-md shadow-violet-500/20 transition-all duration-300 transform active:scale-[0.98] ${scrolled ? 'text-xs px-3.5 py-1.5 rounded-lg' : 'text-sm px-5 py-2.5 rounded-2xl shadow-lg shadow-violet-500/30'}`}
+              className={`cta-btn bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold shadow-md shadow-violet-500/20 transition-all duration-300 cursor-pointer ${scrolled ? 'text-xs px-4 py-2 rounded-xl' : 'text-sm px-5 py-2.5 rounded-2xl shadow-violet-500/35'}`}
             >
               Get Started →
             </button>
