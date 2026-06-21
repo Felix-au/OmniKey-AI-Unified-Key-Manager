@@ -1622,9 +1622,6 @@ export default function LandingPage() {
           <div className="text-center mb-8">
             <Pill label="FAQ" color="violet" />
             <SectionHeading>Frequently Asked Questions</SectionHeading>
-            <p className="text-muted-foreground max-w-xl mx-auto text-sm sm:text-base leading-relaxed">
-              Find answers to common questions about using our AI proxy gateway, failover configurations, and routing performance.
-            </p>
           </div>
 
           {/* FAQ Category Tabs */}
@@ -1705,8 +1702,8 @@ export default function LandingPage() {
 
       {/* ── SECTION: Contact Developer ── */}
       <Section id="contact" alt>
-        <div className="max-w-xl mx-auto animate-fade-up">
-          <div className="text-center mb-10">
+        <div className="max-w-lg mx-auto animate-fade-up">
+          <div className="text-center mb-6">
             <Pill label="Contact" color="violet" />
             <SectionHeading>Contact Developer</SectionHeading>
             <p className="text-muted-foreground max-w-xl mx-auto text-sm sm:text-base leading-relaxed">
@@ -1718,7 +1715,7 @@ export default function LandingPage() {
             <div className="absolute -top-10 -right-10 w-40 h-40 bg-violet-500/10 rounded-full blur-[48px] pointer-events-none" />
             <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-[48px] pointer-events-none" />
 
-            <form onSubmit={handleContactSubmit} className="space-y-5 relative z-10">
+            <form onSubmit={handleContactSubmit} className="space-y-4 relative z-10">
               {contactError && (
                 <div className="text-xs font-semibold text-rose-500 dark:text-rose-450 bg-rose-500/10 border border-rose-500/20 rounded-xl p-4">
                   {contactError}
@@ -1742,7 +1739,7 @@ export default function LandingPage() {
                   onChange={(e) => setContactName(e.target.value)}
                   placeholder="Your Name"
                   disabled={contactSubmitting}
-                  className="w-full bg-background/50 border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/35 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-all"
+                  className="w-full bg-background/50 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/35 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-all"
                 />
               </div>
 
@@ -1758,7 +1755,7 @@ export default function LandingPage() {
                   onChange={(e) => setContactEmail(e.target.value)}
                   placeholder="your.email@example.com"
                   disabled={contactSubmitting}
-                  className="w-full bg-background/50 border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/35 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-all"
+                  className="w-full bg-background/50 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/35 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-all"
                 />
               </div>
 
@@ -1769,12 +1766,12 @@ export default function LandingPage() {
                 <textarea
                   id="contact-message"
                   required
-                  rows={4}
+                  rows={3}
                   value={contactMessage}
                   onChange={(e) => setContactMessage(e.target.value)}
                   placeholder="How can we help you?"
                   disabled={contactSubmitting}
-                  className="w-full bg-background/50 border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/35 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-all resize-none"
+                  className="w-full bg-background/50 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/35 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-all resize-none"
                 />
               </div>
 

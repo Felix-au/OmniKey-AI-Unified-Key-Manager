@@ -36,25 +36,25 @@ contactRouter.post('/', async (req: Request, res: Response, next: NextFunction) 
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "CognitoX <cognitox@felix-au.me>",
+        from: "OmniKey AI <omnikey@felix-au.me>",
         to: "felixaugum@gmail.com",
         reply_to: email,
         subject: `OmniKey AI: New Inquiry from ${name}`,
         html: `
-          <div style="font-family: sans-serif; padding: 24px; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
-            <div style="border-bottom: 2px solid #6366f1; padding-bottom: 12px; margin-bottom: 20px;">
-              <h2 style="color: #0f172a; margin: 0; font-size: 20px;">New Contact Form Submission</h2>
-              <p style="color: #64748b; margin: 4px 0 0 0; font-size: 13px;">OmniKey AI Workspace Landing Page Inquiry</p>
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 32px; color: #1f2937; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 16px; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);">
+            <div style="border-bottom: 2px solid #7c3aed; padding-bottom: 16px; margin-bottom: 24px;">
+              <h2 style="color: #111827; margin: 0; font-size: 22px; font-weight: 700; tracking: -0.025em;">New Inquiry Received</h2>
+              <p style="color: #6b7280; margin: 6px 0 0 0; font-size: 14px;">OmniKey AI - Developer Portal</p>
             </div>
-            <div style="margin-bottom: 24px; line-height: 1.5; font-size: 14px;">
-              <p style="margin: 0 0 8px 0;"><strong style="color: #475569;">Sender Name:</strong> ${name}</p>
-              <p style="margin: 0 0 16px 0;"><strong style="color: #475569;">Sender Email:</strong> <a href="mailto:${email}" style="color: #6366f1; text-decoration: none;">${email}</a></p>
-              <div style="background-color: #f8fafc; border-left: 4px solid #6366f1; padding: 16px; border-radius: 0 8px 8px 0;">
-                <p style="margin: 0; font-style: italic; color: #475569; white-space: pre-line;">"${message}"</p>
+            <div style="margin-bottom: 28px; line-height: 1.6; font-size: 15px;">
+              <p style="margin: 0 0 10px 0;"><strong style="color: #4b5563;">Sender:</strong> ${name}</p>
+              <p style="margin: 0 0 20px 0;"><strong style="color: #4b5563;">Email:</strong> <a href="mailto:${email}" style="color: #7c3aed; text-decoration: none; font-weight: 500;">${email}</a></p>
+              <div style="background-color: #f9fafb; border-left: 4px solid #7c3aed; padding: 20px; border-radius: 8px;">
+                <p style="margin: 0; font-style: italic; color: #374151; white-space: pre-line;">"${message}"</p>
               </div>
             </div>
-            <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
-            <p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0;">This email was securely routed from the OmniKey AI Workspace contact form. Click "Reply" to respond directly to the sender.</p>
+            <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 28px 0;" />
+            <p style="font-size: 12px; color: #9ca3af; text-align: center; margin: 0; line-height: 1.5;">This email was securely routed from the OmniKey AI contact form.<br/>Click "Reply" to respond directly to the sender.</p>
           </div>
         `,
       }),
@@ -75,22 +75,26 @@ contactRouter.post('/', async (req: Request, res: Response, next: NextFunction) 
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "OmniKey AI Support <cognitox@felix-au.me>",
+        from: "OmniKey AI Support <omnikey@felix-au.me>",
         to: email,
         subject: "We received your message - OmniKey AI Support",
         html: `
-          <div style="font-family: sans-serif; padding: 20px; color: #111; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px;">
-            <h2 style="color: #6366f1;">Thank you for contacting us!</h2>
-            <p>Hello ${name},</p>
-            <p>This is a confirmation copy to let you know that your message has been received. I (Felix Au) will review your request and get back to you as soon as possible.</p>
-            <p>Here is a summary of the details you submitted:</p>
-            <div style="background-color: #f8fafc; padding: 15px; border-radius: 6px; margin: 15px 0;">
-              <p style="margin: 0 0 10px 0;"><strong>Your Message:</strong></p>
-              <p style="margin: 0; font-style: italic; color: #475569;">"${message.replace(/\n/g, "<br/>")}"</p>
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 32px; color: #1f2937; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 16px; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <h2 style="color: #111827; margin: 0; font-size: 22px; font-weight: 700;">We've received your message</h2>
+              <p style="color: #6b7280; margin: 6px 0 0 0; font-size: 14px;">OmniKey AI Support Team</p>
             </div>
-            <p>Best regards,<br/>The OmniKey AI Team</p>
-            <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-            <p style="font-size: 11px; color: #94a3b8; text-align: center;">This is an automated confirmation email. Please do not reply directly to this message.</p>
+            <div style="line-height: 1.6; font-size: 15px; margin-bottom: 24px;">
+              <p>Hello ${name},</p>
+              <p>Thank you for reaching out to us. This is an automated confirmation to let you know we've received your request.</p>
+              <p>Our developer (Felix Au) will review your query and get back to you shortly.</p>
+              <div style="margin-top: 24px; background-color: #f9fafb; border: 1px solid #f3f4f6; padding: 20px; border-radius: 12px;">
+                <p style="margin: 0 0 8px 0; font-size: 13px; font-weight: 700; color: #4b5563; text-transform: uppercase; letter-spacing: 0.05em;">Your Message Preview</p>
+                <p style="margin: 0; font-style: italic; color: #374151; white-space: pre-line;">"${message}"</p>
+              </div>
+            </div>
+            <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+            <p style="font-size: 12px; color: #9ca3af; text-align: center; margin: 0;">This is an automated copy for your records. Please do not reply directly to this email.</p>
           </div>
         `,
       }),
