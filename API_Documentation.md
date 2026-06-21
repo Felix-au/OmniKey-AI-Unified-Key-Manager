@@ -16,12 +16,12 @@
 - [Chat Completions Response Format](#chat-completions-response-format)
 - [Streaming Completions](#streaming-completions)
 - [Models Endpoint](#models-endpoint)
-- [Gemini-Compatible Request/Response Format](#gemini-compatible-requestresponse-format)
+- [Gemini-Compatible Request and Response Format](#gemini-compatible-request-and-response-format)
 - [Gemini Streaming Completions](#gemini-streaming-completions)
 - [Vision Modality (Multimodal)](#vision-modality-multimodal)
-- [Voice (Speech Input & Transcription)](#voice-speech-input--transcription)
-- [Text-to-Speech (TTS) Synthesis](#text-to-speech-tts-synthesis)
-- [Promo Tier Restrictions & Modalities](#promo-tier-restrictions-and-modalities)
+- [Voice (Speech Input and Transcription)](#voice-speech-input-and-transcription)
+- [Text-to-Speech Synthesis and Audio Output](#text-to-speech-synthesis-and-audio-output)
+- [Promo Tier Restrictions and Modalities](#promo-tier-restrictions-and-modalities)
 - [Dashboard Management APIs](#dashboard-management-apis)
 - [Admin Console APIs](#admin-console-apis)
 - [Integration Examples](#integration-examples)
@@ -237,7 +237,7 @@ Returns list of all models currently active in your configuration.
 
 ---
 
-## Gemini-Compatible Request/Response Format
+## Gemini-Compatible Request and Response Format
 
 **Endpoint:** `POST /v1beta/models/:model:generateContent?key=omnikey-g-your-unified-gemini-key-here`
 
@@ -382,7 +382,7 @@ OmniKey AI supports multimodal Vision inputs via both OpenAI and Gemini compatib
 
 ---
 
-## Voice (Speech Input & Transcription)
+## Voice (Speech Input and Transcription)
 
 OmniKey AI supports speech recognition and transcription through two standard formats:
 
@@ -446,7 +446,7 @@ Rather than a single-purpose transcription API, the Gemini format integrates aud
 
 ---
 
-## Text-to-Speech (TTS) & Audio Output
+## Text-to-Speech Synthesis and Audio Output
 
 OmniKey AI supports text-to-speech synthesis and spoken responses through two standard formats:
 

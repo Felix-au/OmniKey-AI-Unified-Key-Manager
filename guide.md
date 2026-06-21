@@ -5,9 +5,28 @@ An OpenAI-compatible proxy that routes across 12 free-tier LLM providers. Point 
 > [!IMPORTANT]
 > **Unlike cloud API routers** that centralize credentials, OmniKey AI is **entirely self-hosted**. Your upstream API keys are stored in a local SQLite database on your machine, encrypted using AES-256-GCM envelope encryption. Credentials and prompts never leave your local environment.
 
-## 🚀 How to Run
+---
 
-### Option A — Development Mode (Vite + Express)
+## Table of Contents
+
+- 🚀 [How to Run](#how-to-run)
+  - [Option A: Development Mode (Vite and Express)](#option-a-development-mode-vite-and-express)
+  - [Option B: Production Build](#option-b-production-build)
+- 🎯 [How to Use](#how-to-use)
+- 🗣️ [Example Queries](#example-queries)
+  - [Option 1: OpenAI Compatible Endpoint](#option-1-openai-compatible-endpoint)
+  - [Option 2: Gemini Compatible Endpoint](#option-2-gemini-compatible-endpoint)
+- 🔵 [Dashboard Interface](#dashboard-interface)
+- ⚙️ [Configuration](#configuration)
+  - [Environment Variables](#environment-variables)
+- ⚠️ [Important Notes](#important-notes)
+- 📁 [Important Files](#important-files)
+
+---
+
+## How to Run
+
+### Option A: Development Mode (Vite and Express)
 
 **Prerequisites:** Node.js 20+, npm, SQLite3.
 
@@ -27,7 +46,7 @@ On first launch, the server will create a local SQLite database at `server/data/
 * Express server on `http://localhost:3001`
 * Vite React Dashboard on `http://localhost:5173`
 
-### Option B — Production Build
+### Option B: Production Build
 
 ```bash
 # Build the client app and the server bundle
@@ -40,7 +59,7 @@ node server/dist/index.js
 > [!NOTE]
 > In production mode, the React dashboard client is statically served directly from the Express server. You only need to run the Node server, and the dashboard is available on the same port (e.g., `http://localhost:3001`)
 
-## 🎯 How to Use
+## How to Use
 
 1. **Launch OmniKey AI** — Start the backend proxy server.
 2. **Open the Dashboard** — Navigate to the React dashboard.
@@ -51,9 +70,9 @@ node server/dist/index.js
 
 ---
 
-## 🗣️ Example Queries
+## Example Queries
 
-### Option 1 — OpenAI Compatible Endpoint
+### Option 1: OpenAI Compatible Endpoint
 
 #### Curl Command
 ```bash
@@ -88,7 +107,7 @@ response = client.chat.completions.create(
 print(response.choices[0].message.content)
 ```
 
-### Option 2 — Gemini Compatible Endpoint
+### Option 2: Gemini Compatible Endpoint
 
 #### Curl Command (Non-Streaming)
 ```bash
@@ -120,7 +139,7 @@ curl -X POST "http://localhost:3001/v1beta/models/gemini-2.5-flash:streamGenerat
 
 ---
 
-## 🔵 Dashboard Interface
+## Dashboard Interface
 
 The React Dashboard is your command center. It features persistent support for **Light/Dark Themes** across all views (including the login screen and interactive pages), toggled easily from the header controls.
 
@@ -137,9 +156,9 @@ The React Dashboard is your command center. It features persistent support for *
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
-### Environment Variables (`.env` file)
+### Environment Variables
 
 | Variable | Default | Description |
 |---|---|---|
@@ -154,7 +173,7 @@ The React Dashboard is your command center. It features persistent support for *
 
 ---
 
-## ⚠️ Important Notes
+## Important Notes
 
 - **Render / Keep-Alive Cron** — The API provides a public `/api/cron-health` endpoint returning server uptime status. You can ping this every 2 minutes via a cron-job to prevent deployment instances from sleeping.
 - **Health Check Timestamps** — Upstream provider credential verification checks record and render precise local execution timestamps.
@@ -165,7 +184,7 @@ The React Dashboard is your command center. It features persistent support for *
 
 ---
 
-## 📁 Important Files
+## Important Files
 
 | File | Purpose |
 |---|---|

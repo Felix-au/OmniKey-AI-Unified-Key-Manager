@@ -34,6 +34,7 @@
   - [Keys and Encryption](#keys-and-encryption)
 - [Quick Start](#quick-start)
 - [Project Structure](#project-structure)
+- [Key Components](#key-components)
 - [Dependencies](#dependencies)
 - [Configuration](#configuration)
 - [Database Schema and Multitenancy](#database-schema-and-multitenancy)
@@ -373,7 +374,7 @@ The Administrative interface can be reached by appending `/admin` to your dashbo
 - npm (or yarn / pnpm)
 - SQLite3
 
-### Install & Run
+### Install and Run
 
 ```bash
 # 1. Clone the repository
