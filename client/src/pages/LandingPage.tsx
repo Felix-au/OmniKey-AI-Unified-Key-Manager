@@ -1542,10 +1542,10 @@ export default function LandingPage() {
                   )}
                 </div>
                 <div className={`shrink-0 rounded-lg px-2.5 py-1 text-[10px] font-bold border transition-all duration-300 ${arena.sendClicked
-                    ? 'bg-blue-700 text-white border-blue-600 scale-95 shadow-none'
-                    : arena.sendReady
-                      ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/20 scale-100'
-                      : 'bg-muted-foreground/10 text-muted-foreground/40 border-border/40 scale-100'
+                  ? 'bg-blue-700 text-white border-blue-600 scale-95 shadow-none'
+                  : arena.sendReady
+                    ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/20 scale-100'
+                    : 'bg-muted-foreground/10 text-muted-foreground/40 border-border/40 scale-100'
                   }`}>
                   Send
                 </div>
@@ -1703,12 +1703,12 @@ export default function LandingPage() {
                   <div ref={transcriptScrollRef} className="flex-1 overflow-y-auto no-scrollbar pr-1 space-y-3 scroll-smooth">
                     {debateMsgs.map((m, i) => i < debateSim.visibleCount ? (
                       <div key={i} className={`rounded-xl border px-4 py-3 text-xs leading-relaxed animate-fade-up ${m.role === 'infavor' ? 'border-emerald-500/30 bg-emerald-500/5' :
-                          m.role === 'against' ? 'border-rose-500/30 bg-rose-500/5' :
-                            'border-amber-500/30 bg-amber-500/5'
+                        m.role === 'against' ? 'border-rose-500/30 bg-rose-500/5' :
+                          'border-amber-500/30 bg-amber-500/5'
                         }`}>
                         <div className={`text-[10px] font-semibold mb-1 ${m.role === 'infavor' ? 'text-emerald-500' :
-                            m.role === 'against' ? 'text-rose-500' :
-                              'text-amber-500'
+                          m.role === 'against' ? 'text-rose-500' :
+                            'text-amber-500'
                           }`}>{m.label}</div>
                         <p className="whitespace-pre-line">{m.text}</p>
                       </div>
