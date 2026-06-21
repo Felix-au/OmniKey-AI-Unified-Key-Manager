@@ -96,11 +96,12 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
     }> = []
 
     const count = 72
-    const mouse = { x: 0, y: 0, inside: false }
+    const mouse = { x: 0, y: 0, inside: false, lastActive: 0, intensity: 0 }
 
     const onMouse = (e: MouseEvent) => {
       mouse.x = e.clientX
       mouse.y = e.clientY
+      mouse.lastActive = Date.now()
     }
     const onEnter = () => { mouse.inside = true }
     const onLeave = () => { mouse.inside = false }
@@ -133,19 +134,18 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
       const H = canvas.height
       ctx.clearRect(0, 0, W, H)
 
-      // Background gradient
-      const grad = ctx.createLinearGradient(0, 0, 0, H)
+      // Background color/gradient
       if (dark) {
-        grad.addColorStop(0, '#020817')
-        grad.addColorStop(0.5, '#030d1e')
-        grad.addColorStop(1, '#0a1628')
+        ctx.fillStyle = '#000000'
+        ctx.fillRect(0, 0, W, H)
       } else {
-        grad.addColorStop(0, '#e0f4ff')
-        grad.addColorStop(0.5, '#bae8ff')
-        grad.addColorStop(1, '#7dd3fc')
+        const grad = ctx.createLinearGradient(0, 0, 0, H)
+        grad.addColorStop(0, '#ffffff')
+        grad.addColorStop(0.5, '#fafafb')
+        grad.addColorStop(1, '#f3f4f6')
+        ctx.fillStyle = grad
+        ctx.fillRect(0, 0, W, H)
       }
-      ctx.fillStyle = grad
-      ctx.fillRect(0, 0, W, H)
 
       // DNA Helix center in bottom-right corner
       const helixCenterX = W - 150
@@ -191,58 +191,47 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
         if (n.x > W) n.x -= W
         if (n.y < 0) n.y += H
         if (n.y > H) n.y -= H
-
-        // Draw particle node
-        ctx.fillStyle = 'rgba(6, 182, 212, 0.85)'
-        ctx.beginPath()
-        ctx.arc(n.x, n.y, 2.5, 0, Math.PI * 2)
-        ctx.fill()
       })
 
-      // Draw connections between nearby particles (dynamic paths)
-      for (let i = 0; i < count; i++) {
-        for (let j = i + 1; j < count; j++) {
-          const p1 = particles[i]
-          const p2 = particles[j]
-          const dx = p1.x - p2.x
-          const dy = p1.y - p2.y
-          const dist = Math.sqrt(dx * dx + dy * dy)
+      // Draw particle nodes with a heavy cyan glow
+      ctx.save()
+      ctx.shadowBlur = 12
+      ctx.shadowColor = '#06b6d4'
+      ctx.fillStyle = 'rgba(6, 182, 212, 0.95)'
+      particles.forEach((n) => {
+        ctx.beginPath()
+        ctx.arc(n.x, n.y, 3, 0, Math.PI * 2)
+        ctx.fill()
+      })
+      ctx.restore()
 
-          if (dist < 120) {
-            const opacity = (1 - dist / 120) * 0.15
-            ctx.strokeStyle = `rgba(6, 182, 212, ${opacity})`
-            ctx.lineWidth = 0.8
-            ctx.beginPath()
-            ctx.moveTo(p1.x, p1.y)
-            ctx.lineTo(p2.x, p2.y)
-            ctx.stroke()
-          }
-        }
-      }
+      // Track mouse movement intensity transitions
+      const targetIntensity = (mouse.inside && (Date.now() - mouse.lastActive < 150)) ? 1 : 0
+      mouse.intensity += (targetIntensity - mouse.intensity) * 0.1
 
-      // Draw glowing connections to mouse cursor (Cyber Cyan laser glow)
-      if (mouse.inside) {
+      // Draw glowing connections to mouse cursor only when moving (Cyber Cyan laser glow)
+      if (mouse.intensity > 0.01) {
+        ctx.save()
+        ctx.shadowBlur = 12
+        ctx.shadowColor = '#06b6d4'
         particles.forEach((n) => {
           const dx = n.x - mouse.x
           const dy = n.y - mouse.y
           const dist = Math.sqrt(dx * dx + dy * dy)
 
           if (dist < 195) {
-            const intensity = 1 - dist / 195
-            const opacity = intensity * 0.75
+            const intensity = (1 - dist / 195) * mouse.intensity
+            const opacity = intensity * 0.8
 
-            ctx.save()
-            ctx.shadowBlur = 8
-            ctx.shadowColor = '#06b6d4'
             ctx.strokeStyle = `rgba(6, 182, 212, ${opacity})`
-            ctx.lineWidth = 1.5
+            ctx.lineWidth = 1.8
             ctx.beginPath()
             ctx.moveTo(n.x, n.y)
             ctx.lineTo(mouse.x, mouse.y)
             ctx.stroke()
-            ctx.restore()
           }
         })
+        ctx.restore()
       }
 
       // Render 3D Rotating DNA Helix in bottom-right corner
@@ -1325,7 +1314,7 @@ export default function LandingPage() {
               >
                 <button 
                   onClick={() => setFeaturesDropdownOpen(!featuresDropdownOpen)}
-                  className={`hover:text-foreground transition-colors flex items-center gap-1 cursor-pointer focus:outline-none transition-all duration-300 ${scrolled ? 'font-medium' : 'font-semibold text-foreground/90'}`}
+                  className={`hover:text-foreground transition-colors flex items-center gap-1.5 cursor-pointer focus:outline-none transition-all duration-300 ${scrolled ? 'font-medium' : 'font-semibold text-foreground/90'}`}
                 >
                   Features
                   <svg 
@@ -1376,14 +1365,6 @@ export default function LandingPage() {
                 )}
               </div>
 
-              <a href="#faq" className={`hover:text-foreground transition-colors flex items-center gap-1.5 transition-all duration-300 ${scrolled ? 'font-medium' : 'font-semibold text-foreground/90'}`}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
-                FAQ
-              </a>
-              <a href="#contact" className={`hover:text-foreground transition-colors flex items-center gap-1.5 transition-all duration-300 ${scrolled ? 'font-medium' : 'font-semibold text-foreground/90'}`}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
-                Contact
-              </a>
               <a
                 href="/docs"
                 onClick={e => { e.preventDefault(); navigate('/docs') }}
@@ -1391,6 +1372,16 @@ export default function LandingPage() {
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /></svg>
                 Docs
+              </a>
+
+              <a href="#faq" className={`hover:text-foreground transition-colors flex items-center gap-1.5 transition-all duration-300 ${scrolled ? 'font-medium' : 'font-semibold text-foreground/90'}`}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+                FAQs
+              </a>
+
+              <a href="#contact" className={`hover:text-foreground transition-colors flex items-center gap-1.5 transition-all duration-300 ${scrolled ? 'font-medium' : 'font-semibold text-foreground/90'}`}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                Contact
               </a>
             </nav>
             <div className="flex items-center gap-3">
