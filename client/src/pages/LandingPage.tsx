@@ -1403,68 +1403,60 @@ export default function LandingPage() {
 
           </div>
 
-          {/* Right Column - Title, Promo Banner, Buttons & Description */}
-          <div className="md:col-span-6 flex flex-col justify-center items-center gap-6 w-full text-center">
-        {promoStatus?.isActive ? (
-          <div
-            onClick={() => navigate('/keys')}
-            className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 text-xs font-semibold text-emerald-600 dark:text-emerald-400 mb-6 cursor-pointer transition-all duration-300 transform hover:scale-[1.02]"
-          >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-450 opacity-75 animate-duration-1000"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <span>Launch Offer: Get 10M tokens free!</span>
-          </div>
-        ) : (
-          <span className="inline-block text-xs font-semibold px-3 py-1 rounded-full border border-violet-500/30 bg-violet-500/10 text-violet-500 mb-6">
-            ⚡ 12 Free LLM Providers. Zero Lock-in.
-          </span>
-        )}
-        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6">
-          One Key.<br />
-          <span className="bg-gradient-to-r from-violet-500 to-indigo-500 bg-clip-text text-transparent">Every Model.</span>
-        </h1>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10">
-          OmniKey AI routes your requests across Gemini, Groq, Mistral, NVIDIA, Cerebras and more — with automatic fallbacks to ensure 100% uptime.
-        </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-          <button
-            onClick={() => navigate('/keys')}
-            className="cta-btn bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold px-8 py-3.5 rounded-2xl text-base shadow-lg shadow-violet-500/20"
-          >
-            Get Started →
-          </button>
-          <a
-            href="https://github.com/Felix-au/OmniKey-AI-Unified-Key-Manager"
-            target="_blank" rel="noreferrer"
-            className="cta-btn border border-border bg-card hover:bg-accent/60 text-foreground font-semibold px-8 py-3.5 rounded-2xl text-base flex items-center gap-2"
-          >
-            <GitHubIcon size={18} />
-            View on GitHub
-          </a>
-        </div>
+          {/* Right Column - Launch Offer, Stats Grid & Description Text */}
+          <div className="md:col-span-6 flex flex-col justify-center items-center gap-6 w-full">
+            
+            {/* Launch Offer Banner */}
+            <div>
+              {promoStatus?.isActive ? (
+                <div
+                  onClick={() => navigate('/keys')}
+                  className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 text-xs font-semibold text-emerald-600 dark:text-emerald-400 cursor-pointer transition-all duration-300 transform hover:scale-[1.02]"
+                >
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-450 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  <span>Launch Offer: Get 10M tokens free!</span>
+                </div>
+              ) : (
+                <span className="inline-block text-xs font-semibold px-3 py-1 rounded-full border border-violet-500/30 bg-violet-500/10 text-violet-500">
+                  ⚡ 12 Free LLM Providers. Zero Lock-in.
+                </span>
+              )}
+            </div>
+
+            {/* Stats Block (2x2 grid) */}
+            <div className="w-full">
+              {/* Outer wrapper: defined border + subtle cyan glow */}
+              <div className="rounded-2xl border border-cyan-500/50 shadow-[0_0_28px_6px_rgba(6,182,212,0.28)] overflow-hidden">
+                {/* Grid with internal separators via divide */}
+                <div className="grid grid-cols-2 bg-card/25 backdrop-blur-md divide-x divide-y divide-cyan-500/20 relative">
+                  {[
+                    { ref: stat1.ref, val: `${stat1.val.toLocaleString()}+`, label: 'Models Available' },
+                    { ref: stat4.ref, val: `${stat4.val.toFixed(2)}${requestsUnit}`, label: 'Requests Processed' },
+                    { ref: stat5.ref, val: `${stat5.val.toFixed(2)}${tokensUnit}`, label: 'Tokens Channeled' },
+                    { ref: stat6.ref, val: `${stat6.val.toFixed(2)}${successUnit}`, label: 'Routing Success Rate' }
+                  ].map(({ ref, val, label }) => (
+                    <div key={label} ref={ref} className="stat-animate text-center py-6 px-4">
+                      <div className="text-3xl font-extrabold text-foreground stat-num">{val}</div>
+                      <div className="text-xs text-muted-foreground mt-1">{label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Description Text */}
+            <p className="text-sm text-muted-foreground leading-relaxed max-w-lg text-center mx-auto">
+              OmniKey AI roots your requests across Gemini, Groq, Mistral, NVIDIA, Cerebras and more — with automatic fallbacks to ensure 100% uptime.
+            </p>
+
           </div>
 
         </div>
       </section>
 
-      {/* STATS */}
-      <div className="max-w-4xl mx-auto px-6 mb-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border/60 rounded-2xl border border-border/80 bg-card/60 backdrop-blur overflow-hidden">
-          {[
-            { ref: stat1.ref, val: `${stat1.val.toLocaleString()}+`, label: 'Models Available' },
-            { ref: stat4.ref, val: `${stat4.val.toFixed(2)}${requestsUnit}`, label: 'Requests Processed' },
-            { ref: stat5.ref, val: `${stat5.val.toFixed(2)}${tokensUnit}`, label: 'Tokens Channeled' },
-            { ref: stat6.ref, val: `${stat6.val.toFixed(2)}${successUnit}`, label: 'Routing Success Rate' }
-          ].map(({ ref, val, label }) => (
-            <div key={label} ref={ref} className="py-6 text-center stat-animate bg-card/40 dark:bg-slate-900/40 backdrop-blur-md">
-              <div className="text-3xl font-extrabold text-foreground stat-num">{val}</div>
-              <div className="text-xs text-muted-foreground mt-1 px-2">{label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
 
       {/* ── SECTION: Chat Playground ── */}
       {/* ── SECTION: Smart Routing ── */}
