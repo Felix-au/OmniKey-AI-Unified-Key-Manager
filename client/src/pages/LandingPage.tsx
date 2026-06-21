@@ -333,7 +333,7 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
       vy: number
     }> = []
 
-    const count = window.innerWidth < 768 ? 36 : 72
+    const count = window.innerWidth < 768 ? 32 : 65
     const mouse = { x: -9999, y: -9999, inside: false }
 
     const onMouse = (e: MouseEvent) => {
@@ -357,7 +357,7 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
     resize()
     window.addEventListener('resize', resize)
 
-    // Initialize 72 particles with random positions and velocities
+    // Initialize particles with random positions and velocities
     for (let i = 0; i < count; i++) {
       particles.push({
         x: Math.random() * canvas.width,
@@ -2211,7 +2211,7 @@ export default function LandingPage() {
         </div>
       </Section>
 
-      <div 
+      <div
         className="fixed z-10 pointer-events-none select-none hidden md:flex items-center justify-center animate-fade-in"
         style={{
           top: '102px',
@@ -2232,8 +2232,8 @@ export default function LandingPage() {
             { name: "Hidden 2", nodes: 4, color: "#ec4899", shadow: "rgba(236,72,153,0.5)" },
             { name: "Output", nodes: 3, color: "#10b981", shadow: "rgba(16,185,129,0.5)" }
           ].map((layer, layerIdx) => (
-            <div 
-              key={layerIdx} 
+            <div
+              key={layerIdx}
               className={`mlp-detailed-layer layer-idx-${layerIdx}`}
               style={{
                 transform: `rotateY(-20deg) translateZ(${(layerIdx - 1.5) * 90}px)`
@@ -2243,11 +2243,11 @@ export default function LandingPage() {
                 <span className="text-[7px] text-slate-500 dark:text-muted-foreground/60 tracking-wider uppercase font-bold">{layer.name}</span>
                 <span className="text-[7px] text-violet-600 dark:text-violet-400 font-mono">L{layerIdx}</span>
               </div>
-              
+
               <div className="neuron-flex-container">
                 {Array.from({ length: layer.nodes }).map((_, nIdx) => (
-                  <div 
-                    key={nIdx} 
+                  <div
+                    key={nIdx}
                     className="neuron-node-detailed"
                     style={{
                       borderColor: layer.color,
@@ -2262,8 +2262,8 @@ export default function LandingPage() {
                         {Array.from({ length: [5, 4, 3][layerIdx] || 0 }).map((_, linkIdx) => {
                           const skewAngle = (linkIdx - (([5, 4, 3][layerIdx] - 1) / 2)) * 14;
                           return (
-                            <div 
-                              key={linkIdx} 
+                            <div
+                              key={linkIdx}
                               className="synapse-track"
                               style={{
                                 transform: `rotateZ(${skewAngle}deg)`,
@@ -2271,15 +2271,15 @@ export default function LandingPage() {
                               }}
                             >
                               {/* Forward Propagation Activation (Cyan/Blue) */}
-                              <span 
-                                className="activation-pulse" 
+                              <span
+                                className="activation-pulse"
                                 style={{
                                   animationDelay: `${nIdx * 0.35 + linkIdx * 0.25 + layerIdx * 0.6}s`
                                 }}
                               />
                               {/* Backward Propagation Gradient (Rose Red) */}
-                              <span 
-                                className="backprop-pulse" 
+                              <span
+                                className="backprop-pulse"
                                 style={{
                                   animationDelay: `${(4 - nIdx) * 0.35 + (3 - linkIdx) * 0.25 + (3 - layerIdx) * 0.6}s`
                                 }}
@@ -2298,8 +2298,8 @@ export default function LandingPage() {
       </div>
 
       {/* ── 3D Token Cascade Background Element ── */}
-      <div 
-        className="fixed bottom-0 z-10 pointer-events-none select-none flex items-center justify-center"
+      <div
+        className="fixed bottom-0 z-10 pointer-events-none select-none hidden md:flex items-center justify-center"
         style={{
           right: '-25px',
           width: '220px',
