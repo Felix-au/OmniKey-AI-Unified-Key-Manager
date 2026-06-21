@@ -62,19 +62,7 @@ const auroraCSS = `
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
-@keyframes footerCyanPulse {
-  0%, 100% {
-    box-shadow: 0 -8px 32px rgba(6, 182, 212, 0.6), 0 -2px 10px rgba(6, 182, 212, 0.3);
-    border-color: rgba(34, 211, 238, 0.7);
-  }
-  50% {
-    box-shadow: 0 -14px 44px rgba(6, 182, 212, 0.85), 0 -4px 16px rgba(6, 182, 212, 0.45);
-    border-color: rgba(34, 211, 238, 0.95);
-  }
-}
-.animate-footer-pulse {
-  animation: footerCyanPulse 3.5s infinite ease-in-out;
-}
+
 `
 
 // ── Interactive Neural Mesh Background ──────────────────────────────────────────
@@ -96,12 +84,11 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
     }> = []
 
     const count = 72
-    const mouse = { x: 0, y: 0, inside: false, lastActive: 0, intensity: 0 }
+    const mouse = { x: 0, y: 0, inside: false }
 
     const onMouse = (e: MouseEvent) => {
       mouse.x = e.clientX
       mouse.y = e.clientY
-      mouse.lastActive = Date.now()
     }
     const onEnter = () => { mouse.inside = true }
     const onLeave = () => { mouse.inside = false }
@@ -147,29 +134,11 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
         ctx.fillRect(0, 0, W, H)
       }
 
-      // DNA Helix center in bottom-right corner
-      const helixCenterX = W - 150
-      const helixCenterY = H - 150
-      const avoidanceRadius = 150
-
       // Update and draw particles
       particles.forEach((n) => {
         // Natural Drift (Brownian drift)
         n.vx += (Math.random() - 0.5) * 0.008
         n.vy += (Math.random() - 0.5) * 0.008
-
-        // Bottom-Right Helix Repulsion
-        const dxHelix = n.x - helixCenterX
-        const dyHelix = n.y - helixCenterY
-        const distHelix = Math.sqrt(dxHelix * dxHelix + dyHelix * dyHelix)
-
-        if (distHelix < avoidanceRadius && distHelix > 0) {
-          const F_repulse = (1 - distHelix / avoidanceRadius) * 0.28
-          const ux = dxHelix / distHelix
-          const uy = dyHelix / distHelix
-          n.vx += F_repulse * ux
-          n.vy += F_repulse * uy
-        }
 
         // Clamp Speed between 0.3 and 1.4
         const speed = Math.sqrt(n.vx * n.vx + n.vy * n.vy)
@@ -193,6 +162,31 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
         if (n.y > H) n.y -= H
       })
 
+      // Draw connections between nearby particles (dynamic paths) with a heavy cyan glow
+      ctx.save()
+      ctx.shadowBlur = 10
+      ctx.shadowColor = '#06b6d4'
+      for (let i = 0; i < count; i++) {
+        for (let j = i + 1; j < count; j++) {
+          const p1 = particles[i]
+          const p2 = particles[j]
+          const dx = p1.x - p2.x
+          const dy = p1.y - p2.y
+          const dist = Math.sqrt(dx * dx + dy * dy)
+
+          if (dist < 120) {
+            const opacity = (1 - dist / 120) * 0.25
+            ctx.strokeStyle = `rgba(6, 182, 212, ${opacity})`
+            ctx.lineWidth = 1.0
+            ctx.beginPath()
+            ctx.moveTo(p1.x, p1.y)
+            ctx.lineTo(p2.x, p2.y)
+            ctx.stroke()
+          }
+        }
+      }
+      ctx.restore()
+
       // Draw particle nodes with a heavy cyan glow
       ctx.save()
       ctx.shadowBlur = 12
@@ -205,12 +199,8 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
       })
       ctx.restore()
 
-      // Track mouse movement intensity transitions
-      const targetIntensity = (mouse.inside && (Date.now() - mouse.lastActive < 150)) ? 1 : 0
-      mouse.intensity += (targetIntensity - mouse.intensity) * 0.1
-
-      // Draw glowing connections to mouse cursor only when moving (Cyber Cyan laser glow)
-      if (mouse.intensity > 0.01) {
+      // Draw glowing connections to mouse cursor (treating it as an interactive node)
+      if (mouse.inside) {
         ctx.save()
         ctx.shadowBlur = 12
         ctx.shadowColor = '#06b6d4'
@@ -220,9 +210,7 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
           const dist = Math.sqrt(dx * dx + dy * dy)
 
           if (dist < 195) {
-            const intensity = (1 - dist / 195) * mouse.intensity
-            const opacity = intensity * 0.8
-
+            const opacity = (1 - dist / 195) * 0.8
             ctx.strokeStyle = `rgba(6, 182, 212, ${opacity})`
             ctx.lineWidth = 1.8
             ctx.beginPath()
@@ -234,55 +222,6 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
         ctx.restore()
       }
 
-      // Render 3D Rotating DNA Helix in bottom-right corner
-      const helixPoints = 15
-      const helixRadius = 32
-      const helixSpacing = 12
-      const halfLength = (helixPoints * helixSpacing) / 2
-
-      for (let i = 0; i < helixPoints; i++) {
-        const pointY = helixCenterY - halfLength + i * helixSpacing
-        const angle = i * 0.35 + helixAngle
-
-        // Strand A
-        const offsetA = Math.sin(angle) * helixRadius
-        const zA = Math.cos(angle) * helixRadius
-        const xA = helixCenterX + offsetA
-        // Strand B (180 degrees out of phase)
-        const offsetB = Math.sin(angle + Math.PI) * helixRadius
-        const zB = Math.cos(angle + Math.PI) * helixRadius
-        const xB = helixCenterX + offsetB
-
-        // Depth opacity/scaling
-        const alphaA = 0.35 + ((zA + helixRadius) / (2 * helixRadius)) * 0.65
-        const alphaB = 0.35 + ((zB + helixRadius) / (2 * helixRadius)) * 0.65
-        const scaleA = 1.5 + ((zA + helixRadius) / (2 * helixRadius)) * 2.5
-        const scaleB = 1.5 + ((zB + helixRadius) / (2 * helixRadius)) * 2.5
-
-        // Connect Strand A & Strand B with rung line
-        const avgZ = (zA + zB) / 2
-        const alphaLine = 0.15 + ((avgZ + helixRadius) / (2 * helixRadius)) * 0.35
-        ctx.strokeStyle = `rgba(6, 182, 212, ${alphaLine})`
-        ctx.lineWidth = 1
-        ctx.beginPath()
-        ctx.moveTo(xA, pointY)
-        ctx.lineTo(xB, pointY)
-        ctx.stroke()
-
-        // Draw Strand A Node
-        ctx.fillStyle = `rgba(6, 182, 212, ${alphaA})`
-        ctx.beginPath()
-        ctx.arc(xA, pointY, scaleA, 0, Math.PI * 2)
-        ctx.fill()
-
-        // Draw Strand B Node
-        ctx.fillStyle = `rgba(6, 182, 212, ${alphaB})`
-        ctx.beginPath()
-        ctx.arc(xB, pointY, scaleB, 0, Math.PI * 2)
-        ctx.fill()
-      }
-
-      helixAngle += 0.015
       animId = requestAnimationFrame(draw)
     }
 
@@ -1299,7 +1238,7 @@ export default function LandingPage() {
       <NeuralMeshBackground dark={dark} />
 
       {/* NAV */}
-      <header className={`sticky top-0 z-50 transition-all duration-300 bg-background/10 backdrop-blur-[24px] border-b border-cyan-400/30 shadow-[0_4px_20px_rgba(6,182,212,0.25)] rounded-b-2xl ${scrolled ? 'h-12' : 'h-20'}`}>
+      <header className={`sticky top-0 z-50 transition-all duration-300 bg-background/10 backdrop-blur-[24px] border-b-[1.5px] border-cyan-400/45 shadow-[0_4px_24px_rgba(6,182,212,0.35)] rounded-b-2xl ${scrolled ? 'h-12' : 'h-20'}`}>
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between relative h-full transition-all duration-300">
           <div className="flex items-center gap-2 shrink-0">
             <span className={`font-bold tracking-tight transition-all duration-300 ${scrolled ? 'text-sm' : 'text-xl text-foreground'}`}>OmniKey AI</span>
@@ -1468,7 +1407,6 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* ── SECTION: Chat Playground ── */}
       {/* ── SECTION: Smart Routing ── */}
       <Section id="routing" alt>
         <div className="grid md:grid-cols-2 gap-12 items-center">
@@ -1784,7 +1722,8 @@ export default function LandingPage() {
               )}
             </div>
           </div>
-        </MockCard>
+        </div>
+      </MockCard>
       </Section>
 
       {/* ── SECTION: FAQ & How it Works ── */}
@@ -1959,7 +1898,7 @@ export default function LandingPage() {
       </Section>
 
       {/* ── FOOTER: Persistent Frosted Glass Footer ── */}
-      <footer className="fixed bottom-0 left-0 right-0 z-40 h-10 bg-background/20 backdrop-blur-[24px] border-t-[1.5px] border-cyan-400/70 rounded-t-2xl shadow-[0_-8px_32px_rgba(6,182,212,0.6),_0_-2px_10px_rgba(6,182,212,0.3)] flex items-center px-6 animate-footer-pulse">
+      <footer className="fixed bottom-0 left-0 right-0 z-40 h-10 bg-background/20 backdrop-blur-[24px] border-t-[1.5px] border-cyan-400/45 shadow-[0_-4px_24px_rgba(6,182,212,0.35)] flex items-center px-6">
         <div className="w-full max-w-6xl mx-auto flex items-center justify-between relative text-[11px] text-muted-foreground">
           {/* Centered Copyright */}
           <span className="absolute left-1/2 -translate-x-1/2 font-medium tracking-wide">
