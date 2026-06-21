@@ -198,7 +198,7 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
           const dist = Math.sqrt(dx * dx + dy * dy)
 
           if (dist < 140) {
-            const opacity = (1 - dist / 140) * (dark ? 1.0 : 0.85)
+            const opacity = (1 - dist / 160) * (dark ? 1.0 : 0.85)
             ctx.strokeStyle = `rgba(6, 182, 212, ${opacity})`
             ctx.lineWidth = dark ? 2.2 : 1.6
             ctx.beginPath()
@@ -630,7 +630,7 @@ function useDebateArenaSimulation() {
 
     const loop = () => {
       if (!active) return
-      
+
       // Reset all states
       setIsFadingOut(false)
       setStage('config')
@@ -651,7 +651,7 @@ function useDebateArenaSimulation() {
         setActiveField('topic')
         typeText("Should AI replace human creativity?", () => {
           setActiveField(null)
-          
+
           runTimeout(() => {
             // Step 2: Select Opening Player
             setActiveField('opening')
@@ -718,7 +718,7 @@ function useDebateArenaSimulation() {
                                                       setIsStartClicked(false)
                                                       setActiveField(null)
                                                       setStage('debating')
-                                                      
+
                                                       // Start the debate transcript choreography
                                                       runDebate()
                                                     }, 400)
@@ -942,7 +942,8 @@ const debateMsgs = [
   // Round 1
   { role: 'infavor', label: 'In Favor · gemini-2.5-flash · Round 1', text: 'AI acts as a collaborative partner, expanding the boundaries of human ideation by suggesting non-obvious combinations and patterns that inspire novel ideas.' },
   { role: 'against', label: 'Against · llama-3.3-70b · Round 1', text: 'True creative leaps require breaking conventions and lived emotional experience. Static probability matrices merely repackage existing human data without genuine agency.' },
-  { role: 'judge', label: '⚖ Judge · gpt-4o-mini · Round 1', text: `Score Card (Round 1):
+  {
+    role: 'judge', label: '⚖ Judge · gpt-4o-mini · Round 1', text: `Score Card (Round 1):
 
 In Favor Model: 6/10
 Against Model: 7/10
@@ -950,7 +951,8 @@ Round Critique: In Favor points out collaborative potential, while Against empha
   // Round 2
   { role: 'infavor', label: 'In Favor · gemini-2.5-flash · Round 2', text: 'AI tools democratize expression, allowing people without formal training or technical illustration skills to manifest and communicate complex artistic visions.' },
   { role: 'against', label: 'Against · llama-3.3-70b · Round 2', text: 'Democratization shouldn\'t mean flooding the world with derivative, low-effort content. It risks diluting the value of dedication, craftsmanship, and years of skill.' },
-  { role: 'judge', label: '⚖ Judge · gpt-4o-mini · Round 2', text: `Score Card (Round 2):
+  {
+    role: 'judge', label: '⚖ Judge · gpt-4o-mini · Round 2', text: `Score Card (Round 2):
 
 In Favor Model: 8/10
 Against Model: 8/10
@@ -958,7 +960,8 @@ Round Critique: A balanced round. In Favor scores highly on accessibility and in
   // Round 3
   { role: 'infavor', label: 'In Favor · gemini-2.5-flash · Round 3', text: 'Generative models accelerate iteration, enabling creators to rapidly test and prototype concepts in seconds rather than spending weeks on basic drafts.' },
   { role: 'against', label: 'Against · llama-3.3-70b · Round 3', text: 'Accelerating iteration bypasses the critical process of deep reflection. "Happy accidents" occur during slow, deliberate craftsmanship, not instant generations.' },
-  { role: 'judge', label: '⚖ Judge · gpt-4o-mini · Round 3', text: `Score Card (Round 3):
+  {
+    role: 'judge', label: '⚖ Judge · gpt-4o-mini · Round 3', text: `Score Card (Round 3):
 
 In Favor Model: 8/10
 Against Model: 7/10
@@ -966,7 +969,8 @@ Round Critique: In Favor highlights real-world industrial utility, whereas Again
   // Round 4
   { role: 'infavor', label: 'In Favor · gemini-2.5-flash · Round 4', text: 'By scanning historical art styles, AI can identify unexplored aesthetic gaps, enabling human artists to deliberately explore fresh stylistic frontiers.' },
   { role: 'against', label: 'Against · llama-3.3-70b · Round 4', text: 'Finding stylistic gaps via analysis is a formulaic approach, not an artistic one. Art is an expression of conscious emotion reflecting a moment in time.' },
-  { role: 'judge', label: '⚖ Judge · gpt-4o-mini · Round 4', text: `Score Card (Round 4):
+  {
+    role: 'judge', label: '⚖ Judge · gpt-4o-mini · Round 4', text: `Score Card (Round 4):
 
 In Favor Model: 7/10
 Against Model: 8/10
@@ -974,7 +978,8 @@ Round Critique: Against presents a strong philosophical argument against analyti
   // Round 5
   { role: 'infavor', label: 'In Favor · gemini-2.5-flash · Round 5', text: 'Ultimately, AI is another tool in the artist\'s toolkit, analogous to the camera or synthesizer which faced similar resistance when first introduced.' },
   { role: 'against', label: 'Against · llama-3.3-70b · Round 5', text: 'A camera doesn\'t decide what is beautiful, and a synthesizer doesn\'t write lyrics. AI is the first tool that actively seeks to replace the creative agent.' },
-  { role: 'judge', label: '⚖ Judge · gpt-4o-mini · Round 5', text: `Final Arena Verdict:
+  {
+    role: 'judge', label: '⚖ Judge · gpt-4o-mini · Round 5', text: `Final Arena Verdict:
 
 In Favor Model: 7/10
 Against Model: 9/10
@@ -1245,20 +1250,20 @@ export default function LandingPage() {
           <div className="flex items-center gap-6 ml-auto">
             <nav className={`hidden md:flex items-center justify-end text-muted-foreground transition-all duration-300 ${scrolled ? 'gap-5 text-sm' : 'gap-7 text-[15px]'}`}>
               {/* Features Dropdown */}
-              <div 
+              <div
                 className="relative py-2"
                 onMouseEnter={() => setFeaturesDropdownOpen(true)}
                 onMouseLeave={() => setFeaturesDropdownOpen(false)}
               >
-                <button 
+                <button
                   onClick={() => setFeaturesDropdownOpen(!featuresDropdownOpen)}
                   className={`hover:text-foreground transition-colors flex items-center gap-1.5 cursor-pointer focus:outline-none transition-all duration-300 ${scrolled ? 'font-medium' : 'font-semibold text-foreground/90'}`}
                 >
                   Features
-                  <svg 
-                    className={`w-2.5 h-2.5 transition-transform duration-200 ${featuresDropdownOpen ? 'rotate-180' : ''}`} 
-                    fill="none" 
-                    stroke="currentColor" 
+                  <svg
+                    className={`w-2.5 h-2.5 transition-transform duration-200 ${featuresDropdownOpen ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
@@ -1267,32 +1272,32 @@ export default function LandingPage() {
 
                 {featuresDropdownOpen && (
                   <div className="absolute top-full left-1/2 -translate-x-1/2 w-40 rounded-xl border border-border bg-card/95 backdrop-blur-xl shadow-xl py-2 z-50 animate-fade-in flex flex-col">
-                    <a 
-                      href="#routing" 
+                    <a
+                      href="#routing"
                       onClick={() => setFeaturesDropdownOpen(false)}
                       className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="18" r="3" /><circle cx="18" cy="6" r="3" /><path d="M6 15c0-3.87 3.13-7 7-7h2" /><polyline points="17 3 21 7 17 11" /></svg>
                       Routing
                     </a>
-                    <a 
-                      href="#features" 
+                    <a
+                      href="#features"
                       onClick={() => setFeaturesDropdownOpen(false)}
                       className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                       Playground
                     </a>
-                    <a 
-                      href="#arena" 
+                    <a
+                      href="#arena"
                       onClick={() => setFeaturesDropdownOpen(false)}
                       className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
                       Arena
                     </a>
-                    <a 
-                      href="#debate" 
+                    <a
+                      href="#debate"
                       onClick={() => setFeaturesDropdownOpen(false)}
                       className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
                     >
@@ -1318,7 +1323,7 @@ export default function LandingPage() {
               </a>
 
               <a href="#contact" className={`hover:text-foreground transition-colors flex items-center gap-1.5 transition-all duration-300 ${scrolled ? 'font-medium' : 'font-semibold text-foreground/90'}`}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
                 Contact
               </a>
             </nav>
@@ -1520,13 +1525,12 @@ export default function LandingPage() {
                     <span className="text-muted-foreground/45 italic font-normal">Awaiting prompt...</span>
                   )}
                 </div>
-                <div className={`shrink-0 rounded-lg px-2.5 py-1 text-[10px] font-bold border transition-all duration-300 ${
-                  arena.sendClicked
+                <div className={`shrink-0 rounded-lg px-2.5 py-1 text-[10px] font-bold border transition-all duration-300 ${arena.sendClicked
                     ? 'bg-blue-700 text-white border-blue-600 scale-95 shadow-none'
                     : arena.sendReady
                       ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/20 scale-100'
                       : 'bg-muted-foreground/10 text-muted-foreground/40 border-border/40 scale-100'
-                }`}>
+                  }`}>
                   Send
                 </div>
               </div>
@@ -1599,9 +1603,8 @@ export default function LandingPage() {
                 }`} />
               <div className="space-y-1">
                 <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Topic</div>
-                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground transition-all duration-300 min-h-[34px] flex items-center ${
-                  debateSim.activeField === 'topic' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
-                }`}>
+                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground transition-all duration-300 min-h-[34px] flex items-center ${debateSim.activeField === 'topic' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
+                  }`}>
                   {debateSim.topicText ? (
                     <span className="flex items-center truncate">
                       <span>{debateSim.topicText}</span>
@@ -1614,9 +1617,8 @@ export default function LandingPage() {
               </div>
               <div className="space-y-1">
                 <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Opening Player</div>
-                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${
-                  debateSim.activeField === 'opening' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
-                }`}>
+                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${debateSim.activeField === 'opening' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
+                  }`}>
                   <span>{debateSim.openingPlayer}</span>
                   <span className="text-muted-foreground">▾</span>
                 </div>
@@ -1624,15 +1626,13 @@ export default function LandingPage() {
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Rounds</div>
-                  <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground transition-all duration-300 ${
-                    debateSim.activeField === 'rounds' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
-                  }`}>{debateSim.rounds}</div>
+                  <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground transition-all duration-300 ${debateSim.activeField === 'rounds' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
+                    }`}>{debateSim.rounds}</div>
                 </div>
                 <div className="space-y-1">
                   <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Judging</div>
-                  <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${
-                    debateSim.activeField === 'judging' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
-                  }`}>
+                  <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${debateSim.activeField === 'judging' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
+                    }`}>
                     <span>{debateSim.judging}</span>
                     <span className="text-muted-foreground">▾</span>
                   </div>
@@ -1640,37 +1640,32 @@ export default function LandingPage() {
               </div>
               <div className="space-y-1">
                 <div className="text-[10px] font-semibold text-emerald-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />In Favor</div>
-                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${
-                  debateSim.activeField === 'infavor' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
-                }`}>
+                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${debateSim.activeField === 'infavor' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
+                  }`}>
                   <span className="truncate">{debateSim.infavor}</span>
                   <span className="text-muted-foreground ml-1">▾</span>
                 </div>
               </div>
               <div className="space-y-1">
                 <div className="text-[10px] font-semibold text-rose-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block" />Against</div>
-                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${
-                  debateSim.activeField === 'against' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
-                }`}>
+                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${debateSim.activeField === 'against' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
+                  }`}>
                   <span className="truncate">{debateSim.against}</span>
                   <span className="text-muted-foreground ml-1">▾</span>
                 </div>
               </div>
               <div className="space-y-1">
                 <div className="text-[10px] font-semibold text-amber-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />Judge</div>
-                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${
-                  debateSim.activeField === 'judge' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
-                }`}>
+                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${debateSim.activeField === 'judge' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
+                  }`}>
                   <span className="truncate">{debateSim.judge}</span>
                   <span className="text-muted-foreground ml-1">▾</span>
                 </div>
               </div>
               <button
-                className={`w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-xs font-semibold rounded-xl px-4 py-2.5 text-center cursor-default transition-all duration-300 ${
-                  debateSim.activeField === 'startBtn' ? 'ring-2 ring-violet-500 ring-offset-2 dark:ring-offset-slate-900 scale-102 shadow-lg shadow-violet-500/30' : ''
-                } ${
-                  debateSim.isStartClicked ? 'scale-95 brightness-90 shadow-none' : ''
-                }`}
+                className={`w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-xs font-semibold rounded-xl px-4 py-2.5 text-center cursor-default transition-all duration-300 ${debateSim.activeField === 'startBtn' ? 'ring-2 ring-violet-500 ring-offset-2 dark:ring-offset-slate-900 scale-102 shadow-lg shadow-violet-500/30' : ''
+                  } ${debateSim.isStartClicked ? 'scale-95 brightness-90 shadow-none' : ''
+                  }`}
               >
                 Start Debate Arena
               </button>
@@ -1691,26 +1686,24 @@ export default function LandingPage() {
                   </div>
                   <div ref={transcriptScrollRef} className="flex-1 overflow-y-auto no-scrollbar pr-1 space-y-3 scroll-smooth">
                     {debateMsgs.map((m, i) => i < debateSim.visibleCount ? (
-                      <div key={i} className={`rounded-xl border px-4 py-3 text-xs leading-relaxed animate-fade-up ${
-                        m.role === 'infavor' ? 'border-emerald-500/30 bg-emerald-500/5' :
-                        m.role === 'against' ? 'border-rose-500/30 bg-rose-500/5' :
-                        'border-amber-500/30 bg-amber-500/5'
-                      }`}>
-                        <div className={`text-[10px] font-semibold mb-1 ${
-                          m.role === 'infavor' ? 'text-emerald-500' :
-                          m.role === 'against' ? 'text-rose-500' :
-                          'text-amber-500'
-                        }`}>{m.label}</div>
+                      <div key={i} className={`rounded-xl border px-4 py-3 text-xs leading-relaxed animate-fade-up ${m.role === 'infavor' ? 'border-emerald-500/30 bg-emerald-500/5' :
+                          m.role === 'against' ? 'border-rose-500/30 bg-rose-500/5' :
+                            'border-amber-500/30 bg-amber-500/5'
+                        }`}>
+                        <div className={`text-[10px] font-semibold mb-1 ${m.role === 'infavor' ? 'text-emerald-500' :
+                            m.role === 'against' ? 'text-rose-500' :
+                              'text-amber-500'
+                          }`}>{m.label}</div>
                         <p className="whitespace-pre-line">{m.text}</p>
                       </div>
                     ) : null)}
-                    
+
                     {debateSim.isTyping && (
                       <div className="rounded-xl border px-4 py-3 text-xs leading-relaxed animate-fade-up bg-muted/20 border-border/40 flex items-center gap-2">
                         <span className="text-[10px] font-semibold text-muted-foreground">
                           {debateMsgs[debateSim.visibleCount]?.role === 'infavor' ? 'In Favor is typing' :
-                           debateMsgs[debateSim.visibleCount]?.role === 'against' ? 'Against is typing' :
-                           'Judge is evaluating'}
+                            debateMsgs[debateSim.visibleCount]?.role === 'against' ? 'Against is typing' :
+                              'Judge is evaluating'}
                         </span>
                         <div className="flex gap-1 items-center">
                           <span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" />
@@ -1903,13 +1896,13 @@ export default function LandingPage() {
           <span className="absolute left-1/2 -translate-x-1/2 font-medium tracking-wide">
             &copy; 2026 OmniKey AI. All rights reserved.
           </span>
-          
+
           {/* Right-aligned GitHub repository link */}
           <div className="ml-auto flex items-center gap-1.5 z-10">
-            <a 
-              href="https://github.com/Felix-au/OmniKey-AI-Unified-Key-Manager" 
-              target="_blank" 
-              rel="noreferrer" 
+            <a
+              href="https://github.com/Felix-au/OmniKey-AI-Unified-Key-Manager"
+              target="_blank"
+              rel="noreferrer"
               className="text-muted-foreground hover:text-cyan-400 transition-colors duration-300 flex items-center gap-1.5 font-semibold hover:drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="opacity-80 hover:opacity-100"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z" /></svg>
