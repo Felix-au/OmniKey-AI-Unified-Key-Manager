@@ -1176,13 +1176,13 @@ export default function LandingPage() {
           <nav className="hidden md:flex items-center gap-5 ml-6 text-sm text-muted-foreground">
             {/* Features Dropdown */}
             <div 
-              className="relative"
+              className="relative py-2"
               onMouseEnter={() => setFeaturesDropdownOpen(true)}
               onMouseLeave={() => setFeaturesDropdownOpen(false)}
             >
               <button 
                 onClick={() => setFeaturesDropdownOpen(!featuresDropdownOpen)}
-                className="hover:text-foreground transition-colors flex items-center gap-1 cursor-pointer py-2 focus:outline-none"
+                className="hover:text-foreground transition-colors flex items-center gap-1 cursor-pointer focus:outline-none"
               >
                 Features
                 <svg 
@@ -1196,11 +1196,11 @@ export default function LandingPage() {
               </button>
 
               {featuresDropdownOpen && (
-                <div className="absolute top-full left-0 mt-1 w-40 rounded-xl border border-border bg-card/95 backdrop-blur-xl shadow-xl py-2 z-50 animate-fade-in flex flex-col">
+                <div className="absolute top-full left-1/2 -translate-x-1/2 w-40 rounded-xl border border-border bg-card/95 backdrop-blur-xl shadow-xl py-2 z-50 animate-fade-in flex flex-col">
                   <a 
                     href="#routing" 
                     onClick={() => setFeaturesDropdownOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors"
+                    className="flex items-center justify-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="18" r="3" /><circle cx="18" cy="6" r="3" /><path d="M6 15c0-3.87 3.13-7 7-7h2" /><polyline points="17 3 21 7 17 11" /></svg>
                     Routing
@@ -1208,7 +1208,7 @@ export default function LandingPage() {
                   <a 
                     href="#features" 
                     onClick={() => setFeaturesDropdownOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors"
+                    className="flex items-center justify-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                     Playground
@@ -1216,7 +1216,7 @@ export default function LandingPage() {
                   <a 
                     href="#arena" 
                     onClick={() => setFeaturesDropdownOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors"
+                    className="flex items-center justify-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
                     Arena
@@ -1224,7 +1224,7 @@ export default function LandingPage() {
                   <a 
                     href="#debate" 
                     onClick={() => setFeaturesDropdownOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors"
+                    className="flex items-center justify-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z" /></svg>
                     Debate
