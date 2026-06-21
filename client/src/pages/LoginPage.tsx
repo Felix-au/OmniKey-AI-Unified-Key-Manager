@@ -57,23 +57,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmModalOpen, setConfirmModalOpen] = useState(false)
-  const [promoStatus, setPromoStatus] = useState<{ activePromoUsers: number; totalPromoLimit: number; remainingSlots: number; isActive: boolean } | null>(null)
-
-  useEffect(() => {
-    const fetchPromoStatus = async () => {
-      try {
-        const base = (import.meta.env.VITE_API_URL || import.meta.env.BASE_URL).replace(/\/$/, '')
-        const res = await fetch(`${base}/api/public/promo-status`)
-        if (res.ok) {
-          const data = await res.json()
-          setPromoStatus(data)
-        }
-      } catch (err) {
-        console.warn('Failed to fetch promo status:', err)
-      }
-    }
-    fetchPromoStatus()
-  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
