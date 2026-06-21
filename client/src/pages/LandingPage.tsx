@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 
+import logoDark from '../assets/logo-dark-theme.png'
+import logoLight from '../assets/logo-light-theme.png'
+
 // ── Aurora background CSS ────────────────────────────────────────────────────
 const auroraCSS = `
 @keyframes blob1 {
@@ -916,6 +919,20 @@ const providerColors: Record<string, string> = {
   Google: 'bg-blue-500', Groq: 'bg-orange-500', Mistral: 'bg-purple-500', NVIDIA: 'bg-green-500',
   Cerebras: 'bg-teal-500', SambaNova: 'bg-red-500', Cohere: 'bg-yellow-500', OpenRouter: 'bg-slate-400',
   Cloudflare: 'bg-orange-400', Zhipu: 'bg-cyan-500', HuggingFace: 'bg-yellow-400', GitHub: 'bg-slate-500',
+}
+
+const providerLogos: Record<string, string> = {
+  Google: '/logos/google.svg',
+  Groq: '/logos/groq.svg',
+  Mistral: '/logos/mistral.svg',
+  NVIDIA: '/logos/nvidia.svg',
+  Cerebras: '/logos/cerebras.svg',
+  SambaNova: '/logos/sambanova.jpg',
+  Cohere: '/logos/cohere.svg',
+  OpenRouter: '/logos/openrouter.svg',
+  Cloudflare: '/logos/cloudflare.svg',
+  Zhipu: '/logos/zai.svg',
+  GitHub: '/logos/github.svg',
 }
 
 // ── Mock Chat Messages ────────────────────────────────────────────────────────
