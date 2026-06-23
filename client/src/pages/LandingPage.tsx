@@ -1293,7 +1293,7 @@ const fallbackChain = [
 // ── Section Wrapper ───────────────────────────────────────────────────────────
 function Section({ children, alt = false, id }: { children: React.ReactNode; alt?: boolean; id?: string }) {
   return (
-    <section id={id} className={`py-20 px-6 ${alt ? 'bg-muted/30 dark:bg-white/[0.02]' : ''}`}>
+    <section id={id} className={`relative z-10 py-20 px-6 ${alt ? 'bg-muted/30 dark:bg-white/[0.02]' : ''}`}>
       <div className="max-w-6xl mx-auto">{children}</div>
     </section>
   )
@@ -2212,7 +2212,7 @@ export default function LandingPage() {
       </Section>
 
       <div
-        className="fixed z-10 pointer-events-none select-none hidden md:flex items-center justify-center animate-fade-in"
+        className="fixed z-[1] pointer-events-none select-none hidden md:flex items-center justify-center animate-fade-in"
         style={{
           top: '102px',
           left: '-20px',
@@ -2299,7 +2299,7 @@ export default function LandingPage() {
 
       {/* ── 3D Token Cascade Background Element ── */}
       <div
-        className="fixed bottom-0 z-10 pointer-events-none select-none hidden md:flex items-center justify-center"
+        className="fixed bottom-0 z-[1] pointer-events-none select-none hidden md:flex items-center justify-center"
         style={{
           right: '-25px',
           width: '220px',
