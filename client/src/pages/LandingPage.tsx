@@ -401,12 +401,12 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
         // Repulsion from 3D MLP construct (Top-Left)
         const isDesktop = window.innerWidth >= 768
         if (isDesktop) {
-          const cX = 153
-          const cY = 253 // Statically 102px top + 151px half height
+          const cX = 134
+          const cY = 236 // Statically 102px top + 134px half height
           const dx = n.x - cX
           const dy = n.y - cY
           const dist = Math.sqrt(dx * dx + dy * dy)
-          const radius = 200
+          const radius = 180
           if (dist < radius && dist > 0) {
             const force = (1 - dist / radius) * 0.5
             n.vx += (dx / dist) * force
@@ -2359,7 +2359,7 @@ export default function LandingPage() {
           height: '280px',
           perspective: '800px',
           transformStyle: 'preserve-3d',
-          transform: 'scale(1.08)',
+          transform: 'scale(0.96)',
           transformOrigin: 'top left'
         }}
       >
