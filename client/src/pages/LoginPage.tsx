@@ -3,8 +3,8 @@ import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithP
 import { auth } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import { Button } from '@/components/ui/button'
-import logoDark from '../assets/logo-dark-theme.png'
-import logoLight from '../assets/logo-light-theme.png'
+import logoDark from '../assets/logo-dark-theme.webp'
+import logoLight from '../assets/logo-light-theme.webp'
 import { useTheme } from '@/lib/useTheme'
 import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 

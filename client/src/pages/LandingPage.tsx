@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 
-import logoDark from '../assets/logo-dark-theme.png'
-import logoLight from '../assets/logo-light-theme.png'
+import logoDark from '../assets/logo-dark-theme.webp'
+import logoLight from '../assets/logo-light-theme.webp'
 
 // ── Aurora background CSS ────────────────────────────────────────────────────
 const auroraCSS = `
@@ -374,10 +374,19 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
       })
     }
 
-    const draw = () => {
-      const W = canvas.width
-      const H = canvas.height
-      ctx.clearRect(0, 0, W, H)
+    let lastTime = 0
+    const fpsInterval = 1000 / 30
+
+    const draw = (timestamp?: number) => {
+      const now = timestamp || performance.now()
+      const elapsed = now - lastTime
+
+      if (elapsed >= fpsInterval) {
+        lastTime = now - (elapsed % fpsInterval)
+
+        const W = canvas.width
+        const H = canvas.height
+        ctx.clearRect(0, 0, W, H)
 
       // Background color/gradient
       if (dark) {
@@ -484,17 +493,18 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
         ctx.restore()
       }
 
-      // Draw particle nodes with a heavy cyan glow
-      ctx.save()
-      ctx.shadowBlur = 22
-      ctx.shadowColor = '#06b6d4'
-      ctx.fillStyle = 'rgba(6, 182, 212, 0.95)'
-      particles.forEach((n) => {
-        ctx.beginPath()
-        ctx.arc(n.x, n.y, 3, 0, Math.PI * 2)
-        ctx.fill()
-      })
-      ctx.restore()
+        // Draw particle nodes with a heavy cyan glow
+        ctx.save()
+        ctx.shadowBlur = 22
+        ctx.shadowColor = '#06b6d4'
+        ctx.fillStyle = 'rgba(6, 182, 212, 0.95)'
+        particles.forEach((n) => {
+          ctx.beginPath()
+          ctx.arc(n.x, n.y, 3, 0, Math.PI * 2)
+          ctx.fill()
+        })
+        ctx.restore()
+      }
 
       animId = requestAnimationFrame(draw)
     }
