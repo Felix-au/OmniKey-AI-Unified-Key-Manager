@@ -1403,7 +1403,6 @@ export default function LandingPage() {
   const stat4 = useCountUp(routedRequestsTarget, 1200, 2)
   const stat5 = useCountUp(tokensChanneledTarget, 1200, 2)
   const stat6 = useCountUp(successRateTarget, 1200, 2)
-  const [promoStatus, setPromoStatus] = useState<{ activePromoUsers: number; totalPromoLimit: number; remainingSlots: number; isActive: boolean } | null>(null)
   const [featuresDropdownOpen, setFeaturesDropdownOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
@@ -1474,18 +1473,6 @@ export default function LandingPage() {
   }
 
   useEffect(() => {
-    const fetchPromoStatus = async () => {
-      try {
-        const base = (import.meta.env.VITE_API_URL || import.meta.env.BASE_URL).replace(/\/$/, '')
-        const res = await fetch(`${base}/api/public/promo-status`)
-        if (res.ok) {
-          const data = await res.json()
-          setPromoStatus(data)
-        }
-      } catch (err) {
-        console.warn('Failed to fetch promo status:', err)
-      }
-    }
     const fetchPublicStats = async () => {
       try {
         const base = (import.meta.env.VITE_API_URL || import.meta.env.BASE_URL).replace(/\/$/, '')
@@ -1514,7 +1501,6 @@ export default function LandingPage() {
       }
     }
 
-    fetchPromoStatus()
     fetchPublicStats()
   }, [])
 
@@ -1638,7 +1624,7 @@ export default function LandingPage() {
             {/* Combined Logo & Providers Container with 0 gap */}
             <div className="flex flex-col items-center gap-0 w-full">
               {/* Big Logo */}
-              <div className="w-full flex justify-center items-center">
+              <div className="w-full flex justify-center items-center min-h-[38vh] md:min-h-[33vh]">
                 <img
                   src={dark ? logoDark : logoLight}
                   alt="OmniKey AI - One Key. Every Model."
@@ -1678,22 +1664,16 @@ export default function LandingPage() {
 
             {/* Launch Offer Banner */}
             <div>
-              {promoStatus?.isActive ? (
-                <div
-                  onClick={() => navigate('/keys')}
-                  className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-emerald-500/40 bg-emerald-500/5 shadow-[0_0_15px_rgba(16,185,129,0.25)] hover:shadow-[0_0_22px_rgba(16,185,129,0.5)] hover:bg-emerald-500/10 text-xs font-semibold text-emerald-600 dark:text-emerald-400 cursor-pointer transition-all duration-300 transform hover:scale-[1.02]"
-                >
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 animate-pulse"></span>
-                  </span>
-                  <span>Launch Offer: Get 10M tokens free!</span>
-                </div>
-              ) : (
-                <span className="inline-block text-xs font-semibold px-3 py-1 rounded-full border border-violet-500/30 bg-violet-500/10 text-violet-500">
-                  ⚡ 12 Free LLM Providers. Zero Lock-in.
+              <div
+                onClick={() => navigate('/keys')}
+                className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-emerald-500/40 bg-emerald-500/5 shadow-[0_0_15px_rgba(16,185,129,0.25)] hover:shadow-[0_0_22px_rgba(16,185,129,0.5)] hover:bg-emerald-500/10 text-xs font-semibold text-emerald-600 dark:text-emerald-400 cursor-pointer transition-all duration-300 transform hover:scale-[1.02]"
+              >
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 animate-pulse"></span>
                 </span>
-              )}
+                <span>Launch Offer: Get 10M tokens free!</span>
+              </div>
             </div>
 
             {/* Stats Block (2x2 grid) */}

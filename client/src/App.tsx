@@ -481,6 +481,10 @@ function RouteMeta() {
 }
 
 function App() {
+  useEffect(() => {
+    document.documentElement.style.backgroundColor = ''
+  }, [])
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
