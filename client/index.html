@@ -2,6 +2,21 @@
 <html lang="en">
 
 <head>
+  <script>
+    (function () {
+      try {
+        const stored = localStorage.getItem('theme');
+        const isDark = stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (isDark) {
+          document.documentElement.classList.add('dark');
+          document.documentElement.style.backgroundColor = '#020817';
+        } else {
+          document.documentElement.classList.remove('dark');
+          document.documentElement.style.backgroundColor = '#ffffff';
+        }
+      } catch (e) {}
+    })();
+  </script>
   <meta charset="UTF-8" />
   <link rel="icon" type="image/png" href="/favicon.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
