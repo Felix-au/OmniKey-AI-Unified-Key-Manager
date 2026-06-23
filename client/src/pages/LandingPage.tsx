@@ -312,6 +312,13 @@ const auroraCSS = `
   box-shadow: 0 0 8px #ff2a5f, 0 0 3px #ff2a5f;
   animation: backpropTravel 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
+@keyframes popInInvite {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); box-shadow: 0 0 16px rgba(139,92,246,0.6); }
+}
+.animate-pop-invite {
+  animation: popInInvite 1.2s infinite ease-in-out;
+}
 `
 
 
@@ -333,7 +340,7 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
       vy: number
     }> = []
 
-    const count = window.innerWidth < 768 ? 30 : 60
+    const count = window.innerWidth < 768 ? 22 : 45
     const mouse = { x: -9999, y: -9999, inside: false }
 
     const onMouse = (e: MouseEvent) => {
@@ -523,117 +530,135 @@ function useAnimatedChat() {
   const [visible, setVisible] = useState(0)
   const [typing, setTyping] = useState(false)
   const [inputText, setInputText] = useState('')
+  const [showSendPrompt, setShowSendPrompt] = useState(false)
   const [isFadingOut, setIsFadingOut] = useState(false)
+  const [userIndex, setUserIndex] = useState(0)
+  const [isTypingUser, setIsTypingUser] = useState(false)
+  const containerRef = useRef<HTMLDivElement | null>(null)
+
+  const stateRef = useRef({
+    visible,
+    userIndex,
+    isTypingUser,
+    active: false,
+    currentTimeout: null as ReturnType<typeof setTimeout> | null,
+    currentInterval: null as ReturnType<typeof setInterval> | null
+  })
 
   useEffect(() => {
-    let active = true
-    let currentTimeout: ReturnType<typeof setTimeout> | null = null
-    let currentInterval: ReturnType<typeof setInterval> | null = null
+    stateRef.current.visible = visible
+    stateRef.current.userIndex = userIndex
+    stateRef.current.isTypingUser = isTypingUser
+  }, [visible, userIndex, isTypingUser])
 
-    const runTimeout = (fn: () => void, delay: number) => {
-      if (!active) return
-      currentTimeout = setTimeout(fn, delay)
-    }
+  const runTimeout = (fn: () => void, delay: number) => {
+    if (!stateRef.current.active) return
+    if (stateRef.current.currentTimeout) clearTimeout(stateRef.current.currentTimeout)
+    stateRef.current.currentTimeout = setTimeout(fn, delay)
+  }
 
-    const typeText = (text: string, onComplete: () => void) => {
-      let index = 0
-      setInputText('')
-      currentInterval = setInterval(() => {
-        if (!active) {
-          clearInterval(currentInterval!)
-          return
-        }
-        index++
-        if (index <= text.length) {
-          setInputText(text.slice(0, index))
-        } else {
-          clearInterval(currentInterval!)
-          onComplete()
-        }
-      }, 45) // typing speed: 45ms per character
-    }
+  const typeText = (text: string, onComplete: () => void) => {
+    let index = 0
+    setInputText('')
+    setIsTypingUser(true)
+    if (stateRef.current.currentInterval) clearInterval(stateRef.current.currentInterval)
+    stateRef.current.currentInterval = setInterval(() => {
+      if (!stateRef.current.active) {
+        clearInterval(stateRef.current.currentInterval!)
+        return
+      }
+      index++
+      if (index <= text.length) {
+        setInputText(text.slice(0, index))
+      } else {
+        clearInterval(stateRef.current.currentInterval!)
+        setIsTypingUser(false)
+        onComplete()
+      }
+    }, 45)
+  }
 
-    const loop = () => {
-      if (!active) return
-      setIsFadingOut(false)
-      setVisible(0)
-      setInputText('')
-      setTyping(false)
+  const startNextUserMessage = (idx: number) => {
+    runTimeout(() => {
+      typeText(mockChat[idx].text, () => {
+        setShowSendPrompt(true)
+      })
+    }, 800)
+  }
 
+  const handleSendClick = () => {
+    if (!showSendPrompt) return
+    setShowSendPrompt(false)
+    const idx = userIndex
+    
+    setVisible(idx + 1)
+    setInputText('')
+
+    runTimeout(() => {
+      setTyping(true)
       runTimeout(() => {
-        // Step 1: User types Question 1
-        typeText(mockChat[0].text, () => {
-          runTimeout(() => {
-            setVisible(1)
-            setInputText('')
+        setTyping(false)
+        setVisible(idx + 2)
 
-            runTimeout(() => {
-              // Step 2: Assistant types Response 1
-              setTyping(true)
-              runTimeout(() => {
-                setTyping(false)
-                setVisible(2)
+        if (idx + 2 < mockChat.length) {
+          const nextIdx = idx + 2
+          setUserIndex(nextIdx)
+          startNextUserMessage(nextIdx)
+        }
+      }, 2000)
+    }, 800)
+  }
 
-                runTimeout(() => {
-                  // Step 3: User types Question 2
-                  typeText(mockChat[2].text, () => {
-                    runTimeout(() => {
-                      setVisible(3)
-                      setInputText('')
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
 
-                      runTimeout(() => {
-                        // Step 4: Assistant types Response 2
-                        setTyping(true)
-                        runTimeout(() => {
-                          setTyping(false)
-                          setVisible(4)
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        if (!stateRef.current.active) {
+          stateRef.current.active = true
+          setIsFadingOut(false)
+          setVisible(0)
+          setInputText('')
+          setTyping(false)
+          setShowSendPrompt(false)
+          setUserIndex(0)
+          setIsTypingUser(false)
+          startNextUserMessage(0)
+        }
+      } else {
+        stateRef.current.active = false
+        if (stateRef.current.currentTimeout) clearTimeout(stateRef.current.currentTimeout)
+        if (stateRef.current.currentInterval) clearInterval(stateRef.current.currentInterval)
+        setVisible(0)
+        setInputText('')
+        setTyping(false)
+        setShowSendPrompt(false)
+        setUserIndex(0)
+        setIsTypingUser(false)
+        setIsFadingOut(false)
+      }
+    }, { threshold: 0.15 })
 
-                          runTimeout(() => {
-                            // Step 5: User types Question 3
-                            typeText(mockChat[4].text, () => {
-                              runTimeout(() => {
-                                setVisible(5)
-                                setInputText('')
-
-                                runTimeout(() => {
-                                  // Step 6: Assistant types Response 3
-                                  setTyping(true)
-                                  runTimeout(() => {
-                                    setTyping(false)
-                                    setVisible(6)
-
-                                    // Step 7: Hold state before resetting cycle
-                                    runTimeout(() => {
-                                      setIsFadingOut(true)
-                                      runTimeout(loop, 500)
-                                    }, 9000)
-                                  }, 2400)
-                                }, 800)
-                              }, 400)
-                            })
-                          }, 1500)
-                        }, 2200)
-                      }, 800)
-                    }, 400)
-                  })
-                }, 1500)
-              }, 2200)
-            }, 800)
-          }, 400)
-        })
-      }, 1000)
-    }
-
-    loop()
+    observer.observe(el)
 
     return () => {
-      active = false
-      if (currentTimeout) clearTimeout(currentTimeout)
-      if (currentInterval) clearInterval(currentInterval)
+      stateRef.current.active = false
+      observer.disconnect()
+      if (stateRef.current.currentTimeout) clearTimeout(stateRef.current.currentTimeout)
+      if (stateRef.current.currentInterval) clearInterval(stateRef.current.currentInterval)
     }
   }, [])
 
-  return { visible, typing, inputText, isFadingOut }
+  return {
+    visible,
+    typing,
+    inputText,
+    isFadingOut,
+    showSendPrompt,
+    handleSendClick,
+    containerRef
+  }
 }
 
 
@@ -660,155 +685,125 @@ function useArenaAnimation() {
   const [prompt, setPrompt] = useState('')
   const [promptActive, setPromptActive] = useState(false)
   const [models, setModels] = useState<string[]>(['', '', '', ''])
-  const [selectingIndex, setSelectingIndex] = useState<number | null>(null)
   const [sendReady, setSendReady] = useState(false)
   const [sendClicked, setSendClicked] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [visiblePanels, setVisiblePanels] = useState(0)
+  const [activeDropdown, setActiveDropdown] = useState<number | null>(null)
   const [isFadingOut, setIsFadingOut] = useState(false)
 
   const containerRef = useRef<HTMLDivElement | null>(null)
+
+  const stateRef = useRef({
+    active: false,
+    currentTimeout: null as ReturnType<typeof setTimeout> | null,
+    currentInterval: null as ReturnType<typeof setInterval> | null
+  })
+
+  const runTimeout = (fn: () => void, delay: number) => {
+    if (!stateRef.current.active) return
+    if (stateRef.current.currentTimeout) clearTimeout(stateRef.current.currentTimeout)
+    stateRef.current.currentTimeout = setTimeout(fn, delay)
+  }
+
+  const typePrompt = (text: string, onComplete: () => void) => {
+    let index = 0
+    setPrompt('')
+    setPromptActive(true)
+    if (stateRef.current.currentInterval) clearInterval(stateRef.current.currentInterval)
+    stateRef.current.currentInterval = setInterval(() => {
+      if (!stateRef.current.active) {
+        clearInterval(stateRef.current.currentInterval!)
+        return
+      }
+      index++
+      if (index <= text.length) {
+        setPrompt(text.slice(0, index))
+      } else {
+        clearInterval(stateRef.current.currentInterval!)
+        setPromptActive(false)
+        onComplete()
+      }
+    }, 40)
+  }
+
+  const toggleDropdown = (idx: number) => {
+    setActiveDropdown(activeDropdown === idx ? null : idx)
+  }
+
+  const selectModel = (idx: number, model: string) => {
+    const updated = [...models]
+    updated[idx] = model
+    setModels(updated)
+    setActiveDropdown(null)
+    if (updated.every(m => m !== '')) {
+      setSendReady(true)
+    }
+  }
+
+  const fillRandomModels = () => {
+    const defaultModels = ['gemini-2.5-flash', 'llama-3.3-70b', 'mistral-large', 'qwen-2.5-72b']
+    setModels(defaultModels)
+    setSendReady(true)
+    setActiveDropdown(null)
+  }
+
+  const handleSendClick = () => {
+    if (!sendReady || sendClicked) return
+    setSendClicked(true)
+    setIsLoading(true)
+    
+    runTimeout(() => {
+      setIsLoading(false)
+      setVisiblePanels(1)
+      runTimeout(() => {
+        setVisiblePanels(2)
+        runTimeout(() => {
+          setVisiblePanels(3)
+          runTimeout(() => {
+            setVisiblePanels(4)
+          }, 800)
+        }, 700)
+      }, 600)
+    }, 1200)
+  }
 
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
 
-    let active = false
-    let currentTimeout: ReturnType<typeof setTimeout> | null = null
-    let currentInterval: ReturnType<typeof setInterval> | null = null
-
-    const runTimeout = (fn: () => void, delay: number) => {
-      if (!active) return
-      currentTimeout = setTimeout(fn, delay)
-    }
-
-    const typePrompt = (text: string, onComplete: () => void) => {
-      let index = 0
-      setPrompt('')
-      setPromptActive(true)
-      currentInterval = setInterval(() => {
-        if (!active) {
-          clearInterval(currentInterval!)
-          return
-        }
-        index++
-        if (index <= text.length) {
-          setPrompt(text.slice(0, index))
-        } else {
-          clearInterval(currentInterval!)
-          setPromptActive(false)
-          onComplete()
-        }
-      }, 40)
-    }
-
-    const loop = () => {
-      if (!active) return
-      setIsFadingOut(false)
-      setPrompt('')
-      setPromptActive(false)
-      setModels(['', '', '', ''])
-      setSelectingIndex(null)
-      setSendReady(false)
-      setSendClicked(false)
-      setIsLoading(false)
-      setVisiblePanels(0)
-
-      runTimeout(() => {
-        // Type prompt
-        typePrompt("Explain quantum entanglement simply.", () => {
-          runTimeout(() => {
-            // Select Model 1
-            setSelectingIndex(0)
-            runTimeout(() => {
-              setSelectingIndex(null)
-              setModels(['gemini-2.5-flash', '', '', ''])
-
-              runTimeout(() => {
-                // Select Model 2
-                setSelectingIndex(1)
-                runTimeout(() => {
-                  setSelectingIndex(null)
-                  setModels(['gemini-2.5-flash', 'llama-3.3-70b', '', ''])
-
-                  runTimeout(() => {
-                    // Select Model 3
-                    setSelectingIndex(2)
-                    runTimeout(() => {
-                      setSelectingIndex(null)
-                      setModels(['gemini-2.5-flash', 'llama-3.3-70b', 'mistral-large', ''])
-
-                      runTimeout(() => {
-                        // Select Model 4
-                        setSelectingIndex(3)
-                        runTimeout(() => {
-                          setSelectingIndex(null)
-                          setModels(['gemini-2.5-flash', 'llama-3.3-70b', 'mistral-large', 'qwen-2.5-72b'])
-
-                          runTimeout(() => {
-                            // Phase 4: Show Send Button & Click
-                            setSendReady(true)
-                            runTimeout(() => {
-                              setSendClicked(true)
-                              runTimeout(() => {
-                                setSendClicked(false)
-                                setSendReady(false)
-                                setIsLoading(true)
-
-                                runTimeout(() => {
-                                  // Phase 5: Staggered response reveals
-                                  setVisiblePanels(1)
-                                  runTimeout(() => {
-                                    setVisiblePanels(2)
-                                    runTimeout(() => {
-                                      setVisiblePanels(3)
-                                      runTimeout(() => {
-                                        setVisiblePanels(4)
-                                        setIsLoading(false)
-
-                                        // Phase 6: Hold state before resetting cycle
-                                        runTimeout(() => {
-                                          setIsFadingOut(true)
-                                          runTimeout(loop, 500)
-                                        }, 2500)
-                                      }, 800)
-                                    }, 700)
-                                  }, 600)
-                                }, 600)
-                              }, 300)
-                            }, 800)
-                          }, 600)
-                        }, 500)
-                      }, 250)
-                    }, 500)
-                  }, 250)
-                }, 500)
-              }, 250)
-            }, 500)
-          }, 600)
-        })
-      }, 1000)
-    }
-
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
-        if (!active) {
-          active = true
-          loop()
+        if (!stateRef.current.active) {
+          stateRef.current.active = true
+          setIsFadingOut(false)
+          setPrompt('')
+          setPromptActive(false)
+          setModels(['', '', '', ''])
+          setSendReady(false)
+          setSendClicked(false)
+          setIsLoading(false)
+          setVisiblePanels(0)
+          setActiveDropdown(null)
+          
+          runTimeout(() => {
+            typePrompt("Explain quantum entanglement simply.", () => {
+              // Await user choices
+            })
+          }, 1000)
         }
       } else {
-        active = false
-        if (currentTimeout) clearTimeout(currentTimeout)
-        if (currentInterval) clearInterval(currentInterval)
-        // Reset states on out of focus
+        stateRef.current.active = false
+        if (stateRef.current.currentTimeout) clearTimeout(stateRef.current.currentTimeout)
+        if (stateRef.current.currentInterval) clearInterval(stateRef.current.currentInterval)
         setPrompt('')
         setPromptActive(false)
         setModels(['', '', '', ''])
-        setSelectingIndex(null)
         setSendReady(false)
         setSendClicked(false)
         setIsLoading(false)
         setVisiblePanels(0)
+        setActiveDropdown(null)
         setIsFadingOut(false)
       }
     }, { threshold: 0.15 })
@@ -816,14 +811,40 @@ function useArenaAnimation() {
     observer.observe(el)
 
     return () => {
-      active = false
+      stateRef.current.active = false
       observer.disconnect()
-      if (currentTimeout) clearTimeout(currentTimeout)
-      if (currentInterval) clearInterval(currentInterval)
+      if (stateRef.current.currentTimeout) clearTimeout(stateRef.current.currentTimeout)
+      if (stateRef.current.currentInterval) clearInterval(stateRef.current.currentInterval)
     }
   }, [])
 
-  return { prompt, promptActive, models, selectingIndex, sendReady, sendClicked, isLoading, visiblePanels, containerRef, isFadingOut }
+  useEffect(() => {
+    if (activeDropdown === null) return
+    const click = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (target.closest('.model-selector-slot')) return
+      setActiveDropdown(null)
+    }
+    window.addEventListener('click', click)
+    return () => window.removeEventListener('click', click)
+  }, [activeDropdown])
+
+  return {
+    prompt,
+    promptActive,
+    models,
+    sendReady,
+    sendClicked,
+    isLoading,
+    visiblePanels,
+    containerRef,
+    isFadingOut,
+    activeDropdown,
+    toggleDropdown,
+    selectModel,
+    fillRandomModels,
+    handleSendClick
+  }
 }
 
 // ── Fallback order animation ──────────────────────────────────────────────────
@@ -847,11 +868,8 @@ function useFallbackOrder() {
 }
 
 // ── Debate config cursor animation ───────────────────────────────────────────────
-const debateConfigFields = ['opening', 'rounds', 'judging', 'infavor', 'against', 'judge'] as const
-type DebateField = typeof debateConfigFields[number]
 
 function useDebateArenaSimulation() {
-  const [activeField, setActiveField] = useState<DebateField | 'topic' | 'startBtn' | null>(null)
   const [topicText, setTopicText] = useState('')
   const [openingPlayer, setOpeningPlayer] = useState('Auto')
   const [rounds, setRounds] = useState(3)
@@ -864,210 +882,115 @@ function useDebateArenaSimulation() {
   const [visibleCount, setVisibleCount] = useState(0)
   const [isTyping, setIsTyping] = useState(false)
   const [isFadingOut, setIsFadingOut] = useState(false)
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
+  const [isTopicFinished, setIsTopicFinished] = useState(false)
 
   const containerRef = useRef<HTMLDivElement | null>(null)
 
+  const stateRef = useRef({
+    active: false,
+    currentTimeout: null as ReturnType<typeof setTimeout> | null,
+    currentInterval: null as ReturnType<typeof setInterval> | null,
+    rounds: 3
+  })
+
   useEffect(() => {
-    let active = false
-    let currentTimeout: ReturnType<typeof setTimeout> | null = null
-    let currentInterval: ReturnType<typeof setInterval> | null = null
+    stateRef.current.rounds = rounds
+  }, [rounds])
 
-    const runTimeout = (fn: () => void, delay: number) => {
-      if (!active) return
-      currentTimeout = setTimeout(fn, delay)
-    }
+  const runTimeout = (fn: () => void, delay: number) => {
+    if (!stateRef.current.active) return
+    if (stateRef.current.currentTimeout) clearTimeout(stateRef.current.currentTimeout)
+    stateRef.current.currentTimeout = setTimeout(fn, delay)
+  }
 
-    const typeText = (text: string, onComplete: () => void) => {
-      let index = 0
-      setTopicText('')
-      currentInterval = setInterval(() => {
-        if (!active) {
-          clearInterval(currentInterval!)
-          return
-        }
-        index++
-        if (index <= text.length) {
-          setTopicText(text.slice(0, index))
-        } else {
-          clearInterval(currentInterval!)
-          onComplete()
-        }
-      }, 40) // typing speed: 40ms per char
-    }
+  const typeText = (text: string, onComplete: () => void) => {
+    let index = 0
+    setTopicText('')
+    setIsTopicFinished(false)
+    if (stateRef.current.currentInterval) clearInterval(stateRef.current.currentInterval)
+    stateRef.current.currentInterval = setInterval(() => {
+      if (!stateRef.current.active) {
+        clearInterval(stateRef.current.currentInterval!)
+        return
+      }
+      index++
+      if (index <= text.length) {
+        setTopicText(text.slice(0, index))
+      } else {
+        clearInterval(stateRef.current.currentInterval!)
+        setIsTopicFinished(true)
+        onComplete()
+      }
+    }, 40)
+  }
 
-    const loop = () => {
-      if (!active) return
-
-      // Reset all states
-      setIsFadingOut(false)
-      setStage('config')
-      setActiveField(null)
-      setTopicText('')
-      setOpeningPlayer('Auto')
-      setRounds(3)
-      setJudging('At the End')
-      setInfavor('Auto')
-      setAgainst('Auto')
-      setJudge('Auto')
+  const handleStartClick = () => {
+    if (!isTopicFinished || stage === 'debating') return
+    setIsStartClicked(true)
+    runTimeout(() => {
       setIsStartClicked(false)
-      setVisibleCount(0)
-      setIsTyping(false)
+      setStage('debating')
+      runDebate()
+    }, 400)
+  }
 
+  const runDebate = () => {
+    let currentMsgIndex = 0
+    const maxMessages = stateRef.current.rounds * 3
+
+    const nextMessage = () => {
+      if (!stateRef.current.active) return
+      if (currentMsgIndex >= maxMessages || currentMsgIndex >= 15) {
+        return
+      }
+
+      setIsTyping(true)
       runTimeout(() => {
-        // Step 1: Type Topic
-        setActiveField('topic')
-        typeText("Should AI replace human creativity?", () => {
-          setActiveField(null)
-
-          runTimeout(() => {
-            // Step 2: Select Opening Player
-            setActiveField('opening')
-            runTimeout(() => {
-              setOpeningPlayer('In Favor')
-              setActiveField(null)
-
-              runTimeout(() => {
-                // Step 3: Change Rounds (3 -> 4)
-                setActiveField('rounds')
-                runTimeout(() => {
-                  setRounds(4)
-                  runTimeout(() => {
-                    // Step 3b: Change Rounds (4 -> 5)
-                    setRounds(5)
-                    setActiveField(null)
-
-                    runTimeout(() => {
-                      // Step 4: Change Judging
-                      setActiveField('judging')
-                      runTimeout(() => {
-                        setJudging('Every Round')
-                        setActiveField(null)
-
-                        runTimeout(() => {
-                          // Step 5: Select In Favor model (deliberation: Auto -> claude-3-5-sonnet -> deepseek-r1 -> gemini-2.5-flash)
-                          setActiveField('infavor')
-                          runTimeout(() => {
-                            setInfavor('claude-3-5-sonnet')
-                            runTimeout(() => {
-                              setInfavor('deepseek-r1')
-                              runTimeout(() => {
-                                setInfavor('gemini-2.5-flash')
-                                setActiveField(null)
-
-                                runTimeout(() => {
-                                  // Step 6: Select Against model (deliberation: Auto -> gpt-4o-mini -> mistral-large -> llama-3.3-70b)
-                                  setActiveField('against')
-                                  runTimeout(() => {
-                                    setAgainst('gpt-4o-mini')
-                                    runTimeout(() => {
-                                      setAgainst('mistral-large')
-                                      runTimeout(() => {
-                                        setAgainst('llama-3.3-70b')
-                                        setActiveField(null)
-
-                                        runTimeout(() => {
-                                          // Step 7: Select Judge model (deliberation: Auto -> gemini-2.0-flash -> llama-3.3-70b -> gpt-4o-mini)
-                                          setActiveField('judge')
-                                          runTimeout(() => {
-                                            setJudge('gemini-2.0-flash')
-                                            runTimeout(() => {
-                                              setJudge('llama-3.3-70b')
-                                              runTimeout(() => {
-                                                setJudge('gpt-4o-mini')
-                                                setActiveField(null)
-
-                                                runTimeout(() => {
-                                                  // Step 8: Click Start Button
-                                                  setActiveField('startBtn')
-                                                  runTimeout(() => {
-                                                    setIsStartClicked(true)
-                                                    runTimeout(() => {
-                                                      setIsStartClicked(false)
-                                                      setActiveField(null)
-                                                      setStage('debating')
-
-                                                      // Start the debate transcript choreography
-                                                      runDebate()
-                                                    }, 400)
-                                                  }, 800)
-                                                }, 600)
-                                              }, 400)
-                                            }, 400)
-                                          }, 850)
-                                        }, 600)
-                                      }, 400)
-                                    }, 400)
-                                  }, 850)
-                                }, 600)
-                              }, 400)
-                            }, 400)
-                          }, 850)
-                        }, 600)
-                      }, 800)
-                    }, 600)
-                  }, 800)
-                }, 800)
-              }, 600)
-            }, 800)
-          }, 600)
-        })
-      }, 1000)
+        setIsTyping(false)
+        setVisibleCount(currentMsgIndex + 1)
+        currentMsgIndex++
+        runTimeout(nextMessage, 1500)
+      }, 1800)
     }
 
-    const runDebate = () => {
-      // We have 15 messages (5 rounds * 3 messages per round).
-      // We will show typing dots, then reveal the message, then wait, then repeat.
-      let currentMsgIndex = 0
+    nextMessage()
+  }
 
-      const nextMessage = () => {
-        if (!active) return
-        if (currentMsgIndex >= 15) {
-          // Finished the debate! Wait, fade out, then loop.
-          runTimeout(() => {
-            setIsFadingOut(true)
-            runTimeout(loop, 600)
-          }, 3000) // Let the user read the final verdict for 3 seconds
-          return
-        }
-
-        // Show typing indicator
-        setIsTyping(true)
-        runTimeout(() => {
-          setIsTyping(false)
-          setVisibleCount(currentMsgIndex + 1)
-          currentMsgIndex++
-          // Wait a short delay before starting the next turn
-          runTimeout(nextMessage, 1500)
-        }, 1800) // Simulate typing for 1.8 seconds
-      }
-
-      nextMessage()
-    }
-
-    // IntersectionObserver to only play animation when section is in view
+  useEffect(() => {
     const el = containerRef.current
-    if (!el) {
-      // Fallback if ref is not ready
-      loop()
-      return () => {
-        active = false
-        if (currentTimeout) clearTimeout(currentTimeout)
-        if (currentInterval) clearInterval(currentInterval)
-      }
-    }
+    if (!el) return
 
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
-        if (!active) {
-          active = true
-          loop()
+        if (!stateRef.current.active) {
+          stateRef.current.active = true
+          setIsFadingOut(false)
+          setStage('config')
+          setTopicText('')
+          setOpeningPlayer('Auto')
+          setRounds(3)
+          setJudging('At the End')
+          setInfavor('Auto')
+          setAgainst('Auto')
+          setJudge('Auto')
+          setIsStartClicked(false)
+          setVisibleCount(0)
+          setIsTyping(false)
+          setActiveDropdown(null)
+          setIsTopicFinished(false)
+          
+          runTimeout(() => {
+            typeText("Should AI replace human creativity?", () => {
+              // Wait for user configurations
+            })
+          }, 1000)
         }
       } else {
-        active = false
-        if (currentTimeout) clearTimeout(currentTimeout)
-        if (currentInterval) clearInterval(currentInterval)
-        // Reset states
-        setActiveField(null)
+        stateRef.current.active = false
+        if (stateRef.current.currentTimeout) clearTimeout(stateRef.current.currentTimeout)
+        if (stateRef.current.currentInterval) clearInterval(stateRef.current.currentInterval)
+        setStage('config')
         setTopicText('')
         setOpeningPlayer('Auto')
         setRounds(3)
@@ -1076,9 +999,10 @@ function useDebateArenaSimulation() {
         setAgainst('Auto')
         setJudge('Auto')
         setIsStartClicked(false)
-        setStage('config')
         setVisibleCount(0)
         setIsTyping(false)
+        setActiveDropdown(null)
+        setIsTopicFinished(false)
         setIsFadingOut(false)
       }
     }, { threshold: 0.15 })
@@ -1086,28 +1010,49 @@ function useDebateArenaSimulation() {
     observer.observe(el)
 
     return () => {
-      active = false
+      stateRef.current.active = false
       observer.disconnect()
-      if (currentTimeout) clearTimeout(currentTimeout)
-      if (currentInterval) clearInterval(currentInterval)
+      if (stateRef.current.currentTimeout) clearTimeout(stateRef.current.currentTimeout)
+      if (stateRef.current.currentInterval) clearInterval(stateRef.current.currentInterval)
     }
   }, [])
 
+  useEffect(() => {
+    if (activeDropdown === null) return
+    const click = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (target.closest('.debate-selector-slot')) return
+      setActiveDropdown(null)
+    }
+    window.addEventListener('click', click)
+    return () => window.removeEventListener('click', click)
+  }, [activeDropdown])
+
   return {
-    activeField,
     topicText,
     openingPlayer,
+    setOpeningPlayer,
     rounds,
+    setRounds,
     judging,
+    setJudging,
     infavor,
+    setInfavor,
     against,
+    setAgainst,
     judge,
+    setJudge,
     isStartClicked,
     stage,
     visibleCount,
     isTyping,
     isFadingOut,
-    containerRef
+    containerRef,
+    activeDropdown,
+    setActiveDropdown,
+    toggleDropdown: (name: string) => setActiveDropdown(activeDropdown === name ? null : name),
+    isTopicFinished,
+    handleStartClick
   }
 }
 
@@ -1333,52 +1278,82 @@ const MoonIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="no
 const faqData = [
   {
     question: "Why use OmniKey AI?",
-    answer: "OmniKey AI is a high-performance AI proxy gateway that consolidates multiple model providers and developer API credentials under a single OpenAI-compatible interface. By acting as a unified middleware layer, it simplifies application development, secures API keys, handles dynamic fallback routing, and aggregates usage stats in real-time, eliminating vendor lock-in and avoiding runtime interruptions.",
+    answer: "OmniKey AI is a high-performance AI proxy gateway that consolidates multiple model providers and developer API credentials under a single OpenAI-compatible interface. By acting as a unified middleware layer, it simplifies application development, secures API keys, handles dynamic fallback routing, and aggregates usage stats in real-time.",
+    tag: "general"
+  },
+  {
+    question: "How does dynamic model routing reduce costs?",
+    answer: "OmniKey AI allows you to set routing rules that prioritize the most cost-efficient models for simpler queries, while automatically falling back to more capable models only when high accuracy is required. This cuts down inference bills significantly.",
+    tag: "general"
+  },
+  {
+    question: "What is the default latency overhead of the gateway?",
+    answer: "OmniKey's proxy layer is optimized for speed, introducing less than 15 milliseconds of latency overhead. Requests are processed and forwarded directly to the upstream model providers without unnecessary serialization delays.",
+    tag: "general"
+  },
+  {
+    question: "Is there a free tier for developers?",
+    answer: "Yes, we offer a generous free tier that includes up to 10 million free tokens on signup, access to 12+ providers, basic failover routing, and real-time usage analytics on your dashboard.",
     tag: "general"
   },
   {
     question: "How does fallback routing work?",
-    answer: "When a primary model provider or endpoint experiences downtime, latency spikes, or rate limits, the routing layer automatically detects the failure. It silently redirects the request to the next best alternative provider in under 15 milliseconds, ensuring continuous availability for your end users.",
-    tag: "general"
+    answer: "When a primary model provider or endpoint experiences downtime, latency spikes, or rate limits, the routing layer automatically detects the failure. It silently redirects the request to the next best alternative provider in under 15 milliseconds, ensuring continuous availability.",
+    tag: "routing"
   },
   {
     question: "How is API key failover managed?",
-    answer: "OmniKey AI pools multiple developer keys and tracks the rate limit status of different models internally in real-time. When a key hits a quota ceiling or triggers a rate limit (such as HTTP 429), requests are seamlessly and instantly routed to the next available key or standby provider in the chain to avoid user-facing errors.",
-    tag: "general"
+    answer: "OmniKey AI pools multiple developer keys and tracks the rate limit status of different models internally in real-time. When a key hits a quota ceiling or triggers a rate limit (such as HTTP 429), requests are seamlessly and instantly routed to the next available key.",
+    tag: "routing"
+  },
+  {
+    question: "Can I customize my fallback order?",
+    answer: "Yes. Developers can define custom prioritized fallback lists for their endpoints through the dashboard. If your primary provider fails, OmniKey will sequentially try the backup providers in your exact defined order.",
+    tag: "routing"
+  },
+  {
+    question: "What is the 'auto' model in OmniKey AI?",
+    answer: "The 'auto' model is a dynamic placeholder model. When targeted, OmniKey's router automatically selects the highest-priority online model in your configured fallback chain, abstracting vendor-specific details away from client code.",
+    tag: "routing"
   },
   {
     question: "Is the API proxy gateway compatible with standard OpenAI and Gemini SDKs?",
-    answer: "Yes. OmniKey AI is built to be a drop-in replacement. You can point your existing OpenAI or Google Gen AI client SDKs directly to our proxy base URLs. Simply update the baseURL (for OpenAI) or baseUrl (for Google Gen AI) and swap your key for your unified OmniKey token.",
+    answer: "Yes. OmniKey AI is built to be a drop-in replacement. You can point your existing OpenAI or Google Gen AI client SDKs directly to our proxy base URLs. Simply update the baseURL and swap your key for your unified OmniKey token.",
     tag: "api"
   },
   {
     question: "What models are supported by the gateway?",
-    answer: "We support over 60+ models from industry-leading providers, including Google Gemini (Flash, Pro), Meta Llama (via Groq, Cerebras, SambaNova), Mistral Large, Qwen, and DeepSeek. You can target specific models or use the 'auto' model to route dynamically to the most cost-efficient or lowest-latency provider.",
+    answer: "We support over 60+ models from industry-leading providers, including Google Gemini (Flash, Pro), Meta Llama (via Groq, Cerebras, SambaNova), Mistral Large, Qwen, and DeepSeek. You can target specific models or route dynamically.",
     tag: "api"
   },
   {
-    question: "How does the gateway secure my developer credentials?",
-    answer: "Security is a top priority. Upstream provider keys (such as your personal Google AI Studio or Groq keys) are encrypted using industry-standard symmetric AES-256-GCM encryption before database persistence. They are decrypted in-memory only during routing execution, ensuring your credentials remain completely private.",
-    tag: "security"
-  },
-  {
     question: "Does the proxy gateway support streaming completions?",
-    answer: "Yes. Streaming is fully supported via Server-Sent Events (SSE) for both OpenAI-compatible and Gemini-compatible formats. When you set the stream parameter to true, token chunks are forwarded to your client application as they are generated with minimal overhead.",
+    answer: "Yes. Streaming is fully supported via Server-Sent Events (SSE) for both OpenAI-compatible and Gemini-compatible formats. When you set the stream parameter to true, token chunks are forwarded to your client application with minimal overhead.",
     tag: "api"
   },
   {
     question: "Do I need to change my code to use OmniKey AI?",
-    answer: "Minimal changes are required. Since OmniKey AI exposes an OpenAI-compatible web API, you only need to redirect your API requests by changing the base URL/endpoint in your SDK configuration to your hosted proxy server address (available under the Keys or Dev Corner sections of the dashboard) and replace your API key with your unified OmniKey token. All request payloads, headers, and schemas remain exactly the same.",
+    answer: "Minimal changes are required. Since OmniKey AI exposes an OpenAI-compatible web API, you only need to redirect your API requests by changing the base URL in your SDK configuration to our gateway address and replace the API key.",
     tag: "api"
   },
   {
-    question: "What is the 'auto' model in OmniKey AI?",
-    answer: "The 'auto' model is a dynamic placeholder model. When targeted, OmniKey's router automatically selects the highest-priority online model in your configured fallback chain. This allows your client application to function continuously even if specific vendor models are rate-limited or disabled.",
-    tag: "api"
+    question: "How does the gateway secure my developer credentials?",
+    answer: "Security is a top priority. Upstream provider keys (such as your personal Google AI Studio or Groq keys) are encrypted using industry-standard symmetric AES-256-GCM encryption before database persistence. They are decrypted in-memory only during routing execution.",
+    tag: "security"
   },
   {
     question: "Do my API requests get logged on the server?",
-    answer: "By default, requests are routed statelessly. However, if audit logging is enabled in the Admin Console, the server maintains recent audit records (latency, token count, and timestamps) for usage statistics. These logs do not contain raw prompt payloads and can be flushed instantly by the administrator.",
+    answer: "By default, requests are routed statelessly. However, if audit logging is enabled in the Admin Console, the server maintains recent audit records (latency, token count, and timestamps) for usage statistics. These logs do not contain raw prompt payloads.",
+    tag: "security"
+  },
+  {
+    question: "Can I revoke or refresh my OmniKey tokens instantly?",
+    answer: "Yes. If you suspect a token has been compromised, you can revoke or rotate it immediately via the dashboard's Keys section. The old token will be blacklisted across all edge servers within seconds.",
+    tag: "security"
+  },
+  {
+    question: "Does OmniKey support role-based access control (RBAC)?",
+    answer: "Yes, you can create multiple restricted tokens with specific permissions (e.g. read-only, write-only, or limited to specific model providers) to delegate access to team members or staging environments safely.",
     tag: "security"
   }
 ]
@@ -1388,18 +1363,24 @@ export default function LandingPage() {
   const navigate = useNavigate()
   const { dark, toggle } = useDark()
   const [openFaq, setOpenFaq] = useState<number | null>(null)
-  const [activeCategory, setActiveCategory] = useState<'general' | 'api' | 'security'>('general')
+  const [activeCategory, setActiveCategory] = useState<'general' | 'routing' | 'api' | 'security'>('general')
   const chat = useAnimatedChat()
   const routingPhase = useAnimatedRouting()
   const arena = useArenaAnimation()
   const fallbackOrder = useFallbackOrder()
   const debateSim = useDebateArenaSimulation()
   const transcriptScrollRef = useRef<HTMLDivElement | null>(null)
+  const chatScrollRef = useRef<HTMLDivElement | null>(null)
   useEffect(() => {
     if (transcriptScrollRef.current) {
       transcriptScrollRef.current.scrollTop = transcriptScrollRef.current.scrollHeight
     }
   }, [debateSim.visibleCount, debateSim.isTyping])
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight
+    }
+  }, [chat.visible, chat.typing, chat.inputText])
   const heroRef = useRef<HTMLElement>(null)
   const [routedRequestsTarget, setRoutedRequestsTarget] = useState(850.00)
   const [tokensChanneledTarget, setTokensChanneledTarget] = useState(100.00)
@@ -1741,11 +1722,6 @@ export default function LandingPage() {
       {/* ── SECTION: Smart Routing ── */}
       <Section id="routing" alt>
         <div className="grid md:grid-cols-2 gap-12 items-center">
-          <div>
-            <Pill label="Smart Routing" color="violet" />
-            <SectionHeading>Zero Downtime. Automatic Fallbacks.</SectionHeading>
-            <SectionSub>When one provider rate-limits, OmniKey silently routes to the next best option. Your app never sees an error — just seamless responses.</SectionSub>
-          </div>
           <MockCard className="divide-y divide-border">
             <div className="px-4 py-3 bg-muted/40 dark:bg-white/5 text-xs font-semibold text-muted-foreground">Fallback Chain — Priority Order</div>
             {fallbackChain.map((p, i) => {
@@ -1780,6 +1756,11 @@ export default function LandingPage() {
                   '✓ Request auto-routed to Cerebras after Groq 429'}
             </div>
           </MockCard>
+          <div>
+            <Pill label="Smart Routing" color="violet" />
+            <SectionHeading>Zero Downtime. Automatic Fallbacks.</SectionHeading>
+            <SectionSub>When one provider rate-limits, OmniKey silently routes to the next best option. Your app never sees an error — just seamless responses.</SectionSub>
+          </div>
         </div>
       </Section>
 
@@ -1792,12 +1773,12 @@ export default function LandingPage() {
             <SectionSub>Switch between OpenAI and Gemini formats. Pick any model, type your prompt, and see real AI responses with live latency and token metrics.</SectionSub>
           </div>
           <MockCard>
-            <div className={`transition-opacity duration-500 ${chat.isFadingOut ? 'opacity-0' : 'opacity-100'}`}>
+            <div ref={chat.containerRef} className={`transition-opacity duration-500 ${chat.isFadingOut ? 'opacity-0' : 'opacity-100'}`}>
               <div className="bg-muted/40 dark:bg-white/5 px-4 py-3 border-b border-border flex items-center justify-between">
                 <span className="text-xs font-semibold text-muted-foreground">gemini-2.5-flash</span>
                 <span className="text-[10px] bg-violet-500/10 text-violet-500 border border-violet-500/20 rounded-full px-2 py-0.5 font-semibold">OmniKey AI</span>
               </div>
-              <div className="p-4 space-y-3 h-[340px] flex flex-col justify-end overflow-hidden">
+              <div ref={chatScrollRef} className="p-4 space-y-3 h-[260px] overflow-y-auto scroll-smooth">
                 {mockChat.map((m, i) => i < chat.visible && (
                   <div key={i} className={`flex animate-fade-up ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed ${m.role === 'user' ? 'bg-violet-600 text-white' : 'bg-muted/60 dark:bg-white/8 text-foreground border border-border'}`}>
@@ -1825,9 +1806,17 @@ export default function LandingPage() {
                     <span className="text-muted-foreground">Type a message...</span>
                   )}
                 </div>
-                <div className={`rounded-xl px-3 py-2 flex items-center text-white text-xs font-semibold transition-colors duration-300 ${chat.inputText ? 'bg-violet-600 shadow-md shadow-violet-500/20' : 'bg-muted-foreground/20 text-muted-foreground/60'}`}>
+                <button
+                  onClick={chat.handleSendClick}
+                  disabled={!chat.showSendPrompt}
+                  className={`rounded-xl px-4 py-2 flex items-center text-white text-xs font-semibold transition-all duration-300 ${
+                    chat.showSendPrompt
+                      ? 'bg-violet-600 shadow-lg shadow-violet-500/35 cursor-pointer animate-pop-invite hover:bg-violet-700 active:scale-95'
+                      : 'bg-muted-foreground/20 text-muted-foreground/60 cursor-not-allowed'
+                  }`}
+                >
                   Send
-                </div>
+                </button>
               </div>
             </div>
           </MockCard>
@@ -1845,39 +1834,103 @@ export default function LandingPage() {
                   {arena.prompt ? (
                     <span className="flex items-center text-foreground truncate">
                       <span>{arena.prompt}</span>
-                      {arena.promptActive && <span className="w-1 h-3.5 bg-blue-500 ml-0.5 animate-pulse inline-block" />}
+                      {arena.promptActive && <span className="w-1.5 h-3.5 bg-blue-500 ml-0.5 animate-pulse inline-block" />}
                     </span>
                   ) : (
                     <span className="text-muted-foreground/45 italic font-normal">Awaiting prompt...</span>
                   )}
                 </div>
-                <div className={`shrink-0 rounded-lg px-2.5 py-1 text-[10px] font-bold border transition-all duration-300 ${arena.sendClicked
-                  ? 'bg-blue-700 text-white border-blue-600 scale-95 shadow-none'
-                  : arena.sendReady
-                    ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/20 scale-100'
-                    : 'bg-muted-foreground/10 text-muted-foreground/40 border-border/40 scale-100'
-                  }`}>
-                  Send
+                
+                {/* Buttons container */}
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Random Models button */}
+                  {!arena.promptActive && !arena.sendClicked && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        arena.fillRandomModels()
+                      }}
+                      className="px-2 py-1 text-[10px] font-semibold rounded-lg border border-violet-500/35 text-violet-500 bg-violet-500/5 hover:bg-violet-500/10 cursor-pointer transition-all duration-300"
+                    >
+                      Random Models
+                    </button>
+                  )}
+                  
+                  {/* Send button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      arena.handleSendClick()
+                    }}
+                    disabled={!arena.sendReady || arena.sendClicked}
+                    className={`rounded-lg px-3 py-1 text-[10px] font-bold border transition-all duration-300 ${
+                      arena.sendClicked
+                        ? 'bg-blue-700 text-white border-blue-600 scale-95 shadow-none'
+                        : arena.sendReady
+                          ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/20 scale-100 cursor-pointer animate-pop-invite hover:bg-blue-700'
+                          : 'bg-muted-foreground/10 text-muted-foreground/40 border-border/40 scale-100 cursor-not-allowed'
+                    }`}
+                  >
+                    Send
+                  </button>
                 </div>
               </div>
+              
               {/* Model selectors row */}
-              <div className="grid grid-cols-4 divide-x divide-border border-b border-border">
+              <div className="grid grid-cols-4 divide-x divide-border border-b border-border relative z-10">
                 {arena.models.map((m, i) => {
                   const colors = ['text-blue-400', 'text-orange-400', 'text-purple-400', 'text-emerald-400']
-                  const isSelecting = arena.selectingIndex === i
+                  const dropdownOptions = [
+                    ['gemini-2.5-flash', 'gemini-1.5-pro', 'gpt-4o'],
+                    ['llama-3.3-70b', 'llama-3.1-8b', 'claude-3-5-sonnet'],
+                    ['mistral-large', 'mistral-nemo', 'deepseek-v3'],
+                    ['qwen-2.5-72b', 'gemma-2-9b', 'phi-3-medium']
+                  ]
+                  const isDropdownOpen = arena.activeDropdown === i
+                  const isSlotInviting = !m && !arena.promptActive && !arena.sendClicked
+                  
                   return (
-                    <div key={i} className={`px-2 py-2 text-[10px] font-semibold flex items-center justify-center min-h-[33px] gap-1 ${colors[i]} ${isSelecting ? 'bg-violet-500/10' : ''} transition-colors duration-300`}>
-                      {isSelecting ? (
-                        <span className="flex gap-0.5"><span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" /></span>
-                      ) : m ? (
+                    <div 
+                      key={i} 
+                      className={`model-selector-slot relative px-2 py-2 text-xs font-semibold flex flex-col items-center justify-center min-h-[40px] gap-1 ${colors[i]} ${
+                        isSlotInviting 
+                          ? 'bg-violet-500/5 hover:bg-violet-500/10 border-dashed border-violet-500/40 cursor-pointer animate-pulse' 
+                          : 'cursor-pointer hover:bg-muted/40'
+                      } transition-all duration-300`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (!arena.promptActive && !arena.sendClicked) {
+                          arena.toggleDropdown(i)
+                        }
+                      }}
+                    >
+                      {m ? (
                         <span className="model-tag truncate animate-drop-in">{m}</span>
                       ) : (
-                        <span className="text-muted-foreground/30 font-normal italic">—</span>
+                        <span className="text-muted-foreground/50 font-normal italic">Select Model</span>
+                      )}
+                      
+                      {isDropdownOpen && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl py-1.5 z-50 animate-drop-in flex flex-col max-h-[120px] overflow-y-auto">
+                          {dropdownOptions[i].map(opt => (
+                            <button
+                              key={opt}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                arena.selectModel(i, opt)
+                              }}
+                              className="px-2 py-1 text-left text-xs text-foreground hover:bg-violet-500/10 hover:text-violet-500 w-full transition-colors font-medium truncate"
+                            >
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
                       )}
                     </div>
                   )
                 })}
               </div>
+              
               <div className="grid grid-cols-2 gap-0 divide-x divide-y divide-border">
                 {arenaPanels.map((p, i) => {
                   const isPanelVisible = i < arena.visiblePanels
@@ -1916,87 +1969,170 @@ export default function LandingPage() {
 
       {/* ── SECTION: Debate Arena ── */}
       <Section id="debate">
-        <div className="text-center mb-10">
-          <Pill label="⚔ Debate Arena" color="rose" />
-          <SectionHeading>Watch Two AIs Argue It Out</SectionHeading>
+        <div className="text-center mb-4">
+          <span className="inline-block text-xs sm:text-sm font-semibold px-3.5 py-1 rounded-full border bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-sm">
+            ⚔ Debate Arena
+          </span>
         </div>
         <MockCard>
           <div ref={debateSim.containerRef} className="grid md:grid-cols-[280px_1fr]">
             <div className="border-r border-border p-5 space-y-4 bg-muted/20 dark:bg-white/[0.02] relative">
-              {/* Animated cursor ball */}
-              <div className={`absolute top-2 right-2 w-3 h-3 rounded-full border-2 border-border shadow transition-all duration-500 ${debateSim.activeField ? 'bg-foreground scale-110 opacity-100' : 'bg-muted opacity-40 scale-75'
-                }`} />
               <div className="space-y-1">
                 <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Topic</div>
-                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground transition-all duration-300 min-h-[34px] flex items-center ${debateSim.activeField === 'topic' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
-                  }`}>
+                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground transition-all duration-300 min-h-[34px] flex items-center border-border`}>
                   {debateSim.topicText ? (
                     <span className="flex items-center truncate">
                       <span>{debateSim.topicText}</span>
-                      {debateSim.activeField === 'topic' && <span className="w-1.5 h-3.5 bg-violet-500 ml-0.5 animate-pulse inline-block" />}
+                      {!debateSim.isTopicFinished && <span className="w-1.5 h-3.5 bg-violet-500 ml-0.5 animate-pulse inline-block" />}
                     </span>
                   ) : (
                     <span className="text-muted-foreground/35 italic font-normal">Awaiting topic input...</span>
                   )}
                 </div>
               </div>
+              
+              {/* Opening Player dropdown */}
               <div className="space-y-1">
                 <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Opening Player</div>
-                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${debateSim.activeField === 'opening' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
-                  }`}>
+                <div 
+                  onClick={(e) => { e.stopPropagation(); if (debateSim.stage !== 'debating') debateSim.toggleDropdown('opening') }}
+                  className={`debate-selector-slot relative text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between items-center transition-all duration-300 ${
+                    debateSim.stage === 'debating' ? 'cursor-not-allowed opacity-75' : 'cursor-pointer hover:bg-muted/30'
+                  } ${debateSim.activeDropdown === 'opening' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'}`}
+                >
                   <span>{debateSim.openingPlayer}</span>
                   <span className="text-muted-foreground">▾</span>
+                  {debateSim.activeDropdown === 'opening' && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl py-1 z-50 animate-drop-in flex flex-col">
+                      {['Auto', 'In Favor', 'Against'].map(opt => (
+                        <button key={opt} onClick={(e) => { e.stopPropagation(); debateSim.setOpeningPlayer(opt); debateSim.setActiveDropdown(null) }} className="px-3 py-1.5 text-left text-xs text-foreground hover:bg-violet-500/10 hover:text-violet-500 w-full transition-colors">{opt}</button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
+              
+              {/* Rounds & Judging dropdowns */}
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Rounds</div>
-                  <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground transition-all duration-300 ${debateSim.activeField === 'rounds' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
-                    }`}>{debateSim.rounds}</div>
+                  <div 
+                    onClick={(e) => { e.stopPropagation(); if (debateSim.stage !== 'debating') debateSim.toggleDropdown('rounds') }}
+                    className={`debate-selector-slot relative text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between items-center transition-all duration-300 ${
+                      debateSim.stage === 'debating' ? 'cursor-not-allowed opacity-75' : 'cursor-pointer hover:bg-muted/30'
+                    } ${debateSim.activeDropdown === 'rounds' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'}`}
+                  >
+                    <span>{debateSim.rounds}</span>
+                    <span className="text-muted-foreground">▾</span>
+                    {debateSim.activeDropdown === 'rounds' && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl py-1 z-50 animate-drop-in flex flex-col">
+                        {[1, 2, 3, 4, 5].map(opt => (
+                          <button key={opt} onClick={(e) => { e.stopPropagation(); debateSim.setRounds(opt); debateSim.setActiveDropdown(null) }} className="px-3 py-1.5 text-left text-xs text-foreground hover:bg-violet-500/10 hover:text-violet-500 w-full transition-colors">{opt}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Judging</div>
-                  <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${debateSim.activeField === 'judging' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
-                    }`}>
+                  <div 
+                    onClick={(e) => { e.stopPropagation(); if (debateSim.stage !== 'debating') debateSim.toggleDropdown('judging') }}
+                    className={`debate-selector-slot relative text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between items-center transition-all duration-300 ${
+                      debateSim.stage === 'debating' ? 'cursor-not-allowed opacity-75' : 'cursor-pointer hover:bg-muted/30'
+                    } ${debateSim.activeDropdown === 'judging' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'}`}
+                  >
                     <span>{debateSim.judging}</span>
                     <span className="text-muted-foreground">▾</span>
+                    {debateSim.activeDropdown === 'judging' && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl py-1 z-50 animate-drop-in flex flex-col">
+                        {['Auto', 'Every Round', 'At the End'].map(opt => (
+                          <button key={opt} onClick={(e) => { e.stopPropagation(); debateSim.setJudging(opt); debateSim.setActiveDropdown(null) }} className="px-3 py-1.5 text-left text-xs text-foreground hover:bg-violet-500/10 hover:text-violet-500 w-full transition-colors">{opt}</button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
-              <div className="space-y-1">
-                <div className="text-[10px] font-semibold text-emerald-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />In Favor</div>
-                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${debateSim.activeField === 'infavor' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
-                  }`}>
-                  <span className="truncate">{debateSim.infavor}</span>
-                  <span className="text-muted-foreground ml-1">▾</span>
+              
+              {/* In Favor & Against in same row */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <div className="text-[10px] font-semibold text-emerald-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />In Favor</div>
+                  <div 
+                    onClick={(e) => { e.stopPropagation(); if (debateSim.stage !== 'debating') debateSim.toggleDropdown('infavor') }}
+                    className={`debate-selector-slot relative text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between items-center transition-all duration-300 ${
+                      debateSim.stage === 'debating' ? 'cursor-not-allowed opacity-75' : 'cursor-pointer hover:bg-muted/30'
+                    } ${debateSim.activeDropdown === 'infavor' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'}`}
+                  >
+                    <span className="truncate">{debateSim.infavor}</span>
+                    <span className="text-muted-foreground ml-1">▾</span>
+                    {debateSim.activeDropdown === 'infavor' && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl py-1.5 z-50 animate-drop-in flex flex-col">
+                        {['Auto', 'gemini-2.5-flash', 'deepseek-r1', 'claude-3-5-sonnet'].map(opt => (
+                          <button key={opt} onClick={(e) => { e.stopPropagation(); debateSim.setInfavor(opt); debateSim.setActiveDropdown(null) }} className="px-2 py-1.5 text-left text-xs text-foreground hover:bg-violet-500/10 hover:text-violet-500 w-full transition-colors truncate">{opt}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-[10px] font-semibold text-rose-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block" />Against</div>
+                  <div 
+                    onClick={(e) => { e.stopPropagation(); if (debateSim.stage !== 'debating') debateSim.toggleDropdown('against') }}
+                    className={`debate-selector-slot relative text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between items-center transition-all duration-300 ${
+                      debateSim.stage === 'debating' ? 'cursor-not-allowed opacity-75' : 'cursor-pointer hover:bg-muted/30'
+                    } ${debateSim.activeDropdown === 'against' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'}`}
+                  >
+                    <span className="truncate">{debateSim.against}</span>
+                    <span className="text-muted-foreground ml-1">▾</span>
+                    {debateSim.activeDropdown === 'against' && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl py-1.5 z-50 animate-drop-in flex flex-col">
+                        {['Auto', 'llama-3.3-70b', 'mistral-large', 'gpt-4o-mini'].map(opt => (
+                          <button key={opt} onClick={(e) => { e.stopPropagation(); debateSim.setAgainst(opt); debateSim.setActiveDropdown(null) }} className="px-2 py-1.5 text-left text-xs text-foreground hover:bg-violet-500/10 hover:text-violet-500 w-full transition-colors truncate">{opt}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div className="space-y-1">
-                <div className="text-[10px] font-semibold text-rose-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block" />Against</div>
-                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${debateSim.activeField === 'against' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
-                  }`}>
-                  <span className="truncate">{debateSim.against}</span>
-                  <span className="text-muted-foreground ml-1">▾</span>
-                </div>
-              </div>
+              
+              {/* Judge dropdown */}
               <div className="space-y-1">
                 <div className="text-[10px] font-semibold text-amber-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />Judge</div>
-                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between transition-all duration-300 ${debateSim.activeField === 'judge' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'
-                  }`}>
+                <div 
+                  onClick={(e) => { e.stopPropagation(); if (debateSim.stage !== 'debating') debateSim.toggleDropdown('judge') }}
+                  className={`debate-selector-slot relative text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between items-center transition-all duration-300 ${
+                    debateSim.stage === 'debating' ? 'cursor-not-allowed opacity-75' : 'cursor-pointer hover:bg-muted/30'
+                  } ${debateSim.activeDropdown === 'judge' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'}`}
+                >
                   <span className="truncate">{debateSim.judge}</span>
                   <span className="text-muted-foreground ml-1">▾</span>
+                  {debateSim.activeDropdown === 'judge' && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl py-1.5 z-50 animate-drop-in flex flex-col">
+                      {['Auto', 'gpt-4o-mini', 'gemini-2.0-flash', 'llama-3.3-70b'].map(opt => (
+                        <button key={opt} onClick={(e) => { e.stopPropagation(); debateSim.setJudge(opt); debateSim.setActiveDropdown(null) }} className="px-3 py-1.5 text-left text-xs text-foreground hover:bg-violet-500/10 hover:text-violet-500 w-full transition-colors truncate">{opt}</button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
+              
+              {/* Start button */}
               <button
-                className={`w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-xs font-semibold rounded-xl px-4 py-2.5 text-center cursor-default transition-all duration-300 ${debateSim.activeField === 'startBtn' ? 'ring-2 ring-violet-500 ring-offset-2 dark:ring-offset-slate-900 scale-102 shadow-lg shadow-violet-500/30' : ''
-                  } ${debateSim.isStartClicked ? 'scale-95 brightness-90 shadow-none' : ''
-                  }`}
+                onClick={debateSim.handleStartClick}
+                disabled={!debateSim.isTopicFinished || debateSim.stage === 'debating'}
+                className={`w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-xs font-semibold rounded-xl px-4 py-2.5 text-center transition-all duration-300 ${
+                  debateSim.isTopicFinished && debateSim.stage !== 'debating'
+                    ? 'shadow-lg shadow-violet-500/35 cursor-pointer animate-pop-invite hover:from-violet-550 hover:to-indigo-550 active:scale-95'
+                    : 'opacity-50 cursor-not-allowed shadow-none'
+                } ${debateSim.isStartClicked ? 'scale-95 brightness-90' : ''}`}
               >
                 Start Debate Arena
               </button>
             </div>
+            
             {/* Transcript */}
-            <div className={`p-5 flex flex-col h-[480px] transition-opacity duration-500 ${debateSim.isFadingOut ? 'opacity-0' : 'opacity-100'}`}>
+            <div className={`p-5 flex flex-col h-[390px] transition-opacity duration-500 ${debateSim.isFadingOut ? 'opacity-0' : 'opacity-100'}`}>
               {debateSim.stage === 'config' ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground/45 border-2 border-dashed border-border/60 rounded-2xl p-6 bg-muted/5">
                   <span className="text-3xl mb-3">⚔</span>
@@ -2006,7 +2142,7 @@ export default function LandingPage() {
               ) : (
                 <>
                   <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 shrink-0 flex items-center justify-between">
-                    <span>Round {Math.min(5, Math.floor(debateSim.visibleCount / 3) + 1)} of 5</span>
+                    <span>Round {Math.min(debateSim.rounds, Math.floor(debateSim.visibleCount / 3) + 1)} of {debateSim.rounds}</span>
                     <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-indicator-pulse inline-block" />
                   </div>
                   <div ref={transcriptScrollRef} className="flex-1 overflow-y-auto no-scrollbar pr-1 space-y-3 scroll-smooth">
@@ -2046,17 +2182,19 @@ export default function LandingPage() {
       {/* ── SECTION: FAQ & How it Works ── */}
       <Section id="faq" alt>
         <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-8">
-            <Pill label="Got Questions?" color="violet" />
-            <SectionHeading>Frequently Asked Questions</SectionHeading>
+          <div className="text-center mb-4">
+            <span className="inline-block text-xs sm:text-sm font-semibold px-3.5 py-1 rounded-full border bg-violet-500/10 text-violet-500 border-violet-500/20 shadow-sm">
+              Got Questions?
+            </span>
           </div>
 
           {/* FAQ Category Tabs */}
           <div className="flex flex-wrap justify-center gap-2 mb-10 max-w-xl mx-auto animate-fade-up">
-            {(['general', 'api', 'security'] as const).map(cat => {
+            {(['general', 'routing', 'api', 'security'] as const).map(cat => {
               const isActive = activeCategory === cat;
               const labels = {
                 general: 'General Info',
+                routing: 'Smart Routing',
                 api: 'API Compatibility',
                 security: 'Security & Encryption'
               };
@@ -2094,10 +2232,10 @@ export default function LandingPage() {
                   >
                     <button
                       onClick={() => setOpenFaq(isOpen ? null : idx)}
-                      className="w-full text-left p-5 flex items-center justify-between gap-4 font-bold text-foreground cursor-pointer select-none"
+                      className="w-full text-left p-4 flex items-center justify-between gap-4 font-semibold text-foreground cursor-pointer select-none"
                     >
-                      <span className="flex items-center gap-3 text-sm sm:text-base">
-                        <span className={`text-xs transition-all duration-350 transform ${isOpen ? 'text-violet-500 rotate-90 scale-125' : 'text-slate-400 rotate-0 scale-100 group-hover:text-violet-400 group-hover:rotate-45'}`}>✦</span>
+                      <span className="flex items-center gap-3 text-xs sm:text-sm">
+                        <span className={`text-[10px] transition-all duration-350 transform ${isOpen ? 'text-violet-500 rotate-90 scale-125' : 'text-slate-400 rotate-0 scale-100 group-hover:text-violet-400 group-hover:rotate-45'}`}>✦</span>
                         <span className={`transition-colors duration-300 ${isOpen ? 'text-violet-500' : 'text-foreground group-hover:text-violet-400'}`}>
                           {faq.question}
                         </span>
@@ -2113,8 +2251,8 @@ export default function LandingPage() {
                         }`}
                     >
                       <div className="overflow-hidden">
-                        <div className="px-5 pb-5 pt-1 text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                          <p className="pt-3 border-t border-border/40">
+                        <div className="px-5 pb-4 pt-0.5 text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
+                          <p className="pt-2 border-t border-border/40">
                             {faq.answer}
                           </p>
                         </div>
@@ -2130,9 +2268,10 @@ export default function LandingPage() {
       {/* ── SECTION: Contact Developer ── */}
       <Section id="contact" alt>
         <div className="max-w-lg mx-auto animate-fade-up">
-          <div className="text-center mb-6">
-            <Pill label="Get In Touch" color="violet" />
-            <SectionHeading>Contact Developer</SectionHeading>
+          <div className="text-center mb-4">
+            <span className="inline-block text-xs sm:text-sm font-semibold px-3.5 py-1 rounded-full border bg-violet-500/10 text-violet-500 border-violet-500/20 shadow-sm">
+              Get in Touch
+            </span>
           </div>
 
           <div className="rounded-2xl border border-border bg-card/85 backdrop-blur-xl shadow-xl overflow-hidden p-6 md:p-8 relative">
