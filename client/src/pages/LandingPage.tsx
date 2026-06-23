@@ -1537,13 +1537,13 @@ export default function LandingPage() {
       <NeuralMeshBackground dark={dark} />
 
       {/* NAV */}
-      <header className={`sticky top-0 z-50 transition-all duration-300 bg-background/10 backdrop-blur-[24px] border-b border-cyan-400/40 shadow-[0_4px_24px_rgba(6,182,212,0.35)] rounded-b-2xl ${scrolled ? 'h-12' : 'h-20'}`}>
+      <header className={`sticky top-0 z-50 transition-all duration-300 bg-background/10 backdrop-blur-[24px] border-b border-cyan-400/40 shadow-[0_4px_24px_rgba(6,182,212,0.35)] rounded-b-2xl ${scrolled ? 'h-12' : 'h-16'}`}>
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between relative h-full transition-all duration-300">
           <div className="flex items-center gap-2 shrink-0">
-            <span className={`font-bold tracking-tight transition-all duration-300 ${scrolled ? 'text-sm' : 'text-xl text-foreground'}`}>OmniKey AI</span>
+            <span className={`font-bold tracking-tight transition-all duration-300 ${scrolled ? 'text-sm' : 'text-lg text-foreground'}`}>OmniKey AI</span>
           </div>
           <div className="flex items-center gap-6 ml-auto">
-            <nav className={`hidden md:flex items-center justify-end text-muted-foreground transition-all duration-300 ${scrolled ? 'gap-5 text-sm' : 'gap-7 text-[15px]'}`}>
+            <nav className={`hidden md:flex items-center justify-end text-muted-foreground transition-all duration-300 ${scrolled ? 'gap-5 text-sm' : 'gap-6 text-[14px]'}`}>
               {/* Features Dropdown */}
               <div
                 className="relative py-2"
@@ -1628,7 +1628,7 @@ export default function LandingPage() {
               </button>
               <button
                 onClick={() => navigate('/keys')}
-                className="cta-btn bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-sm font-semibold px-5 py-2.5 rounded-2xl shadow-md shadow-violet-500/20 transition-all duration-300 cursor-pointer"
+                className={`cta-btn bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold rounded-2xl shadow-md shadow-violet-500/20 transition-all duration-300 cursor-pointer ${scrolled ? 'text-xs px-4 py-1.5' : 'text-sm px-4 py-2'}`}
               >
                 Get Started →
               </button>
