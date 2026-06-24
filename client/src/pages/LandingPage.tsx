@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { motion, useReducedMotion, AnimatePresence } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 
 
 import logoDark from '../assets/logo-dark-theme.webp'
