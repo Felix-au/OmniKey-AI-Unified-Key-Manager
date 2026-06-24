@@ -2669,6 +2669,8 @@ export default function LandingPage() {
           height: '280px',
           perspective: '500px',
           transformStyle: 'preserve-3d',
+          transform: 'scale(0.95)',
+          transformOrigin: 'bottom right',
         }}
       >
         <div className="cascade-3d" style={{ '--cascade-speed': '4.5s' } as React.CSSProperties}>
