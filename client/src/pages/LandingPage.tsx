@@ -2449,53 +2449,52 @@ export default function LandingPage() {
             </motion.div>
 
             <motion.div {...faqAccordionContainerAnimation} className="space-y-4">
-              <AnimatePresence mode="popLayout">
-                {faqData
-                  .filter(faq => faq.tag === activeCategory)
-                  .map((faq, idx) => {
-                    const isOpen = openFaq === idx;
-                    return (
-                      <motion.div
-                        key={faq.question}
-                        variants={faqAccordionItemVariants}
-                        layout
-                        className={`group rounded-2xl border transition-all duration-300 bg-card/60 backdrop-blur overflow-hidden ${isOpen
-                          ? 'border-violet-500/40 ring-1 ring-violet-500/20 shadow-[0_0_25px_rgba(139,92,246,0.22)] bg-gradient-to-br from-card to-violet-500/5'
-                          : 'border-border hover:border-violet-500/30 hover:shadow-[0_0_15px_rgba(139,92,246,0.08)] hover:bg-card/90'
+              {faqData
+                .filter(faq => faq.tag === activeCategory)
+                .map((faq, idx) => {
+                  const isOpen = openFaq === idx;
+                  return (
+                    <motion.div
+                      key={faq.question}
+                      initial="hidden"
+                      animate="visible"
+                      variants={faqAccordionItemVariants}
+                      className={`group rounded-2xl border transition-all duration-300 bg-card/60 backdrop-blur overflow-hidden ${isOpen
+                        ? 'border-violet-500/40 ring-1 ring-violet-500/20 shadow-[0_0_25px_rgba(139,92,246,0.22)] bg-gradient-to-br from-card to-violet-500/5'
+                        : 'border-border hover:border-violet-500/30 hover:shadow-[0_0_15px_rgba(139,92,246,0.08)] hover:bg-card/90'
+                        }`}
+                    >
+                      <button
+                        onClick={() => setOpenFaq(isOpen ? null : idx)}
+                        className="w-full text-left p-4 flex items-center justify-between gap-4 font-semibold text-foreground cursor-pointer select-none"
+                      >
+                        <span className="flex items-center gap-3 text-xs sm:text-sm">
+                          <span className={`text-[10px] transition-all duration-350 transform ${isOpen ? 'text-violet-500 rotate-90 scale-125' : 'text-slate-400 rotate-0 scale-100 group-hover:text-violet-400 group-hover:rotate-45'}`}>✦</span>
+                          <span className={`transition-colors duration-300 ${isOpen ? 'text-violet-500' : 'text-foreground group-hover:text-violet-400'}`}>
+                            {faq.question}
+                          </span>
+                        </span>
+                        <span className={`text-muted-foreground shrink-0 transition-all duration-350 ${isOpen ? 'rotate-180 text-violet-500' : 'group-hover:text-violet-400 group-hover:translate-y-0.5'}`}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="6 9 12 15 18 9" />
+                          </svg>
+                        </span>
+                      </button>
+                      <div
+                        className={`grid transition-all duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
                           }`}
                       >
-                        <button
-                          onClick={() => setOpenFaq(isOpen ? null : idx)}
-                          className="w-full text-left p-4 flex items-center justify-between gap-4 font-semibold text-foreground cursor-pointer select-none"
-                        >
-                          <span className="flex items-center gap-3 text-xs sm:text-sm">
-                            <span className={`text-[10px] transition-all duration-350 transform ${isOpen ? 'text-violet-500 rotate-90 scale-125' : 'text-slate-400 rotate-0 scale-100 group-hover:text-violet-400 group-hover:rotate-45'}`}>✦</span>
-                            <span className={`transition-colors duration-300 ${isOpen ? 'text-violet-500' : 'text-foreground group-hover:text-violet-400'}`}>
-                              {faq.question}
-                            </span>
-                          </span>
-                          <span className={`text-muted-foreground shrink-0 transition-all duration-350 ${isOpen ? 'rotate-180 text-violet-500' : 'group-hover:text-violet-400 group-hover:translate-y-0.5'}`}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="6 9 12 15 18 9" />
-                            </svg>
-                          </span>
-                        </button>
-                        <div
-                          className={`grid transition-all duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
-                            }`}
-                        >
-                          <div className="overflow-hidden">
-                            <div className="px-5 pb-4 pt-0.5 text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
-                              <p className="pt-2 border-t border-border/40">
-                                {faq.answer}
-                              </p>
-                            </div>
+                        <div className="overflow-hidden">
+                          <div className="px-5 pb-4 pt-0.5 text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
+                            <p className="pt-2 border-t border-border/40">
+                              {faq.answer}
+                            </p>
                           </div>
                         </div>
-                      </motion.div>
-                    );
-                  })}
-              </AnimatePresence>
+                      </div>
+                    </motion.div>
+                  );
+                })}
             </motion.div>
           </div>
         </Section>
