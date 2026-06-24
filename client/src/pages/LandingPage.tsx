@@ -2448,7 +2448,11 @@ export default function LandingPage() {
               })}
             </motion.div>
 
-            <motion.div {...faqAccordionContainerAnimation} className="space-y-4">
+            <motion.div
+              key={activeCategory}
+              {...faqAccordionContainerAnimation}
+              className="space-y-4"
+            >
               {faqData
                 .filter(faq => faq.tag === activeCategory)
                 .map((faq, idx) => {
@@ -2456,8 +2460,6 @@ export default function LandingPage() {
                   return (
                     <motion.div
                       key={faq.question}
-                      initial="hidden"
-                      animate="visible"
                       variants={faqAccordionItemVariants}
                       className={`group rounded-2xl border transition-all duration-300 bg-card/60 backdrop-blur overflow-hidden ${isOpen
                         ? 'border-violet-500/40 ring-1 ring-violet-500/20 shadow-[0_0_25px_rgba(139,92,246,0.22)] bg-gradient-to-br from-card to-violet-500/5'
