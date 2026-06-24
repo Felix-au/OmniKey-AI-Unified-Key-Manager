@@ -130,10 +130,14 @@
         text-rendering: optimizeLegibility;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+        overflow: hidden;
+        height: 100%;
     }
     body {
         @apply bg-background text-foreground;
         font-feature-settings: 'ss01', 'cv11', 'tnum';
+        overflow: hidden;
+        height: 100%;
     }
     code, pre, kbd, samp {
         font-family: var(--font-mono);
@@ -237,3 +241,39 @@ html:not(.dark) :is(.markdown-body, .chat-markdown) code:not([class*="language-"
 html:not(.dark) :is(.markdown-body, .chat-markdown) table tbody tr:hover {
     background-color: oklch(0.90 0.01 240);
 }
+
+/* ── Scroll Snap Container and Section Classes ── */
+.snap-container {
+    scroll-snap-type: y mandatory;
+    overflow-y: scroll;
+    height: 100dvh;
+    scroll-behavior: smooth;
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+
+.snap-container::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, and Opera */
+}
+
+.snap-section {
+    scroll-snap-align: start;
+    min-height: 100dvh;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+    padding-top: 5.5rem; /* Offsets h-16 fixed header + space */
+    padding-bottom: 4.5rem; /* Offsets h-10 fixed footer + space */
+    box-sizing: border-box;
+}
+
+/* Reduced motion: disable snap */
+@media (prefers-reduced-motion: reduce) {
+    .snap-container {
+        scroll-snap-type: none;
+        scroll-behavior: auto;
+    }
+}
+
