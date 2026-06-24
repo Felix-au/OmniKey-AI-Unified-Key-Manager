@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
+import { motion, useReducedMotion } from 'motion/react'
+
 
 import logoDark from '../assets/logo-dark-theme.webp'
 import logoLight from '../assets/logo-light-theme.webp'
@@ -388,110 +390,110 @@ function NeuralMeshBackground({ dark }: { dark: boolean }) {
         const H = canvas.height
         ctx.clearRect(0, 0, W, H)
 
-      // Background color/gradient
-      if (dark) {
-        ctx.fillStyle = '#000000'
-        ctx.fillRect(0, 0, W, H)
-      } else {
-        const grad = ctx.createLinearGradient(0, 0, 0, H)
-        grad.addColorStop(0, '#ffffff')
-        grad.addColorStop(0.5, '#fafafb')
-        grad.addColorStop(1, '#f3f4f6')
-        ctx.fillStyle = grad
-        ctx.fillRect(0, 0, W, H)
-      }
-
-      // Update particles
-      particles.forEach((n) => {
-        // Natural Drift (Brownian drift)
-        n.vx += (Math.random() - 0.5) * 0.008
-        n.vy += (Math.random() - 0.5) * 0.008
-
-        // Repulsion from 3D MLP construct (Top-Left)
-        const isDesktop = window.innerWidth >= 768
-        if (isDesktop) {
-          const cX = 134
-          const cY = 236 // Statically 102px top + 134px half height
-          const dx = n.x - cX
-          const dy = n.y - cY
-          const dist = Math.sqrt(dx * dx + dy * dy)
-          const radius = 180
-          if (dist < radius && dist > 0) {
-            const force = (1 - dist / radius) * 0.5
-            n.vx += (dx / dist) * force
-            n.vy += (dy / dist) * force
-          }
+        // Background color/gradient
+        if (dark) {
+          ctx.fillStyle = '#000000'
+          ctx.fillRect(0, 0, W, H)
+        } else {
+          const grad = ctx.createLinearGradient(0, 0, 0, H)
+          grad.addColorStop(0, '#ffffff')
+          grad.addColorStop(0.5, '#fafafb')
+          grad.addColorStop(1, '#f3f4f6')
+          ctx.fillStyle = grad
+          ctx.fillRect(0, 0, W, H)
         }
 
-        // Clamp Speed between 0.3 and 1.4
-        const speed = Math.sqrt(n.vx * n.vx + n.vy * n.vy)
-        if (speed < 0.3) {
-          const angle = speed > 0 ? Math.atan2(n.vy, n.vx) : Math.random() * Math.PI * 2
-          n.vx = Math.cos(angle) * 0.3
-          n.vy = Math.sin(angle) * 0.3
-        } else if (speed > 1.4) {
-          n.vx = (n.vx / speed) * 1.4
-          n.vy = (n.vy / speed) * 1.4
-        }
-
-        // Update Position
-        n.x += n.vx
-        n.y += n.vy
-
-        // Screen Boundary Wrapping
-        if (n.x < 0) n.x += W
-        if (n.x > W) n.x -= W
-        if (n.y < 0) n.y += H
-        if (n.y > H) n.y -= H
-      })
-
-      // Draw connections between nearby particles (dynamic paths)
-      ctx.save()
-      ctx.shadowBlur = dark ? 18 : 8
-      ctx.shadowColor = '#06b6d4'
-      for (let i = 0; i < count; i++) {
-        for (let j = i + 1; j < count; j++) {
-          const p1 = particles[i]
-          const p2 = particles[j]
-          const dx = p1.x - p2.x
-          const dy = p1.y - p2.y
-          const dist = Math.sqrt(dx * dx + dy * dy)
-
-          if (dist < 160) {
-            const opacity = (1 - dist / 160) * (dark ? 0.65 : 0.4)
-            ctx.strokeStyle = `rgba(6, 182, 212, ${opacity})`
-            ctx.lineWidth = dark ? 1.2 : 0.7
-            ctx.beginPath()
-            ctx.moveTo(p1.x, p1.y)
-            ctx.lineTo(p2.x, p2.y)
-            ctx.stroke()
-          }
-        }
-      }
-      ctx.restore()
-
-      // Draw connections to mouse cursor when hovering
-      if (mouse.inside) {
-        ctx.save()
-        ctx.shadowBlur = dark ? 28 : 16
-        ctx.shadowColor = '#06b6d4'
+        // Update particles
         particles.forEach((n) => {
-          const dx = n.x - mouse.x
-          const dy = n.y - mouse.y
-          const dist = Math.sqrt(dx * dx + dy * dy)
+          // Natural Drift (Brownian drift)
+          n.vx += (Math.random() - 0.5) * 0.008
+          n.vy += (Math.random() - 0.5) * 0.008
 
-          if (dist < 140) {
-            const opacity = (1 - dist / 160) * (dark ? 1.0 : 0.85)
-            ctx.strokeStyle = `rgba(6, 182, 212, ${opacity})`
-            ctx.lineWidth = dark ? 2.2 : 1.6
-            ctx.beginPath()
-            ctx.moveTo(n.x, n.y)
-            ctx.lineTo(mouse.x, mouse.y)
-            ctx.stroke()
+          // Repulsion from 3D MLP construct (Top-Left)
+          const isDesktop = window.innerWidth >= 768
+          if (isDesktop) {
+            const cX = 134
+            const cY = 236 // Statically 102px top + 134px half height
+            const dx = n.x - cX
+            const dy = n.y - cY
+            const dist = Math.sqrt(dx * dx + dy * dy)
+            const radius = 180
+            if (dist < radius && dist > 0) {
+              const force = (1 - dist / radius) * 0.5
+              n.vx += (dx / dist) * force
+              n.vy += (dy / dist) * force
+            }
           }
+
+          // Clamp Speed between 0.3 and 1.4
+          const speed = Math.sqrt(n.vx * n.vx + n.vy * n.vy)
+          if (speed < 0.3) {
+            const angle = speed > 0 ? Math.atan2(n.vy, n.vx) : Math.random() * Math.PI * 2
+            n.vx = Math.cos(angle) * 0.3
+            n.vy = Math.sin(angle) * 0.3
+          } else if (speed > 1.4) {
+            n.vx = (n.vx / speed) * 1.4
+            n.vy = (n.vy / speed) * 1.4
+          }
+
+          // Update Position
+          n.x += n.vx
+          n.y += n.vy
+
+          // Screen Boundary Wrapping
+          if (n.x < 0) n.x += W
+          if (n.x > W) n.x -= W
+          if (n.y < 0) n.y += H
+          if (n.y > H) n.y -= H
         })
+
+        // Draw connections between nearby particles (dynamic paths)
+        ctx.save()
+        ctx.shadowBlur = dark ? 18 : 8
+        ctx.shadowColor = '#06b6d4'
+        for (let i = 0; i < count; i++) {
+          for (let j = i + 1; j < count; j++) {
+            const p1 = particles[i]
+            const p2 = particles[j]
+            const dx = p1.x - p2.x
+            const dy = p1.y - p2.y
+            const dist = Math.sqrt(dx * dx + dy * dy)
+
+            if (dist < 160) {
+              const opacity = (1 - dist / 160) * (dark ? 0.65 : 0.4)
+              ctx.strokeStyle = `rgba(6, 182, 212, ${opacity})`
+              ctx.lineWidth = dark ? 1.2 : 0.7
+              ctx.beginPath()
+              ctx.moveTo(p1.x, p1.y)
+              ctx.lineTo(p2.x, p2.y)
+              ctx.stroke()
+            }
+          }
+        }
         ctx.restore()
-      }
+
+        // Draw connections to mouse cursor when hovering
+        if (mouse.inside) {
+          ctx.save()
+          ctx.shadowBlur = dark ? 28 : 16
+          ctx.shadowColor = '#06b6d4'
+          particles.forEach((n) => {
+            const dx = n.x - mouse.x
+            const dy = n.y - mouse.y
+            const dist = Math.sqrt(dx * dx + dy * dy)
+
+            if (dist < 140) {
+              const opacity = (1 - dist / 160) * (dark ? 1.0 : 0.85)
+              ctx.strokeStyle = `rgba(6, 182, 212, ${opacity})`
+              ctx.lineWidth = dark ? 2.2 : 1.6
+              ctx.beginPath()
+              ctx.moveTo(n.x, n.y)
+              ctx.lineTo(mouse.x, mouse.y)
+              ctx.stroke()
+            }
+          })
+          ctx.restore()
+        }
 
         // Draw particle nodes with a heavy cyan glow
         ctx.save()
@@ -600,7 +602,7 @@ function useAnimatedChat() {
     if (!showSendPrompt) return
     setShowSendPrompt(false)
     const idx = userIndex
-    
+
     setVisible(idx + 1)
     setInputText('')
 
@@ -762,7 +764,7 @@ function useArenaAnimation() {
     if (!sendReady || sendClicked) return
     setSendClicked(true)
     setIsLoading(true)
-    
+
     runTimeout(() => {
       setIsLoading(false)
       setVisiblePanels(1)
@@ -795,7 +797,7 @@ function useArenaAnimation() {
           setIsLoading(false)
           setVisiblePanels(0)
           setActiveDropdown(null)
-          
+
           runTimeout(() => {
             typePrompt("Explain quantum entanglement simply.", () => {
               // Await user choices
@@ -989,7 +991,7 @@ function useDebateArenaSimulation() {
           setIsTyping(false)
           setActiveDropdown(null)
           setIsTopicFinished(false)
-          
+
           runTimeout(() => {
             typeText("Should AI replace human creativity?", () => {
               // Wait for user configurations
@@ -1248,8 +1250,8 @@ const fallbackChain = [
 // ── Section Wrapper ───────────────────────────────────────────────────────────
 function Section({ children, alt = false, id }: { children: React.ReactNode; alt?: boolean; id?: string }) {
   return (
-    <section id={id} className={`relative z-10 py-20 px-6 ${alt ? 'bg-muted/30 dark:bg-white/[0.02]' : ''}`}>
-      <div className="max-w-6xl mx-auto">{children}</div>
+    <section id={id} className={`snap-section relative z-10 px-6 ${alt ? 'bg-muted/30 dark:bg-white/[0.02]' : ''}`}>
+      <div className="max-w-6xl mx-auto w-full">{children}</div>
     </section>
   )
 }
@@ -1341,37 +1343,25 @@ const faqData = [
     answer: "Yes. Streaming is fully supported via Server-Sent Events (SSE) for both OpenAI-compatible and Gemini-compatible formats. When you set the stream parameter to true, token chunks are forwarded to your client application with minimal overhead.",
     tag: "api"
   },
-  {
-    question: "Do I need to change my code to use OmniKey AI?",
-    answer: "Minimal changes are required. Since OmniKey AI exposes an OpenAI-compatible web API, you only need to redirect your API requests by changing the base URL in your SDK configuration to our gateway address and replace the API key.",
-    tag: "api"
-  },
-  {
-    question: "How does the gateway secure my developer credentials?",
-    answer: "Security is a top priority. Upstream provider keys (such as your personal Google AI Studio or Groq keys) are encrypted using industry-standard symmetric AES-256-GCM encryption before database persistence. They are decrypted in-memory only during routing execution.",
-    tag: "security"
-  },
-  {
-    question: "Do my API requests get logged on the server?",
-    answer: "By default, requests are routed statelessly. However, if audit logging is enabled in the Admin Console, the server maintains recent audit records (latency, token count, and timestamps) for usage statistics. These logs do not contain raw prompt payloads.",
-    tag: "security"
-  },
-  {
-    question: "Can I revoke or refresh my OmniKey tokens instantly?",
-    answer: "Yes. If you suspect a token has been compromised, you can revoke or rotate it immediately via the dashboard's Keys section. The old token will be blacklisted across all edge servers within seconds.",
-    tag: "security"
-  },
-  {
-    question: "Does OmniKey support role-based access control (RBAC)?",
-    answer: "Yes, you can create multiple restricted tokens with specific permissions (e.g. read-only, write-only, or limited to specific model providers) to delegate access to team members or staging environments safely.",
-    tag: "security"
-  }
+]
+
+// ── Slide definitions for Navigation Indicator ──────────────────────────────────
+const SLIDES = [
+  { id: 'hero', label: 'Home' },
+  { id: 'routing', label: 'Smart Routing' },
+  { id: 'features', label: 'Playground' },
+  { id: 'arena', label: 'Arena' },
+  { id: 'debate', label: 'Debate' },
+  { id: 'faq', label: 'FAQs' },
+  { id: 'contact', label: 'Contact' }
 ]
 
 // ── Landing Page ──────────────────────────────────────────────────────────────
 export default function LandingPage() {
   const navigate = useNavigate()
   const { dark, toggle } = useDark()
+  const shouldReduceMotion = useReducedMotion()
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [activeCategory, setActiveCategory] = useState<'general' | 'routing' | 'api' | 'security'>('general')
   const chat = useAnimatedChat()
@@ -1381,16 +1371,32 @@ export default function LandingPage() {
   const debateSim = useDebateArenaSimulation()
   const transcriptScrollRef = useRef<HTMLDivElement | null>(null)
   const chatScrollRef = useRef<HTMLDivElement | null>(null)
+
+  const [activeSlide, setActiveSlide] = useState(0)
+
+  const scrollToSlide = (index: number) => {
+    const el = scrollContainerRef.current
+    if (el) {
+      el.scrollTo({
+        top: index * el.clientHeight,
+        behavior: 'smooth'
+      })
+      setActiveSlide(index)
+    }
+  }
+
   useEffect(() => {
     if (transcriptScrollRef.current) {
       transcriptScrollRef.current.scrollTop = transcriptScrollRef.current.scrollHeight
     }
   }, [debateSim.visibleCount, debateSim.isTyping])
+
   useEffect(() => {
     if (chatScrollRef.current) {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight
     }
   }, [chat.visible, chat.typing, chat.inputText])
+
   const heroRef = useRef<HTMLElement>(null)
   const [routedRequestsTarget, setRoutedRequestsTarget] = useState(850.00)
   const [tokensChanneledTarget, setTokensChanneledTarget] = useState(100.00)
@@ -1407,17 +1413,229 @@ export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
+    const el = scrollContainerRef.current
+    if (!el) return
     const handleScroll = () => {
-      const y = window.scrollY
+      const y = el.scrollTop
       if (y > 60) {
         setScrolled(true)
       } else if (y < 15) {
         setScrolled(false)
       }
+
+      const index = Math.round(y / el.clientHeight)
+      setActiveSlide(index)
     }
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
+    el.addEventListener('scroll', handleScroll)
+    return () => el.removeEventListener('scroll', handleScroll)
   }, [])
+
+  // ── Framer Motion Animation Variants ──
+  const logoAnimation: any = shouldReduceMotion ? {} : {
+    initial: { opacity: 0, scale: 0.95 },
+    whileInView: { opacity: 1, scale: 1 },
+    viewport: { once: false, amount: 0.2 },
+    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] }
+  }
+
+  const badgeContainerAnimation: any = shouldReduceMotion ? {} : {
+    initial: "hidden",
+    whileInView: "visible",
+    viewport: { once: false, amount: 0.2 },
+    variants: {
+      hidden: {},
+      visible: {
+        transition: {
+          staggerChildren: 0.04
+        }
+      }
+    }
+  }
+
+  const badgeItemVariants: any = {
+    hidden: { opacity: 0, y: -24, rotateX: 30, scale: 0.9 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      rotateX: 0,
+      scale: 1,
+      transition: {
+        type: "spring",
+        stiffness: 240,
+        damping: 18
+      }
+    }
+  }
+
+  const bannerAnimation: any = shouldReduceMotion ? {} : {
+    initial: { opacity: 0, scale: 0.9 },
+    whileInView: { opacity: 1, scale: 1 },
+    viewport: { once: false, amount: 0.2 },
+    transition: { type: "spring", stiffness: 200, damping: 15, delay: 0.1 }
+  }
+
+  const statsAnimation: any = shouldReduceMotion ? {} : {
+    initial: { opacity: 0, y: 24 },
+    whileInView: { opacity: 1, y: 0 },
+    viewport: { once: false, amount: 0.2 },
+    transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.2 }
+  }
+
+  const descAnimation: any = shouldReduceMotion ? {} : {
+    initial: { opacity: 0, y: 16 },
+    whileInView: { opacity: 1, y: 0 },
+    viewport: { once: false, amount: 0.2 },
+    transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.35 }
+  }
+
+  // Smart Routing Section (Slide 2)
+  const cardLeftAnimation: any = shouldReduceMotion ? {} : {
+    initial: { opacity: 0, x: -40 },
+    whileInView: { opacity: 1, x: 0 },
+    viewport: { once: false, amount: 0.2 },
+    transition: { type: "spring", stiffness: 120, damping: 18 }
+  }
+
+  const textRightAnimation: any = shouldReduceMotion ? {} : {
+    initial: { opacity: 0, x: 40 },
+    whileInView: { opacity: 1, x: 0 },
+    viewport: { once: false, amount: 0.2 },
+    transition: { type: "spring", stiffness: 120, damping: 18, delay: 0.1 }
+  }
+
+  // Chat Playground (Slide 3)
+  const textLeftAnimation: any = shouldReduceMotion ? {} : {
+    initial: { opacity: 0, x: -40 },
+    whileInView: { opacity: 1, x: 0 },
+    viewport: { once: false, amount: 0.2 },
+    transition: { type: "spring", stiffness: 120, damping: 18 }
+  }
+
+  const cardRightAnimation: any = shouldReduceMotion ? {} : {
+    initial: { opacity: 0, x: 40, rotateY: 5 },
+    whileInView: { opacity: 1, x: 0, rotateY: 0 },
+    viewport: { once: false, amount: 0.2 },
+    transition: { type: "spring", stiffness: 120, damping: 18, delay: 0.1 }
+  }
+
+  // Model Arena (Slide 4)
+  const cardLeftArenaAnimation: any = shouldReduceMotion ? {} : {
+    initial: { opacity: 0, x: -40 },
+    whileInView: { opacity: 1, x: 0 },
+    viewport: { once: false, amount: 0.2 },
+    transition: { type: "spring", stiffness: 120, damping: 18 }
+  }
+
+  const textRightArenaAnimation: any = shouldReduceMotion ? {} : {
+    initial: { opacity: 0, x: 40 },
+    whileInView: { opacity: 1, x: 0 },
+    viewport: { once: false, amount: 0.2 },
+    transition: { type: "spring", stiffness: 120, damping: 18, delay: 0.1 }
+  }
+
+  // Debate Arena (Slide 5)
+  const debatePillAnimation: any = shouldReduceMotion ? {} : {
+    initial: { opacity: 0, scale: 0.8 },
+    whileInView: { opacity: 1, scale: 1 },
+    viewport: { once: false, amount: 0.2 },
+    transition: { type: "spring", stiffness: 200, damping: 15 }
+  }
+
+  const debateSidebarAnimation: any = shouldReduceMotion ? {} : {
+    initial: { opacity: 0, x: -50 },
+    whileInView: { opacity: 1, x: 0 },
+    viewport: { once: false, amount: 0.2 },
+    transition: { type: "spring", stiffness: 120, damping: 18, delay: 0.1 }
+  }
+
+  const debateTranscriptAnimation: any = shouldReduceMotion ? {} : {
+    initial: { opacity: 0, x: 50 },
+    whileInView: { opacity: 1, x: 0 },
+    viewport: { once: false, amount: 0.2 },
+    transition: { type: "spring", stiffness: 120, damping: 18, delay: 0.2 }
+  }
+
+  // FAQ Section (Slide 6)
+  const faqHeadingAnimation: any = shouldReduceMotion ? {} : {
+    initial: { opacity: 0, y: 20 },
+    whileInView: { opacity: 1, y: 0 },
+    viewport: { once: false, amount: 0.2 },
+    transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] }
+  }
+
+  const faqTabsContainerAnimation: any = shouldReduceMotion ? {} : {
+    initial: "hidden",
+    whileInView: "visible",
+    viewport: { once: false, amount: 0.2 },
+    variants: {
+      hidden: {},
+      visible: {
+        transition: {
+          staggerChildren: 0.05
+        }
+      }
+    }
+  }
+
+  const faqTabItemVariants: any = {
+    hidden: { opacity: 0, scale: 0.9 },
+    visible: { opacity: 1, scale: 1, transition: { type: "spring", stiffness: 200, damping: 15 } }
+  }
+
+  const faqAccordionContainerAnimation: any = shouldReduceMotion ? {} : {
+    initial: "hidden",
+    whileInView: "visible",
+    viewport: { once: false, amount: 0.1 },
+    variants: {
+      hidden: {},
+      visible: {
+        transition: {
+          staggerChildren: 0.06
+        }
+      }
+    }
+  }
+
+  const faqAccordionItemVariants: any = {
+    hidden: { opacity: 0, y: 15 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } }
+  }
+
+  // Contact Section (Slide 7)
+  const contactHeadingAnimation: any = shouldReduceMotion ? {} : {
+    initial: { opacity: 0, y: 20 },
+    whileInView: { opacity: 1, y: 0 },
+    viewport: { once: false, amount: 0.2 },
+    transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] }
+  }
+
+  const contactFormAnimation: any = shouldReduceMotion ? {} : {
+    initial: { opacity: 0, y: 40 },
+    whileInView: { opacity: 1, y: 0 },
+    viewport: { once: false, amount: 0.2 },
+    transition: { type: "spring", stiffness: 120, damping: 20, delay: 0.1 }
+  }
+
+  const contactFieldsContainerAnimation: any = shouldReduceMotion ? {} : {
+    initial: "hidden",
+    whileInView: "visible",
+    viewport: { once: false, amount: 0.2 },
+    variants: {
+      hidden: {},
+      visible: {
+        transition: {
+          staggerChildren: 0.08,
+          delayChildren: 0.2
+        }
+      }
+    }
+  }
+
+  const contactFieldItemVariants: any = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } }
+  }
+
 
   const [contactName, setContactName] = useState('')
   const [contactEmail, setContactEmail] = useState('')
@@ -1505,7 +1723,7 @@ export default function LandingPage() {
   }, [])
 
   return (
-    <div className="min-h-screen text-foreground relative pb-10">
+    <div className="h-screen w-full overflow-hidden text-foreground relative">
       <Helmet>
         <title>OmniKey AI - One Key. Every Model.</title>
         <meta name="description" content="Route requests across Gemini, Groq, Mistral, and more with automatic fallbacks for 100% uptime. Explore our API proxy gateway with Groq fallback routing and free Gemini API failover." />
@@ -1514,10 +1732,15 @@ export default function LandingPage() {
       <NeuralMeshBackground dark={dark} />
 
       {/* NAV */}
-      <header className={`sticky top-0 z-50 transition-all duration-300 bg-background/10 backdrop-blur-[24px] border-b border-cyan-400/40 shadow-[0_4px_24px_rgba(6,182,212,0.35)] rounded-b-2xl ${scrolled ? 'h-12' : 'h-16'}`}>
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-background/10 backdrop-blur-[24px] border-b border-cyan-400/40 shadow-[0_4px_24px_rgba(6,182,212,0.35)] rounded-b-2xl ${scrolled ? 'h-12' : 'h-16'}`}>
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between relative h-full transition-all duration-300">
           <div className="flex items-center gap-2 shrink-0">
-            <span className={`font-bold tracking-tight transition-all duration-300 ${scrolled ? 'text-sm' : 'text-lg text-foreground'}`}>OmniKey AI</span>
+            <span
+              onClick={() => scrollToSlide(0)}
+              className={`font-bold tracking-tight transition-all duration-300 cursor-pointer ${scrolled ? 'text-sm' : 'text-lg text-foreground'}`}
+            >
+              OmniKey AI
+            </span>
           </div>
           <div className="flex items-center gap-6 ml-auto">
             <nav className={`hidden md:flex items-center justify-end text-muted-foreground transition-all duration-300 ${scrolled ? 'gap-5 text-sm' : 'gap-6 text-[14px]'}`}>
@@ -1546,7 +1769,7 @@ export default function LandingPage() {
                   <div className="absolute top-full left-1/2 -translate-x-1/2 w-40 rounded-xl border border-border bg-card/95 backdrop-blur-xl shadow-xl py-2 z-50 animate-fade-in flex flex-col">
                     <a
                       href="#routing"
-                      onClick={() => setFeaturesDropdownOpen(false)}
+                      onClick={(e) => { e.preventDefault(); setFeaturesDropdownOpen(false); scrollToSlide(1); }}
                       className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="18" r="3" /><circle cx="18" cy="6" r="3" /><path d="M6 15c0-3.87 3.13-7 7-7h2" /><polyline points="17 3 21 7 17 11" /></svg>
@@ -1554,7 +1777,7 @@ export default function LandingPage() {
                     </a>
                     <a
                       href="#features"
-                      onClick={() => setFeaturesDropdownOpen(false)}
+                      onClick={(e) => { e.preventDefault(); setFeaturesDropdownOpen(false); scrollToSlide(2); }}
                       className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
@@ -1562,7 +1785,7 @@ export default function LandingPage() {
                     </a>
                     <a
                       href="#arena"
-                      onClick={() => setFeaturesDropdownOpen(false)}
+                      onClick={(e) => { e.preventDefault(); setFeaturesDropdownOpen(false); scrollToSlide(3); }}
                       className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
@@ -1570,7 +1793,7 @@ export default function LandingPage() {
                     </a>
                     <a
                       href="#debate"
-                      onClick={() => setFeaturesDropdownOpen(false)}
+                      onClick={(e) => { e.preventDefault(); setFeaturesDropdownOpen(false); scrollToSlide(4); }}
                       className="flex items-center gap-2 px-4 py-2 hover:text-foreground hover:bg-muted/50 transition-colors w-full"
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z" /></svg>
@@ -1589,12 +1812,20 @@ export default function LandingPage() {
                 Docs
               </a>
 
-              <a href="#faq" className={`hover:text-foreground transition-colors flex items-center gap-1.5 transition-all duration-300 ${scrolled ? 'font-medium' : 'font-semibold text-foreground/90'}`}>
+              <a
+                href="#faq"
+                onClick={(e) => { e.preventDefault(); scrollToSlide(5); }}
+                className={`hover:text-foreground transition-colors flex items-center gap-1.5 transition-all duration-300 ${scrolled ? 'font-medium' : 'font-semibold text-foreground/90'}`}
+              >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
                 FAQs
               </a>
 
-              <a href="#contact" className={`hover:text-foreground transition-colors flex items-center gap-1.5 transition-all duration-300 ${scrolled ? 'font-medium' : 'font-semibold text-foreground/90'}`}>
+              <a
+                href="#contact"
+                onClick={(e) => { e.preventDefault(); scrollToSlide(6); }}
+                className={`hover:text-foreground transition-colors flex items-center gap-1.5 transition-all duration-300 ${scrolled ? 'font-medium' : 'font-semibold text-foreground/90'}`}
+              >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
                 Contact
               </a>
@@ -1614,731 +1845,734 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* HERO SECTION - BIFURCATED GRID */}
-      <section ref={heroRef} className="relative min-h-[calc(100vh-80px)] flex items-center py-6 px-6 md:px-12 max-w-7xl mx-auto z-10">
-        <div className="grid md:grid-cols-12 gap-12 items-center w-full">
+      {/* Scroll Snap Container */}
+      <div ref={scrollContainerRef} className="snap-container">
+        {/* HERO SECTION - BIFURCATED GRID */}
+        <section ref={heroRef} id="hero" className="snap-section relative min-h-[100dvh] flex items-center px-6 md:px-12 max-w-7xl mx-auto z-10">
+          <div className="grid md:grid-cols-12 gap-12 items-center w-full">
 
-          {/* Left Column - Large Logo & Supported Providers (Centered) */}
-          <div className="md:col-span-6 flex flex-col justify-center items-center text-center gap-6">
+            {/* Left Column - Large Logo & Supported Providers (Centered) */}
+            <div className="md:col-span-6 flex flex-col justify-center items-center text-center gap-6">
 
-            {/* Combined Logo & Providers Container with 0 gap */}
-            <div className="flex flex-col items-center gap-0 w-full">
-              {/* Big Logo */}
-              <div className="w-full flex justify-center items-center min-h-[38vh] md:min-h-[33vh]">
-                <img
-                  src={dark ? logoDark : logoLight}
-                  alt="OmniKey AI - One Key. Every Model."
-                  className="max-h-[38vh] md:max-h-[33vh] w-auto object-contain transition-all duration-300 transform hover:scale-[1.01]"
-                />
-              </div>
+              {/* Combined Logo & Providers Container with 0 gap */}
+              <div className="flex flex-col items-center gap-0 w-full">
+                {/* Big Logo */}
+                <motion.div {...logoAnimation} className="w-full flex justify-center items-center min-h-[38vh] md:min-h-[33vh]">
+                  <img
+                    src={dark ? logoDark : logoLight}
+                    alt="OmniKey AI - One Key. Every Model."
+                    className="max-h-[38vh] md:max-h-[33vh] w-auto object-contain transition-all duration-300 transform hover:scale-[1.01]"
+                  />
+                </motion.div>
 
-              {/* Supported Providers Badges */}
-              <div className="w-full mt-0">
-                <div className="flex flex-wrap justify-center gap-2">
-                  {providers.map(p => {
-                    const logo = providerLogos[p]
-                    const isGitHub = p === 'GitHub'
-                    return (
-                      <span key={p} className="provider-pill flex items-center gap-2 text-xs px-3.5 py-2 rounded-full border border-border bg-card/60 text-muted-foreground">
-                        {isGitHub ? (
-                          <span className="text-foreground dark:text-white flex items-center justify-center">
-                            <GitHubIcon size={14} />
-                          </span>
-                        ) : logo ? (
-                          <img src={logo} alt={p} className="w-4 h-4 object-contain" />
-                        ) : (
-                          <span className={`w-1.5 h-1.5 rounded-full ${providerColors[p]}`} />
-                        )}
-                        {p}
-                      </span>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-          {/* Right Column - Launch Offer, Stats Grid & Description Text */}
-          <div className="md:col-span-6 flex flex-col justify-center items-center gap-6 w-full">
-
-            {/* Launch Offer Banner */}
-            <div>
-              <div
-                onClick={() => navigate('/keys')}
-                className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-emerald-500/40 bg-emerald-500/5 shadow-[0_0_15px_rgba(16,185,129,0.25)] hover:shadow-[0_0_22px_rgba(16,185,129,0.5)] hover:bg-emerald-500/10 text-xs font-semibold text-emerald-600 dark:text-emerald-400 cursor-pointer transition-all duration-300 transform hover:scale-[1.02]"
-              >
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 animate-pulse"></span>
-                </span>
-                <span>Launch Offer: Get 10M tokens free!</span>
-              </div>
-            </div>
-
-            {/* Stats Block (2x2 grid) */}
-            <div className="w-full">
-              {/* Outer wrapper: defined border + subtle cyan glow */}
-              <div className="rounded-2xl border border-cyan-500/50 shadow-[0_0_28px_6px_rgba(6,182,212,0.28)] overflow-hidden">
-                {/* Grid with internal separators via divide */}
-                <div className="grid grid-cols-2 bg-card/25 backdrop-blur-md divide-x divide-y divide-cyan-500/20 relative">
-                  {[
-                    { ref: stat1.ref, val: `${stat1.val.toLocaleString()}+`, label: 'Models Available' },
-                    { ref: stat4.ref, val: `${stat4.val.toFixed(2)}${requestsUnit}`, label: 'Requests Processed' },
-                    { ref: stat5.ref, val: `${stat5.val.toFixed(2)}${tokensUnit}`, label: 'Tokens Channeled' },
-                    { ref: stat6.ref, val: `${stat6.val.toFixed(2)}${successUnit}`, label: 'Routing Success Rate' }
-                  ].map(({ ref, val, label }) => (
-                    <div key={label} ref={ref} className="stat-animate text-center py-6 px-4">
-                      <div className="text-3xl font-extrabold text-foreground stat-num">{val}</div>
-                      <div className="text-xs text-muted-foreground mt-1">{label}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Description Text */}
-            <p className="text-sm text-muted-foreground leading-relaxed max-w-lg text-center mx-auto">
-              OmniKey AI roots your requests across Gemini, Groq, Mistral, NVIDIA, Cerebras and more — with automatic fallbacks to ensure 100% uptime.
-            </p>
-
-          </div>
-
-        </div>
-      </section>
-
-
-      {/* ── SECTION: Chat Playground ── */}
-      {/* ── SECTION: Smart Routing ── */}
-      <Section id="routing" alt>
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          <MockCard className="divide-y divide-border">
-            <div className="px-4 py-3 bg-muted/40 dark:bg-white/5 text-xs font-semibold text-muted-foreground">Fallback Chain — Priority Order</div>
-            {fallbackChain.map((p, i) => {
-              const isGroq = p.name === 'Groq'
-              const isCerebras = p.name === 'Cerebras'
-              const showError = isGroq && (routingPhase === 'error' || routingPhase === 'rerouting' || routingPhase === 'done')
-              const isRerouted = isCerebras && (routingPhase === 'rerouting' || routingPhase === 'done')
-              const isDragging = fallbackOrder.dragging === i
-              return (
-                <div key={i} className={`chain-row px-4 py-3.5 flex items-center gap-3 transition-colors duration-700 ${isDragging ? 'drag-hint' : ''} ${isRerouted ? 'bg-emerald-500/5' : ''}`}>
-                  <span className="text-muted-foreground select-none text-sm">⠿</span>
-                  <span className="text-xs text-muted-foreground w-4">{i + 1}</span>
-                  <span className={`w-2 h-2 rounded-full shrink-0 transition-colors duration-500 ${isRerouted ? 'bg-emerald-500 animate-pulse' :
-                    showError ? 'bg-red-500' :
-                      p.status === 'active' ? 'bg-emerald-500 animate-pulse' :
-                        'bg-slate-400'
-                    }`} />
-                  <span className="text-xs font-medium text-foreground flex-1">{p.name}</span>
-                  {isDragging && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-500 animate-fade-up">Moving ↑</span>}
-                  {showError && !isDragging && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 animate-fade-up">429</span>}
-                  {isRerouted && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 animate-fade-up">↑ Active</span>}
-                  {p.status === 'active' && !showError && !isDragging && <span className="text-[10px] text-emerald-500 font-semibold">{p.latency} avg</span>}
-                </div>
-              )
-            })}
-            <div className={`px-4 py-3 text-[10px] transition-all duration-700 ${routingPhase === 'rerouting' || routingPhase === 'done'
-              ? 'text-emerald-500 bg-emerald-500/5'
-              : 'text-muted-foreground bg-muted/20'
-              }`}>
-              {routingPhase === 'idle' ? '● Monitoring provider health...' :
-                routingPhase === 'error' ? '⚠ Groq returned 429 — initiating failover...' :
-                  '✓ Request auto-routed to Cerebras after Groq 429'}
-            </div>
-          </MockCard>
-          <div>
-            <Pill label="Smart Routing" color="violet" />
-            <SectionHeading>Zero Downtime. Automatic Fallbacks.</SectionHeading>
-            <SectionSub>When one provider rate-limits, OmniKey silently routes to the next best option. Your app never sees an error — just seamless responses.</SectionSub>
-          </div>
-        </div>
-      </Section>
-
-      {/* ── SECTION: Chat Playground ── */}
-      <Section id="features">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          <div>
-            <Pill label="Chat Playground" color="green" />
-            <SectionHeading>Test Any Model Instantly</SectionHeading>
-            <SectionSub>Switch between OpenAI and Gemini formats. Pick any model, type your prompt, and see real AI responses with live latency and token metrics.</SectionSub>
-          </div>
-          <MockCard>
-            <div ref={chat.containerRef} className={`transition-opacity duration-500 ${chat.isFadingOut ? 'opacity-0' : 'opacity-100'}`}>
-              <div className="bg-muted/40 dark:bg-white/5 px-4 py-3 border-b border-border flex items-center justify-between">
-                <span className="text-xs font-semibold text-muted-foreground">gemini-2.5-flash</span>
-                <span className="text-[10px] bg-violet-500/10 text-violet-500 border border-violet-500/20 rounded-full px-2 py-0.5 font-semibold">OmniKey AI</span>
-              </div>
-              <div ref={chatScrollRef} className="p-4 space-y-3 h-[260px] overflow-y-auto scroll-smooth">
-                {mockChat.map((m, i) => i < chat.visible && (
-                  <div key={i} className={`flex animate-fade-up ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed ${m.role === 'user' ? 'bg-violet-600 text-white' : 'bg-muted/60 dark:bg-white/8 text-foreground border border-border'}`}>
-                      {m.text}
-                      {m.meta && <div className="mt-1 text-[10px] opacity-60">{m.meta}</div>}
-                    </div>
+                {/* Supported Providers Badges */}
+                <motion.div {...badgeContainerAnimation} className="w-full mt-0">
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {providers.map(p => {
+                      const logo = providerLogos[p]
+                      const isGitHub = p === 'GitHub'
+                      return (
+                        <motion.span key={p} variants={badgeItemVariants} className="provider-pill flex items-center gap-2 text-xs px-3.5 py-2 rounded-full border border-border bg-card/60 text-muted-foreground">
+                          {isGitHub ? (
+                            <span className="text-foreground dark:text-white flex items-center justify-center">
+                              <GitHubIcon size={14} />
+                            </span>
+                          ) : logo ? (
+                            <img src={logo} alt={p} className="w-4 h-4 object-contain" />
+                          ) : (
+                            <span className={`w-1.5 h-1.5 rounded-full ${providerColors[p]}`} />
+                          )}
+                          {p}
+                        </motion.span>
+                      )
+                    })}
                   </div>
-                ))}
-                {chat.typing && (
-                  <div className="flex justify-start animate-fade-up">
-                    <div className="bg-muted/60 border border-border rounded-xl px-3 py-2 flex gap-1 items-center text-muted-foreground">
-                      <span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" />
-                    </div>
-                  </div>
-                )}
+                </motion.div>
               </div>
-              <div className="border-t border-border px-4 py-3 flex gap-2">
-                <div className="flex-1 bg-muted/40 dark:bg-white/5 rounded-xl text-xs px-3 py-2 text-foreground font-medium flex items-center min-h-[32px] overflow-hidden">
-                  {chat.inputText ? (
-                    <span className="flex items-center truncate">
-                      <span>{chat.inputText}</span>
-                      <span className="w-1 h-3.5 bg-violet-500 ml-0.5 animate-pulse inline-block" />
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">Type a message...</span>
-                  )}
-                </div>
-                <button
-                  onClick={chat.handleSendClick}
-                  disabled={!chat.showSendPrompt}
-                  className={`rounded-xl px-4 py-2 flex items-center text-white text-xs font-semibold transition-all duration-300 ${
-                    chat.showSendPrompt
-                      ? 'bg-violet-600 shadow-lg shadow-violet-500/35 cursor-pointer animate-pop-invite hover:bg-violet-700 active:scale-95'
-                      : 'bg-muted-foreground/20 text-muted-foreground/60 cursor-not-allowed'
-                  }`}
+
+            </div>
+
+            {/* Right Column - Launch Offer, Stats Grid & Description Text */}
+            <div className="md:col-span-6 flex flex-col justify-center items-center gap-6 w-full">
+
+              {/* Launch Offer Banner */}
+              <motion.div {...bannerAnimation}>
+                <div
+                  onClick={() => navigate('/keys')}
+                  className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-emerald-500/40 bg-emerald-500/5 shadow-[0_0_15px_rgba(16,185,129,0.25)] hover:shadow-[0_0_22px_rgba(16,185,129,0.5)] hover:bg-emerald-500/10 text-xs font-semibold text-emerald-600 dark:text-emerald-400 cursor-pointer transition-all duration-300 transform hover:scale-[1.02]"
                 >
-                  Send
-                </button>
-              </div>
-            </div>
-          </MockCard>
-        </div>
-      </Section>
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 animate-pulse"></span>
+                  </span>
+                  <span>Launch Offer: Get 10M tokens free!</span>
+                </div>
+              </motion.div>
 
-      {/* ── SECTION: Arena ── */}
-      <Section id="arena" alt>
-        <div ref={arena.containerRef} className="grid md:grid-cols-2 gap-12 items-center">
-          <MockCard>
-            <div className={`transition-opacity duration-500 ${arena.isFadingOut ? 'opacity-0' : 'opacity-100'}`}>
-              <div className="bg-muted/40 dark:bg-white/5 px-4 py-3 border-b border-border flex items-center justify-between gap-3 min-h-[45px]">
-                <div className="text-xs font-semibold flex items-center overflow-hidden flex-1">
-                  <span className="text-muted-foreground shrink-0">Prompt:&nbsp;</span>
-                  {arena.prompt ? (
-                    <span className="flex items-center text-foreground truncate">
-                      <span>{arena.prompt}</span>
-                      {arena.promptActive && <span className="w-1.5 h-3.5 bg-blue-500 ml-0.5 animate-pulse inline-block" />}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground/45 italic font-normal">Awaiting prompt...</span>
-                  )}
+              {/* Stats Block (2x2 grid) */}
+              <motion.div className="w-full" {...statsAnimation}>
+                {/* Outer wrapper: defined border + subtle cyan glow */}
+                <div className="rounded-2xl border border-cyan-500/50 shadow-[0_0_28px_6px_rgba(6,182,212,0.28)] overflow-hidden">
+                  {/* Grid with internal separators via divide */}
+                  <div className="grid grid-cols-2 bg-card/25 backdrop-blur-md divide-x divide-y divide-cyan-500/20 relative">
+                    {[
+                      { ref: stat1.ref, val: `${stat1.val.toLocaleString()}+`, label: 'Models Available' },
+                      { ref: stat4.ref, val: `${stat4.val.toFixed(2)}${requestsUnit}`, label: 'Requests Processed' },
+                      { ref: stat5.ref, val: `${stat5.val.toFixed(2)}${tokensUnit}`, label: 'Tokens Channeled' },
+                      { ref: stat6.ref, val: `${stat6.val.toFixed(2)}${successUnit}`, label: 'Routing Success Rate' }
+                    ].map(({ ref, val, label }) => (
+                      <div key={label} ref={ref} className="stat-animate text-center py-6 px-4">
+                        <div className="text-3xl font-extrabold text-foreground stat-num">{val}</div>
+                        <div className="text-xs text-muted-foreground mt-1">{label}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                
-                {/* Buttons container */}
-                <div className="flex items-center gap-2 shrink-0">
-                  {/* Random Models button */}
-                  {!arena.promptActive && !arena.sendClicked && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        arena.fillRandomModels()
-                      }}
-                      className="px-2 py-1 text-[10px] font-semibold rounded-lg border border-violet-500/35 text-violet-500 bg-violet-500/5 hover:bg-violet-500/10 cursor-pointer transition-all duration-300"
-                    >
-                      Random Models
-                    </button>
-                  )}
-                  
-                  {/* Send button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      arena.handleSendClick()
-                    }}
-                    disabled={!arena.sendReady || arena.sendClicked}
-                    className={`rounded-lg px-3 py-1 text-[10px] font-bold border transition-all duration-300 ${
-                      arena.sendClicked
-                        ? 'bg-blue-700 text-white border-blue-600 scale-95 shadow-none'
-                        : arena.sendReady
-                          ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/20 scale-100 cursor-pointer animate-pop-invite hover:bg-blue-700'
-                          : 'bg-muted-foreground/10 text-muted-foreground/40 border-border/40 scale-100 cursor-not-allowed'
-                    }`}
-                  >
-                    Send
-                  </button>
-                </div>
-              </div>
-              
-              {/* Model selectors row */}
-              <div className="grid grid-cols-4 divide-x divide-border border-b border-border relative z-10">
-                {arena.models.map((m, i) => {
-                  const colors = ['text-blue-400', 'text-orange-400', 'text-purple-400', 'text-emerald-400']
-                  const dropdownOptions = [
-                    ['gemini-2.5-flash', 'gemini-1.5-pro', 'gpt-4o'],
-                    ['llama-3.3-70b', 'llama-3.1-8b', 'claude-3-5-sonnet'],
-                    ['mistral-large', 'mistral-nemo', 'deepseek-v3'],
-                    ['qwen-2.5-72b', 'gemma-2-9b', 'phi-3-medium']
-                  ]
-                  const isDropdownOpen = arena.activeDropdown === i
-                  const isSlotInviting = !m && !arena.promptActive && !arena.sendClicked
-                  
+              </motion.div>
+
+              {/* Description Text */}
+              <motion.p className="text-sm text-muted-foreground leading-relaxed max-w-lg text-center mx-auto" {...descAnimation}>
+                OmniKey AI roots your requests across Gemini, Groq, Mistral, NVIDIA, Cerebras and more — with automatic fallbacks to ensure 100% uptime.
+              </motion.p>
+
+            </div>
+
+          </div>
+        </section>
+
+
+        {/* ── SECTION: Chat Playground ── */}
+        {/* ── SECTION: Smart Routing ── */}
+        <Section id="routing" alt>
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <motion.div {...cardLeftAnimation}>
+              <MockCard className="divide-y divide-border">
+                <div className="px-4 py-3 bg-muted/40 dark:bg-white/5 text-xs font-semibold text-muted-foreground">Fallback Chain — Priority Order</div>
+                {fallbackChain.map((p, i) => {
+                  const isGroq = p.name === 'Groq'
+                  const isCerebras = p.name === 'Cerebras'
+                  const showError = isGroq && (routingPhase === 'error' || routingPhase === 'rerouting' || routingPhase === 'done')
+                  const isRerouted = isCerebras && (routingPhase === 'rerouting' || routingPhase === 'done')
+                  const isDragging = fallbackOrder.dragging === i
                   return (
-                    <div 
-                      key={i} 
-                      className={`model-selector-slot relative px-2 py-2 text-xs font-semibold flex flex-col items-center justify-center min-h-[40px] gap-1 ${colors[i]} ${
-                        isSlotInviting 
-                          ? 'bg-violet-500/5 hover:bg-violet-500/10 border-dashed border-violet-500/40 cursor-pointer animate-pulse' 
-                          : 'cursor-pointer hover:bg-muted/40'
-                      } transition-all duration-300`}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        if (!arena.promptActive && !arena.sendClicked) {
-                          arena.toggleDropdown(i)
-                        }
-                      }}
-                    >
-                      {m ? (
-                        <span className="model-tag truncate animate-drop-in">{m}</span>
-                      ) : (
-                        <span className="text-muted-foreground/50 font-normal italic">Select Model</span>
-                      )}
-                      
-                      {isDropdownOpen && (
-                        <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl py-1.5 z-50 animate-drop-in flex flex-col max-h-[120px] overflow-y-auto">
-                          {dropdownOptions[i].map(opt => (
-                            <button
-                              key={opt}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                arena.selectModel(i, opt)
-                              }}
-                              className="px-2 py-1 text-left text-xs text-foreground hover:bg-violet-500/10 hover:text-violet-500 w-full transition-colors font-medium truncate"
-                            >
-                              {opt}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                    <div key={i} className={`chain-row px-4 py-3.5 flex items-center gap-3 transition-colors duration-700 ${isDragging ? 'drag-hint' : ''} ${isRerouted ? 'bg-emerald-500/5' : ''}`}>
+                      <span className="text-muted-foreground select-none text-sm">⠿</span>
+                      <span className="text-xs text-muted-foreground w-4">{i + 1}</span>
+                      <span className={`w-2 h-2 rounded-full shrink-0 transition-colors duration-500 ${isRerouted ? 'bg-emerald-500 animate-pulse' :
+                        showError ? 'bg-red-500' :
+                          p.status === 'active' ? 'bg-emerald-500 animate-pulse' :
+                            'bg-slate-400'
+                        }`} />
+                      <span className="text-xs font-medium text-foreground flex-1">{p.name}</span>
+                      {isDragging && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-500 animate-fade-up">Moving ↑</span>}
+                      {showError && !isDragging && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 animate-fade-up">429</span>}
+                      {isRerouted && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 animate-fade-up">↑ Active</span>}
+                      {p.status === 'active' && !showError && !isDragging && <span className="text-[10px] text-emerald-500 font-semibold">{p.latency} avg</span>}
                     </div>
                   )
                 })}
-              </div>
-              
-              <div className="grid grid-cols-2 gap-0 divide-x divide-y divide-border">
-                {arenaPanels.map((p, i) => {
-                  const isPanelVisible = i < arena.visiblePanels
-                  return (
-                    <div key={i} className="p-3 min-h-[140px] relative flex flex-col justify-between overflow-hidden">
-                      <div>
-                        <div className={`text-[10px] font-semibold mb-2 ${p.color} flex items-center justify-between`}>
-                          <span>{arena.models[i] || '—'}</span>
-                          <span className="text-muted-foreground font-normal">{isPanelVisible ? p.latency : '...'}</span>
-                        </div>
-                        {arena.isLoading && !isPanelVisible ? (
-                          <div className="flex gap-1 items-center h-10 text-muted-foreground/40">
-                            <span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" />
-                          </div>
-                        ) : isPanelVisible ? (
-                          <p className="text-xs text-foreground/80 leading-relaxed whitespace-pre-line animate-fade-up">
-                            {p.text}
-                          </p>
-                        ) : (
-                          <div className="text-xs text-muted-foreground/30 italic font-normal py-2">Awaiting trigger...</div>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </MockCard>
-          <div>
-            <Pill label="Side-by-Side Arena" color="blue" />
-            <SectionHeading>Compare Models Head-to-Head</SectionHeading>
-            <SectionSub>Run the same prompt across up to 4 models simultaneously. See who responds fastest, most accurately, and most concisely — side by side.</SectionSub>
+                <div className={`px-4 py-3 text-[10px] transition-all duration-700 ${routingPhase === 'rerouting' || routingPhase === 'done'
+                  ? 'text-emerald-500 bg-emerald-500/5'
+                  : 'text-muted-foreground bg-muted/20'
+                  }`}>
+                  {routingPhase === 'idle' ? '● Monitoring provider health...' :
+                    routingPhase === 'error' ? '⚠ Groq returned 429 — initiating failover...' :
+                      '✓ Request auto-routed to Cerebras after Groq 429'}
+                </div>
+              </MockCard>
+            </motion.div>
+            <motion.div {...textRightAnimation}>
+              <Pill label="Smart Routing" color="violet" />
+              <SectionHeading>Zero Downtime. Automatic Fallbacks.</SectionHeading>
+              <SectionSub>When one provider rate-limits, OmniKey silently routes to the next best option. Your app never sees an error — just seamless responses.</SectionSub>
+            </motion.div>
           </div>
-        </div>
-      </Section>
+        </Section>
 
-      {/* ── SECTION: Debate Arena ── */}
-      <Section id="debate">
-        <div className="text-center mb-4">
-          <span className="inline-block text-xs sm:text-sm font-semibold px-3.5 py-1 rounded-full border bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-sm">
-            ⚔ Debate Arena
-          </span>
-        </div>
-        <MockCard>
-          <div ref={debateSim.containerRef} className="grid md:grid-cols-[280px_1fr]">
-            <div className="border-r border-border p-5 space-y-4 bg-muted/20 dark:bg-white/[0.02] relative">
-              <div className="space-y-1">
-                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Topic</div>
-                <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground transition-all duration-300 min-h-[34px] flex items-center border-border`}>
-                  {debateSim.topicText ? (
-                    <span className="flex items-center truncate">
-                      <span>{debateSim.topicText}</span>
-                      {!debateSim.isTopicFinished && <span className="w-1.5 h-3.5 bg-violet-500 ml-0.5 animate-pulse inline-block" />}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground/35 italic font-normal">Awaiting topic input...</span>
-                  )}
-                </div>
-              </div>
-              
-              {/* Opening Player dropdown */}
-              <div className="space-y-1">
-                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Opening Player</div>
-                <div 
-                  onClick={(e) => { e.stopPropagation(); if (debateSim.stage !== 'debating') debateSim.toggleDropdown('opening') }}
-                  className={`debate-selector-slot relative text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between items-center transition-all duration-300 ${
-                    debateSim.stage === 'debating' ? 'cursor-not-allowed opacity-75' : 'cursor-pointer hover:bg-muted/30'
-                  } ${debateSim.activeDropdown === 'opening' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'}`}
-                >
-                  <span>{debateSim.openingPlayer}</span>
-                  <span className="text-muted-foreground">▾</span>
-                  {debateSim.activeDropdown === 'opening' && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl py-1 z-50 animate-drop-in flex flex-col">
-                      {['Auto', 'In Favor', 'Against'].map(opt => (
-                        <button key={opt} onClick={(e) => { e.stopPropagation(); debateSim.setOpeningPlayer(opt); debateSim.setActiveDropdown(null) }} className="px-3 py-1.5 text-left text-xs text-foreground hover:bg-violet-500/10 hover:text-violet-500 w-full transition-colors">{opt}</button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {/* Rounds & Judging dropdowns */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Rounds</div>
-                  <div 
-                    onClick={(e) => { e.stopPropagation(); if (debateSim.stage !== 'debating') debateSim.toggleDropdown('rounds') }}
-                    className={`debate-selector-slot relative text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between items-center transition-all duration-300 ${
-                      debateSim.stage === 'debating' ? 'cursor-not-allowed opacity-75' : 'cursor-pointer hover:bg-muted/30'
-                    } ${debateSim.activeDropdown === 'rounds' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'}`}
-                  >
-                    <span>{debateSim.rounds}</span>
-                    <span className="text-muted-foreground">▾</span>
-                    {debateSim.activeDropdown === 'rounds' && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl py-1 z-50 animate-drop-in flex flex-col">
-                        {[1, 2, 3, 4, 5].map(opt => (
-                          <button key={opt} onClick={(e) => { e.stopPropagation(); debateSim.setRounds(opt); debateSim.setActiveDropdown(null) }} className="px-3 py-1.5 text-left text-xs text-foreground hover:bg-violet-500/10 hover:text-violet-500 w-full transition-colors">{opt}</button>
-                        ))}
-                      </div>
-                    )}
+        {/* ── SECTION: Chat Playground ── */}
+        <Section id="features">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <motion.div {...textLeftAnimation}>
+              <Pill label="Chat Playground" color="green" />
+              <SectionHeading>Test Any Model Instantly</SectionHeading>
+              <SectionSub>Switch between OpenAI and Gemini formats. Pick any model, type your prompt, and see real AI responses with live latency and token metrics.</SectionSub>
+            </motion.div>
+            <motion.div {...cardRightAnimation}>
+              <MockCard>
+                <div ref={chat.containerRef} className={`transition-opacity duration-500 ${chat.isFadingOut ? 'opacity-0' : 'opacity-100'}`}>
+                  <div className="bg-muted/40 dark:bg-white/5 px-4 py-3 border-b border-border flex items-center justify-between">
+                    <span className="text-xs font-semibold text-muted-foreground">gemini-2.5-flash</span>
+                    <span className="text-[10px] bg-violet-500/10 text-violet-500 border border-violet-500/20 rounded-full px-2 py-0.5 font-semibold">OmniKey AI</span>
                   </div>
-                </div>
-                <div className="space-y-1">
-                  <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Judging</div>
-                  <div 
-                    onClick={(e) => { e.stopPropagation(); if (debateSim.stage !== 'debating') debateSim.toggleDropdown('judging') }}
-                    className={`debate-selector-slot relative text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between items-center transition-all duration-300 ${
-                      debateSim.stage === 'debating' ? 'cursor-not-allowed opacity-75' : 'cursor-pointer hover:bg-muted/30'
-                    } ${debateSim.activeDropdown === 'judging' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'}`}
-                  >
-                    <span>{debateSim.judging}</span>
-                    <span className="text-muted-foreground">▾</span>
-                    {debateSim.activeDropdown === 'judging' && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl py-1 z-50 animate-drop-in flex flex-col">
-                        {['Auto', 'Every Round', 'At the End'].map(opt => (
-                          <button key={opt} onClick={(e) => { e.stopPropagation(); debateSim.setJudging(opt); debateSim.setActiveDropdown(null) }} className="px-3 py-1.5 text-left text-xs text-foreground hover:bg-violet-500/10 hover:text-violet-500 w-full transition-colors">{opt}</button>
-                        ))}
+                  <div ref={chatScrollRef} className="p-4 space-y-3 h-[260px] overflow-y-auto scroll-smooth">
+                    {mockChat.map((m, i) => i < chat.visible && (
+                      <div key={i} className={`flex animate-fade-up ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed ${m.role === 'user' ? 'bg-violet-600 text-white' : 'bg-muted/60 dark:bg-white/8 text-foreground border border-border'}`}>
+                          {m.text}
+                          {m.meta && <div className="mt-1 text-[10px] opacity-60">{m.meta}</div>}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-              
-              {/* In Favor & Against in same row */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <div className="text-[10px] font-semibold text-emerald-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />In Favor</div>
-                  <div 
-                    onClick={(e) => { e.stopPropagation(); if (debateSim.stage !== 'debating') debateSim.toggleDropdown('infavor') }}
-                    className={`debate-selector-slot relative text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between items-center transition-all duration-300 ${
-                      debateSim.stage === 'debating' ? 'cursor-not-allowed opacity-75' : 'cursor-pointer hover:bg-muted/30'
-                    } ${debateSim.activeDropdown === 'infavor' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'}`}
-                  >
-                    <span className="truncate">{debateSim.infavor}</span>
-                    <span className="text-muted-foreground ml-1">▾</span>
-                    {debateSim.activeDropdown === 'infavor' && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl py-1.5 z-50 animate-drop-in flex flex-col">
-                        {['Auto', 'gemini-2.5-flash', 'deepseek-r1', 'claude-3-5-sonnet'].map(opt => (
-                          <button key={opt} onClick={(e) => { e.stopPropagation(); debateSim.setInfavor(opt); debateSim.setActiveDropdown(null) }} className="px-2 py-1.5 text-left text-xs text-foreground hover:bg-violet-500/10 hover:text-violet-500 w-full transition-colors truncate">{opt}</button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <div className="text-[10px] font-semibold text-rose-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block" />Against</div>
-                  <div 
-                    onClick={(e) => { e.stopPropagation(); if (debateSim.stage !== 'debating') debateSim.toggleDropdown('against') }}
-                    className={`debate-selector-slot relative text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between items-center transition-all duration-300 ${
-                      debateSim.stage === 'debating' ? 'cursor-not-allowed opacity-75' : 'cursor-pointer hover:bg-muted/30'
-                    } ${debateSim.activeDropdown === 'against' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'}`}
-                  >
-                    <span className="truncate">{debateSim.against}</span>
-                    <span className="text-muted-foreground ml-1">▾</span>
-                    {debateSim.activeDropdown === 'against' && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl py-1.5 z-50 animate-drop-in flex flex-col">
-                        {['Auto', 'llama-3.3-70b', 'mistral-large', 'gpt-4o-mini'].map(opt => (
-                          <button key={opt} onClick={(e) => { e.stopPropagation(); debateSim.setAgainst(opt); debateSim.setActiveDropdown(null) }} className="px-2 py-1.5 text-left text-xs text-foreground hover:bg-violet-500/10 hover:text-violet-500 w-full transition-colors truncate">{opt}</button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-              
-              {/* Judge dropdown */}
-              <div className="space-y-1">
-                <div className="text-[10px] font-semibold text-amber-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />Judge</div>
-                <div 
-                  onClick={(e) => { e.stopPropagation(); if (debateSim.stage !== 'debating') debateSim.toggleDropdown('judge') }}
-                  className={`debate-selector-slot relative text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between items-center transition-all duration-300 ${
-                    debateSim.stage === 'debating' ? 'cursor-not-allowed opacity-75' : 'cursor-pointer hover:bg-muted/30'
-                  } ${debateSim.activeDropdown === 'judge' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'}`}
-                >
-                  <span className="truncate">{debateSim.judge}</span>
-                  <span className="text-muted-foreground ml-1">▾</span>
-                  {debateSim.activeDropdown === 'judge' && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl py-1.5 z-50 animate-drop-in flex flex-col">
-                      {['Auto', 'gpt-4o-mini', 'gemini-2.0-flash', 'llama-3.3-70b'].map(opt => (
-                        <button key={opt} onClick={(e) => { e.stopPropagation(); debateSim.setJudge(opt); debateSim.setActiveDropdown(null) }} className="px-3 py-1.5 text-left text-xs text-foreground hover:bg-violet-500/10 hover:text-violet-500 w-full transition-colors truncate">{opt}</button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {/* Start button */}
-              <button
-                onClick={debateSim.handleStartClick}
-                disabled={!debateSim.isTopicFinished || debateSim.stage === 'debating'}
-                className={`w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-xs font-semibold rounded-xl px-4 py-2.5 text-center transition-all duration-300 ${
-                  debateSim.isTopicFinished && debateSim.stage !== 'debating'
-                    ? 'shadow-lg shadow-violet-500/35 cursor-pointer animate-pop-invite hover:from-violet-550 hover:to-indigo-550 active:scale-95'
-                    : 'opacity-50 cursor-not-allowed shadow-none'
-                } ${debateSim.isStartClicked ? 'scale-95 brightness-90' : ''}`}
-              >
-                Start Debate Arena
-              </button>
-            </div>
-            
-            {/* Transcript */}
-            <div className={`p-5 flex flex-col h-[390px] transition-opacity duration-500 ${debateSim.isFadingOut ? 'opacity-0' : 'opacity-100'}`}>
-              {debateSim.stage === 'config' ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground/45 border-2 border-dashed border-border/60 rounded-2xl p-6 bg-muted/5">
-                  <span className="text-3xl mb-3">⚔</span>
-                  <p className="text-xs font-semibold uppercase tracking-wider mb-1">Debate Arena Offline</p>
-                  <p className="text-[11px] text-center max-w-[200px] leading-relaxed">Configure the parameters in the sidebar and press start to begin the simulation.</p>
-                </div>
-              ) : (
-                <>
-                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 shrink-0 flex items-center justify-between">
-                    <span>Round {Math.min(debateSim.rounds, Math.floor(debateSim.visibleCount / 3) + 1)} of {debateSim.rounds}</span>
-                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-indicator-pulse inline-block" />
-                  </div>
-                  <div ref={transcriptScrollRef} className="flex-1 overflow-y-auto no-scrollbar pr-1 space-y-3 scroll-smooth">
-                    {debateMsgs.map((m, i) => i < debateSim.visibleCount ? (
-                      <div key={i} className={`rounded-xl border px-4 py-3 text-xs leading-relaxed animate-fade-up ${m.role === 'infavor' ? 'border-emerald-500/30 bg-emerald-500/5' :
-                        m.role === 'against' ? 'border-rose-500/30 bg-rose-500/5' :
-                          'border-amber-500/30 bg-amber-500/5'
-                        }`}>
-                        <div className={`text-[10px] font-semibold mb-1 ${m.role === 'infavor' ? 'text-emerald-500' :
-                          m.role === 'against' ? 'text-rose-500' :
-                            'text-amber-500'
-                          }`}>{m.label}</div>
-                        <p className="whitespace-pre-line">{m.text}</p>
-                      </div>
-                    ) : null)}
-
-                    {debateSim.isTyping && (
-                      <div className="rounded-xl border px-4 py-3 text-xs leading-relaxed animate-fade-up bg-muted/20 border-border/40 flex items-center gap-2">
-                        <span className="text-[10px] font-semibold text-muted-foreground">
-                          {debateMsgs[debateSim.visibleCount]?.role === 'infavor' ? 'In Favor is typing' :
-                            debateMsgs[debateSim.visibleCount]?.role === 'against' ? 'Against is typing' :
-                              'Judge is evaluating'}
-                        </span>
-                        <div className="flex gap-1 items-center">
+                    ))}
+                    {chat.typing && (
+                      <div className="flex justify-start animate-fade-up">
+                        <div className="bg-muted/60 border border-border rounded-xl px-3 py-2 flex gap-1 items-center text-muted-foreground">
                           <span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" />
                         </div>
                       </div>
                     )}
                   </div>
-                </>
-              )}
-            </div>
-          </div>
-        </MockCard>
-      </Section>
-
-      {/* ── SECTION: FAQ & How it Works ── */}
-      <Section id="faq" alt>
-        <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-4">
-            <span className="inline-block text-xs sm:text-sm font-semibold px-3.5 py-1 rounded-full border bg-violet-500/10 text-violet-500 border-violet-500/20 shadow-sm">
-              Got Questions?
-            </span>
-          </div>
-
-          {/* FAQ Category Tabs */}
-          <div className="flex flex-wrap justify-center gap-2 mb-10 max-w-xl mx-auto animate-fade-up">
-            {(['general', 'routing', 'api', 'security'] as const).map(cat => {
-              const isActive = activeCategory === cat;
-              const labels = {
-                general: 'General Info',
-                routing: 'Smart Routing',
-                api: 'API Compatibility',
-                security: 'Security & Encryption'
-              };
-              return (
-                <button
-                  key={cat}
-                  onClick={() => {
-                    setActiveCategory(cat);
-                    setOpenFaq(null);
-                  }}
-                  className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all duration-300 cursor-pointer select-none ${isActive
-                    ? 'bg-gradient-to-r from-violet-600 to-indigo-600 border-violet-500 text-white shadow-lg shadow-violet-500/20'
-                    : 'border-border bg-card/40 text-muted-foreground hover:text-foreground hover:bg-card/75 hover:border-violet-500/20'
-                    }`}
-                >
-                  {labels[cat]}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="space-y-4">
-            {faqData
-              .filter(faq => faq.tag === activeCategory)
-              .map((faq, idx) => {
-                const isOpen = openFaq === idx;
-                return (
-                  <div
-                    key={idx}
-                    style={{ animationDelay: `${idx * 100}ms` }}
-                    className={`group rounded-2xl border transition-all duration-300 bg-card/60 backdrop-blur overflow-hidden animate-fade-up ${isOpen
-                      ? 'border-violet-500/40 ring-1 ring-violet-500/20 shadow-[0_0_25px_rgba(139,92,246,0.22)] bg-gradient-to-br from-card to-violet-500/5'
-                      : 'border-border hover:border-violet-500/30 hover:shadow-[0_0_15px_rgba(139,92,246,0.08)] hover:bg-card/90'
-                      }`}
-                  >
-                    <button
-                      onClick={() => setOpenFaq(isOpen ? null : idx)}
-                      className="w-full text-left p-4 flex items-center justify-between gap-4 font-semibold text-foreground cursor-pointer select-none"
-                    >
-                      <span className="flex items-center gap-3 text-xs sm:text-sm">
-                        <span className={`text-[10px] transition-all duration-350 transform ${isOpen ? 'text-violet-500 rotate-90 scale-125' : 'text-slate-400 rotate-0 scale-100 group-hover:text-violet-400 group-hover:rotate-45'}`}>✦</span>
-                        <span className={`transition-colors duration-300 ${isOpen ? 'text-violet-500' : 'text-foreground group-hover:text-violet-400'}`}>
-                          {faq.question}
+                  <div className="border-t border-border px-4 py-3 flex gap-2">
+                    <div className="flex-1 bg-muted/40 dark:bg-white/5 rounded-xl text-xs px-3 py-2 text-foreground font-medium flex items-center min-h-[32px] overflow-hidden">
+                      {chat.inputText ? (
+                        <span className="flex items-center truncate">
+                          <span>{chat.inputText}</span>
+                          <span className="w-1 h-3.5 bg-violet-500 ml-0.5 animate-pulse inline-block" />
                         </span>
-                      </span>
-                      <span className={`text-muted-foreground shrink-0 transition-all duration-350 ${isOpen ? 'rotate-180 text-violet-500' : 'group-hover:text-violet-400 group-hover:translate-y-0.5'}`}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="6 9 12 15 18 9" />
-                        </svg>
-                      </span>
-                    </button>
-                    <div
-                      className={`grid transition-all duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+                      ) : (
+                        <span className="text-muted-foreground">Type a message...</span>
+                      )}
+                    </div>
+                    <button
+                      onClick={chat.handleSendClick}
+                      disabled={!chat.showSendPrompt}
+                      className={`rounded-xl px-4 py-2 flex items-center text-white text-xs font-semibold transition-all duration-300 ${chat.showSendPrompt
+                          ? 'bg-violet-600 shadow-lg shadow-violet-500/35 cursor-pointer animate-pop-invite hover:bg-violet-700 active:scale-95'
+                          : 'bg-muted-foreground/20 text-muted-foreground/60 cursor-not-allowed'
                         }`}
                     >
-                      <div className="overflow-hidden">
-                        <div className="px-5 pb-4 pt-0.5 text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
-                          <p className="pt-2 border-t border-border/40">
-                            {faq.answer}
-                          </p>
-                        </div>
-                      </div>
+                      Send
+                    </button>
+                  </div>
+                </div>
+              </MockCard>
+            </motion.div>
+          </div>
+        </Section>
+        <Section id="arena" alt>
+          <div ref={arena.containerRef} className="grid md:grid-cols-2 gap-12 items-center">
+            <motion.div {...cardLeftArenaAnimation}>
+              <MockCard>
+                <div className={`transition-opacity duration-500 ${arena.isFadingOut ? 'opacity-0' : 'opacity-100'}`}>
+                  <div className="bg-muted/40 dark:bg-white/5 px-4 py-3 border-b border-border flex items-center justify-between gap-3 min-h-[45px]">
+                    <div className="text-xs font-semibold flex items-center overflow-hidden flex-1">
+                      <span className="text-muted-foreground shrink-0">Prompt:&nbsp;</span>
+                      {arena.prompt ? (
+                        <span className="flex items-center text-foreground truncate">
+                          <span>{arena.prompt}</span>
+                          {arena.promptActive && <span className="w-1.5 h-3.5 bg-blue-500 ml-0.5 animate-pulse inline-block" />}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground/45 italic font-normal">Awaiting prompt...</span>
+                      )}
+                    </div>
+
+                    {/* Buttons container */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {/* Random Models button */}
+                      {!arena.sendClicked && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            arena.fillRandomModels()
+                          }}
+                          className={`px-2 py-1 text-[10px] font-semibold rounded-lg border transition-all duration-300 ${!arena.promptActive && arena.prompt && !arena.sendReady
+                              ? 'bg-violet-600 text-white border-violet-500 shadow-md shadow-violet-500/20 cursor-pointer animate-pop-invite hover:bg-violet-700'
+                              : 'border-violet-500/35 text-violet-500 bg-violet-500/5 hover:bg-violet-500/10 cursor-pointer'
+                            }`}
+                        >
+                          Random Models
+                        </button>
+                      )}
+
+                      {/* Send button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          arena.handleSendClick()
+                        }}
+                        disabled={!arena.sendReady || arena.sendClicked}
+                        className={`rounded-lg px-3 py-1 text-[10px] font-bold border transition-all duration-300 ${arena.sendClicked
+                            ? 'bg-blue-700 text-white border-blue-600 scale-95 shadow-none'
+                            : arena.sendReady
+                              ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/20 scale-100 cursor-pointer animate-pop-invite hover:bg-blue-700'
+                              : 'bg-muted-foreground/10 text-muted-foreground/40 border-border/40 scale-100 cursor-not-allowed'
+                          }`}
+                      >
+                        Send
+                      </button>
                     </div>
                   </div>
+
+                  {/* Model selectors row */}
+                  <div className="grid grid-cols-4 divide-x divide-border border-b border-border relative z-10">
+                    {arena.models.map((m, i) => {
+                      const colors = ['text-blue-400', 'text-orange-400', 'text-purple-400', 'text-emerald-400']
+                      const dropdownOptions = [
+                        ['gemini-2.5-flash', 'gemini-1.5-pro', 'gpt-4o'],
+                        ['llama-3.3-70b', 'llama-3.1-8b', 'claude-3-5-sonnet'],
+                        ['mistral-large', 'mistral-nemo', 'deepseek-v3'],
+                        ['qwen-2.5-72b', 'gemma-2-9b', 'phi-3-medium']
+                      ]
+                      const isDropdownOpen = arena.activeDropdown === i
+                      const isSlotInviting = !m && !arena.promptActive && !arena.sendClicked
+
+                      return (
+                        <div
+                          key={i}
+                          className={`model-selector-slot relative px-2 py-2 text-xs font-semibold flex flex-col items-center justify-center min-h-[40px] gap-1 ${colors[i]} ${isSlotInviting
+                              ? 'bg-violet-500/5 hover:bg-violet-500/10 border-dashed border-violet-500/40 cursor-pointer animate-pulse'
+                              : 'cursor-pointer hover:bg-muted/40'
+                            } transition-all duration-300`}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (!arena.promptActive && !arena.sendClicked) {
+                              arena.toggleDropdown(i)
+                            }
+                          }}
+                        >
+                          {m ? (
+                            <span className="model-tag truncate animate-drop-in">{m}</span>
+                          ) : (
+                            <span className="text-muted-foreground/50 font-normal italic">Select Model</span>
+                          )}
+
+                          {isDropdownOpen && (
+                            <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl py-1.5 z-50 animate-drop-in flex flex-col max-h-[120px] overflow-y-auto">
+                              {dropdownOptions[i].map(opt => (
+                                <button
+                                  key={opt}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    arena.selectModel(i, opt)
+                                  }}
+                                  className="px-2 py-1 text-left text-xs text-foreground hover:bg-violet-500/10 hover:text-violet-500 w-full transition-colors font-medium truncate"
+                                >
+                                  {opt}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-0 divide-x divide-y divide-border">
+                    {arenaPanels.map((p, i) => {
+                      const isPanelVisible = i < arena.visiblePanels
+                      return (
+                        <div key={i} className="p-3 min-h-[140px] relative flex flex-col justify-between overflow-hidden">
+                          <div>
+                            <div className={`text-[10px] font-semibold mb-2 ${p.color} flex items-center justify-between`}>
+                              <span>{arena.models[i] || '—'}</span>
+                              <span className="text-muted-foreground font-normal">{isPanelVisible ? p.latency : '...'}</span>
+                            </div>
+                            {arena.isLoading && !isPanelVisible ? (
+                              <div className="flex gap-1 items-center h-10 text-muted-foreground/40">
+                                <span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" />
+                              </div>
+                            ) : isPanelVisible ? (
+                              <p className="text-xs text-foreground/80 leading-relaxed whitespace-pre-line animate-fade-up">
+                                {p.text}
+                              </p>
+                            ) : (
+                              <div className="text-xs text-muted-foreground/30 italic font-normal py-2">Awaiting trigger...</div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </MockCard>
+            </motion.div>
+            <motion.div {...textRightArenaAnimation}>
+              <Pill label="Side-by-Side Arena" color="blue" />
+              <SectionHeading>Compare Models Head-to-Head</SectionHeading>
+              <SectionSub>Run the same prompt across up to 4 models simultaneously. See who responds fastest, most accurately, and most concisely — side by side.</SectionSub>
+            </motion.div>
+          </div>
+        </Section>
+
+        {/* ── SECTION: Debate Arena ── */}
+        <Section id="debate">
+          <motion.div {...debatePillAnimation} className="text-center mb-4">
+            <span className="inline-block text-xs sm:text-sm font-semibold px-3.5 py-1 rounded-full border bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-sm">
+              ⚔ Debate Arena
+            </span>
+          </motion.div>
+          <MockCard>
+            <div ref={debateSim.containerRef} className="grid md:grid-cols-[280px_1fr]">
+              <motion.div {...debateSidebarAnimation} className="border-r border-border p-5 space-y-4 bg-muted/20 dark:bg-white/[0.02] relative">
+                <div className="space-y-1">
+                  <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Topic</div>
+                  <div className={`text-xs bg-background border rounded-xl px-3 py-2 text-foreground transition-all duration-300 min-h-[34px] flex items-center border-border`}>
+                    {debateSim.topicText ? (
+                      <span className="flex items-center truncate">
+                        <span>{debateSim.topicText}</span>
+                        {!debateSim.isTopicFinished && <span className="w-1.5 h-3.5 bg-violet-500 ml-0.5 animate-pulse inline-block" />}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground/35 italic font-normal">Awaiting topic input...</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Opening Player dropdown */}
+                <div className="space-y-1">
+                  <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Opening Player</div>
+                  <div
+                    onClick={(e) => { e.stopPropagation(); if (debateSim.stage !== 'debating') debateSim.toggleDropdown('opening') }}
+                    className={`debate-selector-slot relative text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between items-center transition-all duration-300 ${debateSim.stage === 'debating' ? 'cursor-not-allowed opacity-75' : 'cursor-pointer hover:bg-muted/30'
+                      } ${debateSim.activeDropdown === 'opening' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'}`}
+                  >
+                    <span>{debateSim.openingPlayer}</span>
+                    <span className="text-muted-foreground">▾</span>
+                    {debateSim.activeDropdown === 'opening' && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl py-1 z-50 animate-drop-in flex flex-col">
+                        {['Auto', 'In Favor', 'Against'].map(opt => (
+                          <button key={opt} onClick={(e) => { e.stopPropagation(); debateSim.setOpeningPlayer(opt); debateSim.setActiveDropdown(null) }} className="px-3 py-1.5 text-left text-xs text-foreground hover:bg-violet-500/10 hover:text-violet-500 w-full transition-colors">{opt}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Rounds & Judging dropdowns */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Rounds</div>
+                    <div
+                      onClick={(e) => { e.stopPropagation(); if (debateSim.stage !== 'debating') debateSim.toggleDropdown('rounds') }}
+                      className={`debate-selector-slot relative text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between items-center transition-all duration-300 ${debateSim.stage === 'debating' ? 'cursor-not-allowed opacity-75' : 'cursor-pointer hover:bg-muted/30'
+                        } ${debateSim.activeDropdown === 'rounds' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'}`}
+                    >
+                      <span>{debateSim.rounds}</span>
+                      <span className="text-muted-foreground">▾</span>
+                      {debateSim.activeDropdown === 'rounds' && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl py-1 z-50 animate-drop-in flex flex-col">
+                          {[1, 2, 3, 4, 5].map(opt => (
+                            <button key={opt} onClick={(e) => { e.stopPropagation(); debateSim.setRounds(opt); debateSim.setActiveDropdown(null) }} className="px-3 py-1.5 text-left text-xs text-foreground hover:bg-violet-500/10 hover:text-violet-500 w-full transition-colors">{opt}</button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Judging</div>
+                    <div
+                      onClick={(e) => { e.stopPropagation(); if (debateSim.stage !== 'debating') debateSim.toggleDropdown('judging') }}
+                      className={`debate-selector-slot relative text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between items-center transition-all duration-300 ${debateSim.stage === 'debating' ? 'cursor-not-allowed opacity-75' : 'cursor-pointer hover:bg-muted/30'
+                        } ${debateSim.activeDropdown === 'judging' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'}`}
+                    >
+                      <span>{debateSim.judging}</span>
+                      <span className="text-muted-foreground">▾</span>
+                      {debateSim.activeDropdown === 'judging' && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl py-1 z-50 animate-drop-in flex flex-col">
+                          {['Auto', 'Every Round', 'At the End'].map(opt => (
+                            <button key={opt} onClick={(e) => { e.stopPropagation(); debateSim.setJudging(opt); debateSim.setActiveDropdown(null) }} className="px-3 py-1.5 text-left text-xs text-foreground hover:bg-violet-500/10 hover:text-violet-500 w-full transition-colors">{opt}</button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* In Favor & Against in same row */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <div className="text-[10px] font-semibold text-emerald-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />In Favor</div>
+                    <div
+                      onClick={(e) => { e.stopPropagation(); if (debateSim.stage !== 'debating') debateSim.toggleDropdown('infavor') }}
+                      className={`debate-selector-slot relative text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between items-center transition-all duration-300 ${debateSim.stage === 'debating' ? 'cursor-not-allowed opacity-75' : 'cursor-pointer hover:bg-muted/30'
+                        } ${debateSim.activeDropdown === 'infavor' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'}`}
+                    >
+                      <span className="truncate">{debateSim.infavor}</span>
+                      <span className="text-muted-foreground ml-1">▾</span>
+                      {debateSim.activeDropdown === 'infavor' && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl py-1.5 z-50 animate-drop-in flex flex-col">
+                          {['Auto', 'gemini-2.5-flash', 'deepseek-r1', 'claude-3-5-sonnet'].map(opt => (
+                            <button key={opt} onClick={(e) => { e.stopPropagation(); debateSim.setInfavor(opt); debateSim.setActiveDropdown(null) }} className="px-2 py-1.5 text-left text-xs text-foreground hover:bg-violet-500/10 hover:text-violet-500 w-full transition-colors truncate">{opt}</button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-[10px] font-semibold text-rose-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block" />Against</div>
+                    <div
+                      onClick={(e) => { e.stopPropagation(); if (debateSim.stage !== 'debating') debateSim.toggleDropdown('against') }}
+                      className={`debate-selector-slot relative text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between items-center transition-all duration-300 ${debateSim.stage === 'debating' ? 'cursor-not-allowed opacity-75' : 'cursor-pointer hover:bg-muted/30'
+                        } ${debateSim.activeDropdown === 'against' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'}`}
+                    >
+                      <span className="truncate">{debateSim.against}</span>
+                      <span className="text-muted-foreground ml-1">▾</span>
+                      {debateSim.activeDropdown === 'against' && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl py-1.5 z-50 animate-drop-in flex flex-col">
+                          {['Auto', 'llama-3.3-70b', 'mistral-large', 'gpt-4o-mini'].map(opt => (
+                            <button key={opt} onClick={(e) => { e.stopPropagation(); debateSim.setAgainst(opt); debateSim.setActiveDropdown(null) }} className="px-2 py-1.5 text-left text-xs text-foreground hover:bg-violet-500/10 hover:text-violet-500 w-full transition-colors truncate">{opt}</button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Judge dropdown */}
+                <div className="space-y-1">
+                  <div className="text-[10px] font-semibold text-amber-500 uppercase tracking-wider flex gap-1 items-center"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />Judge</div>
+                  <div
+                    onClick={(e) => { e.stopPropagation(); if (debateSim.stage !== 'debating') debateSim.toggleDropdown('judge') }}
+                    className={`debate-selector-slot relative text-xs bg-background border rounded-xl px-3 py-2 text-foreground flex justify-between items-center transition-all duration-300 ${debateSim.stage === 'debating' ? 'cursor-not-allowed opacity-75' : 'cursor-pointer hover:bg-muted/30'
+                      } ${debateSim.activeDropdown === 'judge' ? 'border-violet-500 ring-1 ring-violet-500/30' : 'border-border'}`}
+                  >
+                    <span className="truncate">{debateSim.judge}</span>
+                    <span className="text-muted-foreground ml-1">▾</span>
+                    {debateSim.activeDropdown === 'judge' && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl py-1.5 z-50 animate-drop-in flex flex-col">
+                        {['Auto', 'gpt-4o-mini', 'gemini-2.0-flash', 'llama-3.3-70b'].map(opt => (
+                          <button key={opt} onClick={(e) => { e.stopPropagation(); debateSim.setJudge(opt); debateSim.setActiveDropdown(null) }} className="px-3 py-1.5 text-left text-xs text-foreground hover:bg-violet-500/10 hover:text-violet-500 w-full transition-colors truncate">{opt}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Start button */}
+                <button
+                  onClick={debateSim.handleStartClick}
+                  disabled={!debateSim.isTopicFinished || debateSim.stage === 'debating'}
+                  className={`w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-xs font-semibold rounded-xl px-4 py-2.5 text-center transition-all duration-300 ${debateSim.isTopicFinished && debateSim.stage !== 'debating'
+                      ? 'shadow-lg shadow-violet-500/35 cursor-pointer animate-pop-invite hover:from-violet-550 hover:to-indigo-550 active:scale-95'
+                      : 'opacity-50 cursor-not-allowed shadow-none'
+                    } ${debateSim.isStartClicked ? 'scale-95 brightness-90' : ''}`}
+                >
+                  Start Debate Arena
+                </button>
+              </motion.div>
+
+              {/* Transcript */}
+              <motion.div {...debateTranscriptAnimation} className={`p-5 flex flex-col h-[390px] transition-opacity duration-500 ${debateSim.isFadingOut ? 'opacity-0' : 'opacity-100'}`}>
+                {debateSim.stage === 'config' ? (
+                  <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground/45 border-2 border-dashed border-border/60 rounded-2xl p-6 bg-muted/5">
+                    <span className="text-3xl mb-3">⚔</span>
+                    <p className="text-xs font-semibold uppercase tracking-wider mb-1">Debate Arena Offline</p>
+                    <p className="text-[11px] text-center max-w-[200px] leading-relaxed">Configure the parameters in the sidebar and press start to begin the simulation.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 shrink-0 flex items-center justify-between">
+                      <span>Round {Math.min(debateSim.rounds, Math.floor(debateSim.visibleCount / 3) + 1)} of {debateSim.rounds}</span>
+                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-indicator-pulse inline-block" />
+                    </div>
+                    <div ref={transcriptScrollRef} className="flex-1 overflow-y-auto no-scrollbar pr-1 space-y-3 scroll-smooth">
+                      {debateMsgs.map((m, i) => i < debateSim.visibleCount ? (
+                        <div key={i} className={`rounded-xl border px-4 py-3 text-xs leading-relaxed animate-fade-up ${m.role === 'infavor' ? 'border-emerald-500/30 bg-emerald-500/5' :
+                          m.role === 'against' ? 'border-rose-500/30 bg-rose-500/5' :
+                            'border-amber-500/30 bg-amber-500/5'
+                          }`}>
+                          <div className={`text-[10px] font-semibold mb-1 ${m.role === 'infavor' ? 'text-emerald-500' :
+                            m.role === 'against' ? 'text-rose-500' :
+                              'text-amber-500'
+                            }`}>{m.label}</div>
+                          <p className="whitespace-pre-line">{m.text}</p>
+                        </div>
+                      ) : null)}
+
+                      {debateSim.isTyping && (
+                        <div className="rounded-xl border px-4 py-3 text-xs leading-relaxed animate-fade-up bg-muted/20 border-border/40 flex items-center gap-2">
+                          <span className="text-[10px] font-semibold text-muted-foreground">
+                            {debateMsgs[debateSim.visibleCount]?.role === 'infavor' ? 'In Favor is typing' :
+                              debateMsgs[debateSim.visibleCount]?.role === 'against' ? 'Against is typing' :
+                                'Judge is evaluating'}
+                          </span>
+                          <div className="flex gap-1 items-center">
+                            <span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </motion.div>
+            </div>
+          </MockCard>
+        </Section>
+
+        {/* ── SECTION: FAQ & How it Works ── */}
+        <Section id="faq" alt>
+          <div className="max-w-3xl mx-auto">
+            <motion.div {...faqHeadingAnimation} className="text-center mb-4">
+              <span className="inline-block text-xs sm:text-sm font-semibold px-3.5 py-1 rounded-full border bg-violet-500/10 text-violet-500 border-violet-500/20 shadow-sm">
+                Got Questions?
+              </span>
+            </motion.div>
+
+            {/* FAQ Category Tabs */}
+            <motion.div {...faqTabsContainerAnimation} className="flex flex-wrap justify-center gap-2 mb-10 max-w-xl mx-auto">
+              {(['general', 'routing', 'api', 'security'] as const).map(cat => {
+                const isActive = activeCategory === cat;
+                const labels = {
+                  general: 'General Info',
+                  routing: 'Smart Routing',
+                  api: 'API Compatibility',
+                  security: 'Security & Encryption'
+                };
+                return (
+                  <motion.button
+                    key={cat}
+                    variants={faqTabItemVariants}
+                    onClick={() => {
+                      setActiveCategory(cat);
+                      setOpenFaq(null);
+                    }}
+                    className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all duration-300 cursor-pointer select-none ${isActive
+                      ? 'bg-gradient-to-r from-violet-600 to-indigo-600 border-violet-500 text-white shadow-lg shadow-violet-500/20'
+                      : 'border-border bg-card/40 text-muted-foreground hover:text-foreground hover:bg-card/75 hover:border-violet-500/20'
+                      }`}
+                  >
+                    {labels[cat]}
+                  </motion.button>
                 );
               })}
+            </motion.div>
+
+            <motion.div {...faqAccordionContainerAnimation} className="space-y-4">
+              {faqData
+                .filter(faq => faq.tag === activeCategory)
+                .map((faq, idx) => {
+                  const isOpen = openFaq === idx;
+                  return (
+                    <motion.div
+                      key={idx}
+                      variants={faqAccordionItemVariants}
+                      className={`group rounded-2xl border transition-all duration-300 bg-card/60 backdrop-blur overflow-hidden ${isOpen
+                        ? 'border-violet-500/40 ring-1 ring-violet-500/20 shadow-[0_0_25px_rgba(139,92,246,0.22)] bg-gradient-to-br from-card to-violet-500/5'
+                        : 'border-border hover:border-violet-500/30 hover:shadow-[0_0_15px_rgba(139,92,246,0.08)] hover:bg-card/90'
+                        }`}
+                    >
+                      <button
+                        onClick={() => setOpenFaq(isOpen ? null : idx)}
+                        className="w-full text-left p-4 flex items-center justify-between gap-4 font-semibold text-foreground cursor-pointer select-none"
+                      >
+                        <span className="flex items-center gap-3 text-xs sm:text-sm">
+                          <span className={`text-[10px] transition-all duration-350 transform ${isOpen ? 'text-violet-500 rotate-90 scale-125' : 'text-slate-400 rotate-0 scale-100 group-hover:text-violet-400 group-hover:rotate-45'}`}>✦</span>
+                          <span className={`transition-colors duration-300 ${isOpen ? 'text-violet-500' : 'text-foreground group-hover:text-violet-400'}`}>
+                            {faq.question}
+                          </span>
+                        </span>
+                        <span className={`text-muted-foreground shrink-0 transition-all duration-350 ${isOpen ? 'rotate-180 text-violet-500' : 'group-hover:text-violet-400 group-hover:translate-y-0.5'}`}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="6 9 12 15 18 9" />
+                          </svg>
+                        </span>
+                      </button>
+                      <div
+                        className={`grid transition-all duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+                          }`}
+                      >
+                        <div className="overflow-hidden">
+                          <div className="px-5 pb-4 pt-0.5 text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
+                            <p className="pt-2 border-t border-border/40">
+                              {faq.answer}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+            </motion.div>
           </div>
-        </div>
-      </Section>
+        </Section>
 
-      {/* ── SECTION: Contact Developer ── */}
-      <Section id="contact" alt>
-        <div className="max-w-lg mx-auto animate-fade-up">
-          <div className="text-center mb-4">
-            <span className="inline-block text-xs sm:text-sm font-semibold px-3.5 py-1 rounded-full border bg-violet-500/10 text-violet-500 border-violet-500/20 shadow-sm">
-              Get in Touch
-            </span>
+        {/* ── SECTION: Contact Developer ── */}
+        <Section id="contact" alt>
+          <div className="max-w-lg mx-auto">
+            <motion.div {...contactHeadingAnimation} className="text-center mb-4">
+              <span className="inline-block text-xs sm:text-sm font-semibold px-3.5 py-1 rounded-full border bg-violet-500/10 text-violet-500 border-violet-500/20 shadow-sm">
+                Get in Touch
+              </span>
+            </motion.div>
+
+            <motion.div {...contactFormAnimation} className="rounded-2xl border border-border bg-card/85 backdrop-blur-xl shadow-xl overflow-hidden p-6 md:p-8 relative">
+              <div className="absolute -top-10 -right-10 w-40 h-40 bg-violet-500/10 rounded-full blur-[48px] pointer-events-none" />
+              <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-[48px] pointer-events-none" />
+
+              <motion.form onSubmit={handleContactSubmit} {...contactFieldsContainerAnimation} className="space-y-4 relative z-10">
+                {contactError && (
+                  <div className="text-xs font-semibold text-rose-500 dark:text-rose-450 bg-rose-500/10 border border-rose-500/20 rounded-xl p-4">
+                    {contactError}
+                  </div>
+                )}
+                {contactSuccess && (
+                  <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
+                    {contactSuccess}
+                  </div>
+                )}
+
+                <motion.div variants={contactFieldItemVariants}>
+                  <label htmlFor="contact-name" className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                    Name
+                  </label>
+                  <input
+                    id="contact-name"
+                    type="text"
+                    required
+                    value={contactName}
+                    onChange={(e) => setContactName(e.target.value)}
+                    placeholder="Your Name"
+                    disabled={contactSubmitting}
+                    className="w-full bg-background/50 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/35 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-all"
+                  />
+                </motion.div>
+
+                <motion.div variants={contactFieldItemVariants}>
+                  <label htmlFor="contact-email" className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                    Email Address
+                  </label>
+                  <input
+                    id="contact-email"
+                    type="email"
+                    required
+                    value={contactEmail}
+                    onChange={(e) => setContactEmail(e.target.value)}
+                    placeholder="your.email@example.com"
+                    disabled={contactSubmitting}
+                    className="w-full bg-background/50 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/35 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-all"
+                  />
+                </motion.div>
+
+                <motion.div variants={contactFieldItemVariants}>
+                  <label htmlFor="contact-message" className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                    Message
+                  </label>
+                  <textarea
+                    id="contact-message"
+                    required
+                    rows={3}
+                    value={contactMessage}
+                    onChange={(e) => setContactMessage(e.target.value)}
+                    placeholder="How can we help you?"
+                    disabled={contactSubmitting}
+                    className="w-full bg-background/50 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/35 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-all resize-none"
+                  />
+                </motion.div>
+
+                <motion.div variants={contactFieldItemVariants}>
+                  <button
+                    type="submit"
+                    disabled={contactSubmitting}
+                    className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-sm font-semibold rounded-xl py-3.5 text-center cursor-pointer shadow-lg shadow-violet-500/20 hover:from-violet-550 hover:to-indigo-550 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {contactSubmitting ? 'Sending Message...' : 'Send Message'}
+                  </button>
+                </motion.div>
+              </motion.form>
+            </motion.div>
           </div>
-
-          <div className="rounded-2xl border border-border bg-card/85 backdrop-blur-xl shadow-xl overflow-hidden p-6 md:p-8 relative">
-            <div className="absolute -top-10 -right-10 w-40 h-40 bg-violet-500/10 rounded-full blur-[48px] pointer-events-none" />
-            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-[48px] pointer-events-none" />
-
-            <form onSubmit={handleContactSubmit} className="space-y-4 relative z-10">
-              {contactError && (
-                <div className="text-xs font-semibold text-rose-500 dark:text-rose-450 bg-rose-500/10 border border-rose-500/20 rounded-xl p-4">
-                  {contactError}
-                </div>
-              )}
-              {contactSuccess && (
-                <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
-                  {contactSuccess}
-                </div>
-              )}
-
-              <div>
-                <label htmlFor="contact-name" className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
-                  Name
-                </label>
-                <input
-                  id="contact-name"
-                  type="text"
-                  required
-                  value={contactName}
-                  onChange={(e) => setContactName(e.target.value)}
-                  placeholder="Your Name"
-                  disabled={contactSubmitting}
-                  className="w-full bg-background/50 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/35 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-all"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="contact-email" className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
-                  Email Address
-                </label>
-                <input
-                  id="contact-email"
-                  type="email"
-                  required
-                  value={contactEmail}
-                  onChange={(e) => setContactEmail(e.target.value)}
-                  placeholder="your.email@example.com"
-                  disabled={contactSubmitting}
-                  className="w-full bg-background/50 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/35 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-all"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="contact-message" className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
-                  Message
-                </label>
-                <textarea
-                  id="contact-message"
-                  required
-                  rows={3}
-                  value={contactMessage}
-                  onChange={(e) => setContactMessage(e.target.value)}
-                  placeholder="How can we help you?"
-                  disabled={contactSubmitting}
-                  className="w-full bg-background/50 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/35 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-all resize-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={contactSubmitting}
-                className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-sm font-semibold rounded-xl py-3.5 text-center cursor-pointer shadow-lg shadow-violet-500/20 hover:from-violet-550 hover:to-indigo-550 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {contactSubmitting ? 'Sending Message...' : 'Send Message'}
-              </button>
-            </form>
-          </div>
-        </div>
-      </Section>
+        </Section>
+      </div>
 
       <div
         className="fixed z-[1] pointer-events-none select-none hidden md:flex items-center justify-center animate-fade-in"
@@ -2459,6 +2693,33 @@ export default function LandingPage() {
           })}
           <div className="target-compiler-line"></div>
         </div>
+      </div>
+
+      {/* Slide Navigation Indicator Dots (Fixed Right) */}
+      <div className="fixed right-6 top-[48%] -translate-y-1/2 z-50 hidden md:flex flex-col gap-2.5 items-center">
+        {SLIDES.map((slide, idx) => {
+          const isActive = activeSlide === idx
+          return (
+            <button
+              key={slide.id}
+              onClick={() => scrollToSlide(idx)}
+              title={slide.label}
+              className="relative group focus:outline-none cursor-pointer flex items-center justify-center w-4 h-4"
+            >
+              {/* Dot element */}
+              <div
+                className={`rounded-full transition-all duration-300 ${isActive
+                    ? 'w-3 h-3 bg-gradient-to-r from-violet-500 to-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.8)]'
+                    : 'w-2 h-2 bg-muted-foreground/30 hover:bg-muted-foreground/60'
+                  }`}
+              />
+              {/* Tooltip on hover */}
+              <span className="absolute right-7 top-1/2 -translate-y-1/2 bg-card/95 dark:bg-black/90 backdrop-blur-sm text-foreground text-[10px] font-bold px-2 py-1 rounded-md border border-border opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap shadow-md">
+                {slide.label}
+              </span>
+            </button>
+          )
+        })}
       </div>
 
       {/* ── FOOTER: Persistent Frosted Glass Footer ── */}
