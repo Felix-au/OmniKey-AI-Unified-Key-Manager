@@ -91,6 +91,7 @@ interface AdminStats {
     format: string;
     enabled: boolean;
     isPromoted: boolean;
+    projectLink?: string;
     createdAt: string;
     userEmail: string;
     metrics: {
@@ -101,6 +102,19 @@ interface AdminStats {
       avgLatencyMs: number;
       lastUsedAt: string | null;
     };
+  }>;
+  projectFundingRequests?: Array<{
+    id: string;
+    userId: string;
+    userEmail: string;
+    projectKeyId: string;
+    projectName: string;
+    projectKey: string;
+    format: string;
+    projectLink: string;
+    remarks: string;
+    status: 'pending' | 'approved' | 'rejected';
+    createdAt: string;
   }>;
 }
 
@@ -126,6 +140,7 @@ export default function AdminPage() {
   const [statsLoading, setStatsLoading] = useState(false)
   const [removingPromoUserId, setRemovingPromoUserId] = useState<string | null>(null)
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null)
+  const [fundingActionPending, setFundingActionPending] = useState<string | null>(null)
 
   // Developer accounts sorting
   const [userSortKey, setUserSortKey] = useState<'email' | 'keysCount' | 'requestsCount' | 'tokensConsumed' | 'costSaved' | 'errorRate'>('requestsCount')
@@ -510,6 +525,62 @@ export default function AdminPage() {
       setAdminEmails(prev => prev.map(e => e.email === email ? { ...e, isFundingProvider } : e))
     } catch (err: any) {
       setError(err.message)
+    }
+  }
+
+  const handleApproveFunding = async (requestId: string) => {
+    setError(null)
+    setSuccessMsg(null)
+    setFundingActionPending(requestId)
+    try {
+      const base = (import.meta.env.VITE_API_URL || import.meta.env.BASE_URL).replace(/\/$/, '')
+      const response = await fetch(`${base}/api/admin/project-funding/${requestId}/approve`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.error?.message || 'Failed to approve funding request')
+      }
+
+      setSuccessMsg('Project funding request approved successfully!')
+      if (token) fetchStats(token)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setFundingActionPending(null)
+    }
+  }
+
+  const handleRejectFunding = async (requestId: string) => {
+    setError(null)
+    setSuccessMsg(null)
+    setFundingActionPending(requestId)
+    try {
+      const base = (import.meta.env.VITE_API_URL || import.meta.env.BASE_URL).replace(/\/$/, '')
+      const response = await fetch(`${base}/api/admin/project-funding/${requestId}/reject`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.error?.message || 'Failed to reject funding request')
+      }
+
+      setSuccessMsg('Project funding request rejected successfully!')
+      if (token) fetchStats(token)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setFundingActionPending(null)
     }
   }
 
@@ -1332,6 +1403,11 @@ export default function AdminPage() {
                               )}
                             </div>
                             <div className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono mt-0.5 select-all">Key: {p.projectKey}</div>
+                            {p.projectLink && (
+                              <div className="text-[10px] text-violet-500 dark:text-violet-400 font-mono mt-0.5">
+                                Link: <a href={p.projectLink} target="_blank" rel="noreferrer" className="hover:underline">{p.projectLink}</a>
+                              </div>
+                            )}
                           </td>
                           <td className="py-4 font-mono text-[10px] text-slate-500 dark:text-zinc-400">
                             {p.userEmail}
@@ -1570,6 +1646,111 @@ export default function AdminPage() {
         {/* -------------------- 5. PROMO TAB -------------------- */}
         {activeTab === 'promo' && (
           <div className="max-w-6xl mx-auto w-full space-y-6">
+            {/* Project Funding Upgrade Requests */}
+            <section className="bg-white dark:bg-zinc-900/20 border border-slate-200 dark:border-zinc-800/80 rounded-xl p-6 shadow-sm">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2 mb-5">
+                <span className="h-1.5 w-1.5 rounded-full bg-violet-400" />
+                Project Funding Upgrade Requests (10M → 100M)
+              </h2>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-zinc-800 text-slate-500 dark:text-zinc-400 font-bold uppercase tracking-wider">
+                      <th className="pb-3 pl-4">Developer</th>
+                      <th className="pb-3">Project / App Details</th>
+                      <th className="pb-3 text-center">Format</th>
+                      <th className="pb-3">Project Link</th>
+                      <th className="pb-3">Remarks</th>
+                      <th className="pb-3 text-center">Status</th>
+                      <th className="pb-3 text-center">Date Requested</th>
+                      <th className="pb-3 text-right pr-4">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats?.projectFundingRequests && stats.projectFundingRequests.length > 0 ? (
+                      stats.projectFundingRequests.map((req) => (
+                        <tr key={req.id} className="border-b border-slate-100 dark:border-zinc-800/40 hover:bg-slate-50 dark:hover:bg-zinc-900/10 transition-colors text-slate-700 dark:text-zinc-300">
+                          <td className="py-4 pl-4 font-semibold text-slate-900 dark:text-zinc-200">
+                            <div>{req.userEmail}</div>
+                            <div className="text-[9px] text-slate-400 dark:text-zinc-500 font-mono mt-0.5">UID: {req.userId}</div>
+                          </td>
+                          <td className="py-4 font-semibold text-slate-900 dark:text-white">
+                            <div>{req.projectName}</div>
+                            <div className="text-[9px] text-slate-400 dark:text-zinc-500 font-mono mt-0.5" title={req.projectKey}>
+                              Key: {req.projectKey.slice(0, 15)}...
+                            </div>
+                          </td>
+                          <td className="py-4 text-center">
+                            <span className="text-[10px] bg-muted text-muted-foreground border px-2 py-0.5 rounded capitalize font-medium">
+                              {req.format}
+                            </span>
+                          </td>
+                          <td className="py-4">
+                            <a
+                              href={req.projectLink.startsWith('http') ? req.projectLink : `https://${req.projectLink}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-violet-500 hover:text-violet-400 underline font-medium break-all max-w-[150px] inline-block"
+                            >
+                              Open Link
+                            </a>
+                          </td>
+                          <td className="py-4 max-w-xs truncate" title={req.remarks}>
+                            {req.remarks || <span className="text-slate-400 italic">No remarks</span>}
+                          </td>
+                          <td className="py-4 text-center">
+                            <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${
+                              req.status === 'approved'
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-450 border border-emerald-500/20'
+                                : req.status === 'rejected'
+                                ? 'bg-rose-500/10 text-rose-600 dark:text-rose-450 border border-rose-500/20'
+                                : 'bg-amber-500/10 text-amber-600 dark:text-amber-450 border border-amber-500/20'
+                            }`}>
+                              {req.status}
+                            </span>
+                          </td>
+                          <td className="py-4 text-center font-mono text-[10px] text-slate-550 dark:text-zinc-400 whitespace-nowrap">
+                            {new Date(req.createdAt).toLocaleString()}
+                          </td>
+                          <td className="py-4 text-right pr-4">
+                            {req.status === 'pending' ? (
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="xs"
+                                  disabled={fundingActionPending === req.id}
+                                  onClick={() => handleApproveFunding(req.id)}
+                                  className="text-[11px] font-semibold text-emerald-600 hover:text-emerald-500 hover:bg-emerald-500/10 rounded-xl px-2.5 py-1 h-7 border border-transparent hover:border-emerald-500/20"
+                                >
+                                  Approve
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="xs"
+                                  disabled={fundingActionPending === req.id}
+                                  onClick={() => handleRejectFunding(req.id)}
+                                  className="text-[11px] font-semibold text-rose-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl px-2.5 py-1 h-7 border border-transparent hover:border-rose-500/20"
+                                >
+                                  Reject
+                                </Button>
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 dark:text-zinc-500 italic uppercase font-bold">Processed</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={8} className="py-10 text-slate-550 dark:text-zinc-500 text-center font-medium">No project funding upgrade requests found.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
             {localDbEnabled ? (
               <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-6 text-center">
                 <h2 className="text-sm font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-2 flex items-center justify-center gap-2">
