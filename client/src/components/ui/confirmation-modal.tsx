@@ -8,7 +8,7 @@ interface ConfirmationModalProps {
   confirmLabel?: string;
   cancelLabel?: string;
   onConfirm: () => void;
-  onCancel: () => void;
+  onCancel?: () => void;
   variant?: 'default' | 'destructive';
 }
 
@@ -26,7 +26,7 @@ export function ConfirmationModal({
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && onCancel) {
         onCancel();
       }
     };
@@ -53,9 +53,11 @@ export function ConfirmationModal({
           {description}
         </div>
         <div className="flex justify-end gap-2">
-          <Button variant="outline" size="sm" onClick={onCancel}>
-            {cancelLabel}
-          </Button>
+          {cancelLabel && onCancel && (
+            <Button variant="outline" size="sm" onClick={onCancel}>
+              {cancelLabel}
+            </Button>
+          )}
           <Button 
             variant={variant === 'destructive' ? 'destructive' : 'default'} 
             size="sm" 

@@ -130,14 +130,10 @@
         text-rendering: optimizeLegibility;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
-        overflow: hidden;
-        height: 100%;
     }
     body {
         @apply bg-background text-foreground;
         font-feature-settings: 'ss01', 'cv11', 'tnum';
-        overflow: hidden;
-        height: 100%;
     }
     code, pre, kbd, samp {
         font-family: var(--font-mono);

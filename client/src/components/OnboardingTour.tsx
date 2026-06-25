@@ -217,6 +217,18 @@ export function OnboardingTour({ isOpen, onClose }: OnboardingTourProps) {
     if (consoleScrollRef.current) consoleScrollRef.current.scrollTop = consoleScrollRef.current.scrollHeight
   }, [devConsole])
 
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleFinish()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen])
+
   if (!isOpen) return null
 
   // Trigger simulated request in Step 5 Sandbox
@@ -332,7 +344,14 @@ async function generateCompletion() {
 }`
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-background/85 backdrop-blur-md overflow-y-auto animate-in fade-in duration-300">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-background/85 backdrop-blur-md overflow-y-auto animate-in fade-in duration-300"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          handleFinish()
+        }
+      }}
+    >
 
       <style>{`
         @keyframes mock-pulse {
@@ -371,7 +390,8 @@ async function generateCompletion() {
             <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Onboarding tour</span>
           </div>
           <button
-            onClick={onClose}
+            type="button"
+            onClick={handleFinish}
             className="text-xs text-muted-foreground hover:text-foreground font-semibold py-1 px-2.5 rounded-lg hover:bg-muted transition-colors"
           >
             Skip Tour

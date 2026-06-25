@@ -1384,6 +1384,20 @@ export default function LandingPage() {
 
   const [activeSlide, setActiveSlide] = useState(0)
 
+  useEffect(() => {
+    document.documentElement.style.overflow = 'hidden';
+    document.documentElement.style.height = '100%';
+    document.body.style.overflow = 'hidden';
+    document.body.style.height = '100%';
+
+    return () => {
+      document.documentElement.style.overflow = 'auto';
+      document.documentElement.style.height = 'auto';
+      document.body.style.overflow = 'auto';
+      document.body.style.height = 'auto';
+    };
+  }, []);
+
   const scrollToSlide = (index: number) => {
     const el = scrollContainerRef.current
     if (el) {
