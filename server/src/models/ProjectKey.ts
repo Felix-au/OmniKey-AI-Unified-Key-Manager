@@ -7,6 +7,7 @@ export interface IProjectKey extends Document {
   format: 'openai' | 'gemini';
   enabled: boolean;
   isPromoted: boolean;
+  projectLink?: string;
   createdAt: Date;
 }
 
@@ -17,6 +18,7 @@ const ProjectKeySchema: Schema = new Schema({
   format: { type: String, required: true, enum: ['openai', 'gemini'] },
   enabled: { type: Boolean, default: true },
   isPromoted: { type: Boolean, default: false },
+  projectLink: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now }
 });
 

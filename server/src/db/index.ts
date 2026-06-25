@@ -49,8 +49,8 @@ export function initDb(dbPath?: string): Database.Database {
   migrateModelsV10(db);
   migrateModelsV11(db);
   migrateModelsV12(db);
-  migrateModelsV13(db);
   migrateModelsV14(db);
+  migrateModelsV15(db);
   ensureUnifiedKey(db);
   ensureUnifiedGeminiKey(db);
   seedAdmin(db);
@@ -153,6 +153,21 @@ function createTables(db: Database.Database) {
       format TEXT NOT NULL,
       enabled INTEGER NOT NULL DEFAULT 1,
       is_promoted INTEGER NOT NULL DEFAULT 0,
+      project_link TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS promo_project_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      user_email TEXT NOT NULL,
+      project_key_id TEXT NOT NULL,
+      project_name TEXT NOT NULL,
+      project_key TEXT NOT NULL,
+      format TEXT NOT NULL,
+      project_link TEXT NOT NULL,
+      remarks TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'pending',
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
@@ -1314,6 +1329,17 @@ function migrateModelsV14(db: Database.Database) {
      WHERE platform = 'cerebras'
        AND model_id IN ('qwen-3-235b-a22b-instruct-2507', 'llama3.1-8b')
   `).run();
+}
+
+function migrateModelsV15(db: Database.Database) {
+  try {
+    db.prepare("ALTER TABLE project_keys ADD COLUMN project_link TEXT NOT NULL DEFAULT ''").run();
+    console.log('[SQLite] Migration V15: Added project_link column to project_keys table.');
+  } catch (err: any) {
+    if (!err.message.includes('duplicate column name')) {
+      console.warn('[SQLite] Migration V15 failed:', err.message || err);
+    }
+  }
 }
 
 function ensureUnifiedKey(db: Database.Database) {
