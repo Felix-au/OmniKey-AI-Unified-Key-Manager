@@ -13,6 +13,7 @@ import admin from 'firebase-admin';
 import { AdminEmail } from '../models/AdminEmail.js';
 import { PromoUser } from '../models/PromoUser.js';
 import { ProjectKey } from '../models/ProjectKey.js';
+import { PromoProjectRequest } from '../models/PromoProjectRequest.js';
 
 export const adminRouter = Router();
 
@@ -228,6 +229,7 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
     let recentLogs: any[] = [];
     let modelsCatalog: any[] = [];
     let projectsList: any[] = [];
+    let projectFundingRequestsList: any[] = [];
 
     if (isLocalDbEnabled()) {
       const db = getDb();
@@ -422,6 +424,7 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
           pk.format,
           pk.enabled,
           pk.is_promoted,
+          pk.project_link,
           pk.created_at,
           COUNT(r.id) as total_requests,
           SUM(CASE WHEN r.status = 'success' THEN 1 ELSE 0 END) as success_requests,
@@ -448,6 +451,7 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
           format: r.format,
           enabled: r.enabled === 1,
           isPromoted: r.is_promoted === 1,
+          projectLink: r.project_link || '',
           createdAt: r.created_at,
           userEmail: 'local-dev-user@example.com',
           metrics: {
@@ -460,6 +464,26 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
           }
         };
       });
+
+      // Project funding requests list (SQLite)
+      try {
+        const rows = db.prepare('SELECT * FROM promo_project_requests ORDER BY created_at DESC').all() as any[];
+        projectFundingRequestsList = rows.map(r => ({
+          id: r.id.toString(),
+          userId: r.user_id,
+          userEmail: r.user_email,
+          projectKeyId: r.project_key_id,
+          projectName: r.project_name,
+          projectKey: r.project_key,
+          format: r.format,
+          projectLink: r.project_link,
+          remarks: r.remarks,
+          status: r.status,
+          createdAt: r.created_at
+        }));
+      } catch (err: any) {
+        console.warn('[SQLite] Failed to query promo project requests:', err.message || err);
+      }
 
     } else {
       // MongoDB calculations
@@ -735,6 +759,7 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
           format: pk.format,
           enabled: !!pk.enabled,
           isPromoted: !!pk.isPromoted,
+          projectLink: pk.projectLink || '',
           createdAt: pk.createdAt,
           userEmail: projectUserEmailMap.get(pk.userId) || pk.userId || 'unknown-user',
           metrics: {
@@ -791,6 +816,26 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
       } catch (err) {
         console.error('Failed to aggregate promo user stats:', err);
       }
+
+      // Project funding requests list (MongoDB)
+      try {
+        const rows = await PromoProjectRequest.find().sort({ createdAt: -1 });
+        projectFundingRequestsList = rows.map(r => ({
+          id: r._id.toString(),
+          userId: r.userId,
+          userEmail: r.userEmail,
+          projectKeyId: r.projectKeyId,
+          projectName: r.projectName,
+          projectKey: r.projectKey,
+          format: r.format,
+          projectLink: r.projectLink,
+          remarks: r.remarks,
+          status: r.status,
+          createdAt: r.createdAt.toISOString()
+        }));
+      } catch (err: any) {
+        console.error('[MongoDB] Failed to query promo project requests:', err.message || err);
+      }
     }
 
     res.json({
@@ -806,7 +851,8 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
       users: usersList,
       adminEmails,
       promoUsers: promoUsersList,
-      projects: projectsList
+      projects: projectsList,
+      projectFundingRequests: projectFundingRequestsList
     });
   } catch (error) {
     next(error);
@@ -980,6 +1026,89 @@ adminRouter.delete('/users/:userId', requireAdminAuth, async (req: Request, res:
     }
 
     res.json({ success: true, message: 'User account and configurations deleted successfully' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/admin/project-funding/:id/approve
+ * Secure endpoint to approve a project funding request.
+ */
+adminRouter.post('/project-funding/:id/approve', requireAdminAuth, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    let userId = '';
+    let userEmail = '';
+
+    if (isLocalDbEnabled()) {
+      const db = getDb();
+      const request = db.prepare('SELECT user_id, user_email FROM promo_project_requests WHERE id = ?').get(id) as any;
+      if (!request) {
+        res.status(404).json({ error: { message: 'Funding request not found' } });
+        return;
+      }
+      userId = request.user_id;
+      userEmail = request.user_email;
+
+      db.prepare("UPDATE promo_project_requests SET status = 'approved' WHERE id = ?").run(id);
+    } else {
+      const request = await PromoProjectRequest.findById(id);
+      if (!request) {
+        res.status(404).json({ error: { message: 'Funding request not found' } });
+        return;
+      }
+      userId = request.userId;
+      userEmail = request.userEmail;
+
+      request.status = 'approved';
+      await request.save();
+
+      // Upgrade tokensLimit in PromoUser
+      await PromoUser.findOneAndUpdate(
+        { userId },
+        { 
+          userId, 
+          email: userEmail,
+          tokensLimit: 100000000 // 100 Million
+        },
+        { upsert: true, new: true }
+      );
+    }
+
+    res.json({ success: true, message: 'Project funding request approved and token pool upgraded to 100M' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/admin/project-funding/:id/reject
+ * Secure endpoint to reject a project funding request.
+ */
+adminRouter.post('/project-funding/:id/reject', requireAdminAuth, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (isLocalDbEnabled()) {
+      const db = getDb();
+      const result = db.prepare("UPDATE promo_project_requests SET status = 'rejected' WHERE id = ?").run(id);
+      if (result.changes === 0) {
+        res.status(404).json({ error: { message: 'Funding request not found' } });
+        return;
+      }
+    } else {
+      const request = await PromoProjectRequest.findById(id);
+      if (!request) {
+        res.status(404).json({ error: { message: 'Funding request not found' } });
+        return;
+      }
+      request.status = 'rejected';
+      await request.save();
+    }
+
+    res.json({ success: true, message: 'Project funding request rejected' });
   } catch (err) {
     next(err);
   }
