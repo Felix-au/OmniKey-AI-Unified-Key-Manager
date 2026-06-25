@@ -43,6 +43,7 @@ describe('Project Keys API', () => {
     const { status, body } = await request(app, 'POST', '/api/project-keys', {
       name: 'Slack Bot',
       format: 'openai',
+      projectLink: 'https://example.com',
     });
 
     expect(status).toBe(201);
@@ -57,6 +58,7 @@ describe('Project Keys API', () => {
     await request(app, 'POST', '/api/project-keys', {
       name: 'Slack Bot',
       format: 'openai',
+      projectLink: 'https://example.com',
     });
 
     const { status, body } = await request(app, 'GET', '/api/project-keys');
@@ -70,6 +72,7 @@ describe('Project Keys API', () => {
     const { status, body } = await request(app, 'POST', '/api/project-keys/promote', {
       name: 'Promoted Key',
       format: 'openai',
+      projectLink: 'https://example.com',
     });
 
     expect(status).toBe(201);
@@ -83,6 +86,7 @@ describe('Project Keys API', () => {
     const { body: created } = await request(app, 'POST', '/api/project-keys', {
       name: 'Test Key',
       format: 'gemini',
+      projectLink: 'https://example.com',
     });
 
     const { status, body } = await request(app, 'PATCH', `/api/project-keys/${created.id}`, {
@@ -100,6 +104,7 @@ describe('Project Keys API', () => {
     const { body: created } = await request(app, 'POST', '/api/project-keys', {
       name: 'Delete Me',
       format: 'openai',
+      projectLink: 'https://example.com',
     });
 
     const { status } = await request(app, 'DELETE', `/api/project-keys/${created.id}`);
@@ -113,6 +118,7 @@ describe('Project Keys API', () => {
     const { body: keyObj } = await request(app, 'POST', '/api/project-keys', {
       name: 'Slack Integration Key',
       format: 'openai',
+      projectLink: 'https://example.com',
     });
     expect(keyObj.projectKey).toContain('omnikey-proj-');
 
@@ -136,6 +142,7 @@ describe('Project Keys API', () => {
     const { body: keyObj } = await request(app, 'POST', '/api/project-keys', {
       name: 'Disabled Key',
       format: 'openai',
+      projectLink: 'https://example.com',
     });
 
     await request(app, 'PATCH', `/api/project-keys/${keyObj.id}`, {
