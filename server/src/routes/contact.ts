@@ -36,7 +36,7 @@ contactRouter.post('/', async (req: Request, res: Response, next: NextFunction) 
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "OmniKey AI <omneykeyai@felix-au.me>",
+        from: "OmniKey AI <omnikeyai@felix-au.me>",
         to: "felixaugum@gmail.com",
         reply_to: email,
         subject: `OmniKey AI: New Inquiry from ${name}`,
@@ -75,7 +75,7 @@ contactRouter.post('/', async (req: Request, res: Response, next: NextFunction) 
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "OmniKey AI Support <omneykeyai@felix-au.me>",
+        from: "OmniKey AI Support <omnikeyai@felix-au.me>",
         to: email,
         subject: "We received your message - OmniKey AI Support",
         html: `
