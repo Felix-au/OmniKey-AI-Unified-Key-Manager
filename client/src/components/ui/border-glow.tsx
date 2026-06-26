@@ -161,6 +161,7 @@ const BorderGlow: React.FC<BorderGlowProps> = ({
   }, [getCenterOfElement]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches) return;
     const card = cardRef.current;
     if (!card) return;
 

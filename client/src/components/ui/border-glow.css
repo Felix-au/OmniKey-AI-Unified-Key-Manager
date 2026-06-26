@@ -140,3 +140,11 @@
   overflow: hidden;
   z-index: 1;
 }
+
+@media (hover: none) {
+  .border-glow-card:hover::before,
+  .border-glow-card:hover::after,
+  .border-glow-card:hover > .edge-light {
+    opacity: 0 !important;
+  }
+}
