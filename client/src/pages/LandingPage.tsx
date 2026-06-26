@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { motion, useReducedMotion } from 'motion/react'
-
+import { GradientDots } from '@/components/ui/gradient-dots'
 
 import logoDark from '../assets/logo-dark-theme.webp'
 import logoLight from '../assets/logo-light-theme.webp'
@@ -324,218 +324,7 @@ const auroraCSS = `
 `
 
 
-// ── Interactive Neural Mesh Background ──────────────────────────────────────────
-function NeuralMeshBackground({ dark }: { dark: boolean }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    let animId: number
-    const particles: Array<{
-      x: number
-      y: number
-      vx: number
-      vy: number
-    }> = []
-
-    const count = window.innerWidth < 768 ? 22 : 45
-    const mouse = { x: -9999, y: -9999, inside: false }
-
-    const onMouse = (e: MouseEvent) => {
-      mouse.x = e.clientX
-      mouse.y = e.clientY
-      mouse.inside = true
-    }
-    const onLeave = () => {
-      mouse.inside = false
-      mouse.x = -9999
-      mouse.y = -9999
-    }
-
-    window.addEventListener('mousemove', onMouse)
-    document.addEventListener('mouseleave', onLeave)
-
-    const resize = () => {
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight
-    }
-    resize()
-    window.addEventListener('resize', resize)
-
-    // Initialize particles with random positions and velocities
-    for (let i = 0; i < count; i++) {
-      particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 2,
-        vy: (Math.random() - 0.5) * 2,
-      })
-    }
-
-    let lastTime = 0
-    const fpsInterval = 1000 / 30
-
-    const draw = (timestamp?: number) => {
-      const now = timestamp || performance.now()
-      const elapsed = now - lastTime
-
-      if (elapsed >= fpsInterval) {
-        lastTime = now - (elapsed % fpsInterval)
-
-        const W = canvas.width
-        const H = canvas.height
-        ctx.clearRect(0, 0, W, H)
-
-        // Background color/gradient
-        if (dark) {
-          ctx.fillStyle = '#000000'
-          ctx.fillRect(0, 0, W, H)
-        } else {
-          const grad = ctx.createLinearGradient(0, 0, 0, H)
-          grad.addColorStop(0, '#ffffff')
-          grad.addColorStop(0.5, '#fafafb')
-          grad.addColorStop(1, '#f3f4f6')
-          ctx.fillStyle = grad
-          ctx.fillRect(0, 0, W, H)
-        }
-
-        // Update particles
-        particles.forEach((n) => {
-          // Natural Drift (Brownian drift)
-          n.vx += (Math.random() - 0.5) * 0.008
-          n.vy += (Math.random() - 0.5) * 0.008
-
-          // Repulsion from 3D MLP construct (Top-Left)
-          const isDesktop = window.innerWidth >= 768
-          if (isDesktop) {
-            const cX = 134
-            const cY = 236 // Statically 102px top + 134px half height
-            const dx = n.x - cX
-            const dy = n.y - cY
-            const dist = Math.sqrt(dx * dx + dy * dy)
-            const radius = 180
-            if (dist < radius && dist > 0) {
-              const force = (1 - dist / radius) * 0.5
-              n.vx += (dx / dist) * force
-              n.vy += (dy / dist) * force
-            }
-          }
-
-          // Clamp Speed between 0.3 and 1.4
-          const speed = Math.sqrt(n.vx * n.vx + n.vy * n.vy)
-          if (speed < 0.3) {
-            const angle = speed > 0 ? Math.atan2(n.vy, n.vx) : Math.random() * Math.PI * 2
-            n.vx = Math.cos(angle) * 0.3
-            n.vy = Math.sin(angle) * 0.3
-          } else if (speed > 1.4) {
-            n.vx = (n.vx / speed) * 1.4
-            n.vy = (n.vy / speed) * 1.4
-          }
-
-          // Update Position
-          n.x += n.vx
-          n.y += n.vy
-
-          // Screen Boundary Wrapping
-          if (n.x < 0) n.x += W
-          if (n.x > W) n.x -= W
-          if (n.y < 0) n.y += H
-          if (n.y > H) n.y -= H
-        })
-
-        // Draw connections between nearby particles (dynamic paths)
-        ctx.save()
-        ctx.shadowBlur = dark ? 18 : 8
-        ctx.shadowColor = '#06b6d4'
-        for (let i = 0; i < count; i++) {
-          for (let j = i + 1; j < count; j++) {
-            const p1 = particles[i]
-            const p2 = particles[j]
-            const dx = p1.x - p2.x
-            const dy = p1.y - p2.y
-            const dist = Math.sqrt(dx * dx + dy * dy)
-
-            if (dist < 160) {
-              const opacity = (1 - dist / 160) * (dark ? 0.65 : 0.4)
-              ctx.strokeStyle = `rgba(6, 182, 212, ${opacity})`
-              ctx.lineWidth = dark ? 1.2 : 0.7
-              ctx.beginPath()
-              ctx.moveTo(p1.x, p1.y)
-              ctx.lineTo(p2.x, p2.y)
-              ctx.stroke()
-            }
-          }
-        }
-        ctx.restore()
-
-        // Draw connections to mouse cursor when hovering
-        if (mouse.inside) {
-          ctx.save()
-          ctx.shadowBlur = dark ? 28 : 16
-          ctx.shadowColor = '#06b6d4'
-          particles.forEach((n) => {
-            const dx = n.x - mouse.x
-            const dy = n.y - mouse.y
-            const dist = Math.sqrt(dx * dx + dy * dy)
-
-            if (dist < 140) {
-              const opacity = (1 - dist / 160) * (dark ? 1.0 : 0.85)
-              ctx.strokeStyle = `rgba(6, 182, 212, ${opacity})`
-              ctx.lineWidth = dark ? 2.2 : 1.6
-              ctx.beginPath()
-              ctx.moveTo(n.x, n.y)
-              ctx.lineTo(mouse.x, mouse.y)
-              ctx.stroke()
-            }
-          })
-          ctx.restore()
-        }
-
-        // Draw particle nodes with a heavy cyan glow
-        ctx.save()
-        ctx.shadowBlur = 22
-        ctx.shadowColor = '#06b6d4'
-        ctx.fillStyle = 'rgba(6, 182, 212, 0.95)'
-        particles.forEach((n) => {
-          ctx.beginPath()
-          ctx.arc(n.x, n.y, 3, 0, Math.PI * 2)
-          ctx.fill()
-        })
-        ctx.restore()
-      }
-
-      animId = requestAnimationFrame(draw)
-    }
-
-    draw()
-
-    return () => {
-      cancelAnimationFrame(animId)
-      window.removeEventListener('resize', resize)
-      window.removeEventListener('mousemove', onMouse)
-      document.removeEventListener('mouseleave', onLeave)
-    }
-  }, [dark])
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className="neural-mesh-canvas"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: -1,
-        pointerEvents: 'none',
-        width: '100%',
-        height: '100%',
-      }}
-    />
-  )
-}
+// NeuralMeshBackground removed in favor of GradientDots background
 
 // ── Animated chat hook ───────────────────────────────────────────────────────
 function useAnimatedChat() {
@@ -1277,7 +1066,7 @@ function SectionSub({ children }: { children: React.ReactNode }) {
 
 function MockCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`rounded-2xl border border-border bg-card/80 backdrop-blur shadow-xl overflow-hidden ${className}`}>
+    <div className={`rounded-2xl border border-border bg-card/92 backdrop-blur shadow-xl overflow-hidden ${className}`}>
       {children}
     </div>
   )
@@ -1754,10 +1543,10 @@ export default function LandingPage() {
         <meta name="description" content="Route requests across Gemini, Groq, Mistral, and more with automatic fallbacks for 100% uptime. Explore our API proxy gateway with Groq fallback routing and free Gemini API failover." />
       </Helmet>
       <style>{auroraCSS}</style>
-      <NeuralMeshBackground dark={dark} />
+      <GradientDots className="fixed inset-0 z-[-1] pointer-events-none" />
 
       {/* NAV */}
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-background/10 backdrop-blur-[24px] border-b border-cyan-400/40 shadow-[0_4px_24px_rgba(6,182,212,0.35)] rounded-b-2xl ${scrolled ? 'h-12' : 'h-16'}`}>
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-background/70 backdrop-blur-[24px] border-b border-cyan-400/20 shadow-[0_4px_16px_rgba(6,182,212,0.15)] rounded-b-2xl ${scrolled ? 'h-12' : 'h-16'}`}>
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between relative h-full transition-all duration-300">
           <div className="flex items-center gap-2 shrink-0">
             <span
@@ -1882,11 +1671,11 @@ export default function LandingPage() {
               {/* Combined Logo & Providers Container with 0 gap */}
               <div className="flex flex-col items-center gap-0 w-full">
                 {/* Big Logo */}
-                <motion.div {...logoAnimation} className="w-full flex justify-center items-center min-h-[38vh] md:min-h-[33vh]">
+                <motion.div {...logoAnimation} className="w-full flex justify-center items-center min-h-[42vh] md:min-h-[36vh]">
                   <img
                     src={dark ? logoDark : logoLight}
                     alt="OmniKey AI - One Key. Every Model."
-                    className="max-h-[38vh] md:max-h-[33vh] w-auto object-contain transition-all duration-300 transform hover:scale-[1.01]"
+                    className="max-h-[42vh] md:max-h-[36vh] w-auto object-contain transition-all duration-300 transform hover:scale-[1.01]"
                   />
                 </motion.div>
 
@@ -1897,7 +1686,7 @@ export default function LandingPage() {
                       const logo = providerLogos[p]
                       const isGitHub = p === 'GitHub'
                       return (
-                        <motion.span key={p} variants={badgeItemVariants} className="provider-pill flex items-center gap-2 text-xs px-3.5 py-2 rounded-full border border-border bg-card/60 text-muted-foreground">
+                        <motion.span key={p} variants={badgeItemVariants} className="provider-pill flex items-center gap-2 text-xs px-3.5 py-2 rounded-full border border-border bg-card/80 text-muted-foreground">
                           {isGitHub ? (
                             <span className="text-foreground dark:text-white flex items-center justify-center">
                               <GitHubIcon size={14} />
@@ -1937,9 +1726,9 @@ export default function LandingPage() {
               {/* Stats Block (2x2 grid) */}
               <motion.div className="w-full" {...statsAnimation}>
                 {/* Outer wrapper: defined border + subtle cyan glow */}
-                <div className="rounded-2xl border border-cyan-500/50 shadow-[0_0_28px_6px_rgba(6,182,212,0.28)] overflow-hidden">
+                <div className="rounded-2xl border border-cyan-500/25 shadow-[0_0_18px_rgba(6,182,212,0.15)] overflow-hidden">
                   {/* Grid with internal separators via divide */}
-                  <div className="grid grid-cols-2 bg-card/25 backdrop-blur-md divide-x divide-y divide-cyan-500/20 relative">
+                  <div className="grid grid-cols-2 bg-card/65 backdrop-blur-md divide-x divide-y divide-cyan-500/20 relative">
                     {[
                       { ref: stat1.ref, val: `${stat1.val.toLocaleString()}+`, label: 'Models Available' },
                       { ref: stat4.ref, val: `${stat4.val.toFixed(2)}${requestsUnit}`, label: 'Requests Processed' },
@@ -2475,7 +2264,7 @@ export default function LandingPage() {
                     <motion.div
                       key={faq.question}
                       variants={faqAccordionItemVariants}
-                      className={`group rounded-2xl border transition-all duration-300 bg-card/60 backdrop-blur overflow-hidden ${isOpen
+                      className={`group rounded-2xl border transition-all duration-300 bg-card/85 backdrop-blur overflow-hidden ${isOpen
                         ? 'border-violet-500/40 ring-1 ring-violet-500/20 shadow-[0_0_25px_rgba(139,92,246,0.22)] bg-gradient-to-br from-card to-violet-500/5'
                         : 'border-border hover:border-violet-500/30 hover:shadow-[0_0_15px_rgba(139,92,246,0.08)] hover:bg-card/90'
                         }`}
@@ -2524,7 +2313,7 @@ export default function LandingPage() {
               </span>
             </motion.div>
 
-            <motion.div {...contactFormAnimation} className="rounded-2xl border border-border bg-card/85 backdrop-blur-xl shadow-xl overflow-hidden p-6 md:p-8 relative">
+            <motion.div {...contactFormAnimation} className="rounded-2xl border border-border bg-card/95 backdrop-blur-xl shadow-xl overflow-hidden p-6 md:p-8 relative">
               <div className="absolute -top-10 -right-10 w-40 h-40 bg-violet-500/10 rounded-full blur-[48px] pointer-events-none" />
               <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-[48px] pointer-events-none" />
 
@@ -2754,7 +2543,7 @@ export default function LandingPage() {
       </div>
 
       {/* ── FOOTER: Persistent Frosted Glass Footer ── */}
-      <footer className="fixed bottom-0 left-0 right-0 z-40 h-10 bg-background/20 backdrop-blur-[24px] border-t border-cyan-400/40 rounded-t-2xl shadow-[0_-4px_24px_rgba(6,182,212,0.35)] flex items-center px-6">
+      <footer className="fixed bottom-0 left-0 right-0 z-40 h-10 bg-background/70 backdrop-blur-[24px] border-t border-cyan-400/20 rounded-t-2xl shadow-[0_-4px_16px_rgba(6,182,212,0.15)] flex items-center px-6">
         <div className="w-full max-w-6xl mx-auto flex items-center justify-between relative text-[11px] text-muted-foreground">
           {/* Centered Copyright */}
           <span className="absolute left-1/2 -translate-x-1/2 font-medium tracking-wide">
