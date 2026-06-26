@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { motion, useReducedMotion } from 'motion/react'
 import { GradientDots } from '@/components/ui/gradient-dots'
+import BorderGlow from '@/components/ui/border-glow'
 
 import logoDark from '../assets/logo-dark-theme.webp'
 import logoLight from '../assets/logo-light-theme.webp'
@@ -1066,9 +1067,16 @@ function SectionSub({ children }: { children: React.ReactNode }) {
 
 function MockCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`rounded-2xl border border-border bg-card/92 backdrop-blur shadow-xl overflow-hidden ${className}`}>
+    <BorderGlow
+      className={`rounded-2xl border border-border bg-card/92 backdrop-blur shadow-xl overflow-hidden ${className}`}
+      backgroundColor="var(--card)"
+      borderRadius={16}
+      glowColor="263 90 70"
+      colors={['#c084fc', '#f472b6', '#38bdf8']}
+      animated={true}
+    >
       {children}
-    </div>
+    </BorderGlow>
   )
 }
 
@@ -1726,7 +1734,14 @@ export default function LandingPage() {
               {/* Stats Block (2x2 grid) */}
               <motion.div className="w-full" {...statsAnimation}>
                 {/* Outer wrapper: defined border + subtle cyan glow */}
-                <div className="rounded-2xl border border-cyan-500/25 shadow-[0_0_18px_rgba(6,182,212,0.15)] overflow-hidden">
+                <BorderGlow
+                  className="rounded-2xl border border-cyan-500/25 shadow-[0_0_18px_rgba(6,182,212,0.15)] overflow-hidden"
+                  backgroundColor="var(--card)"
+                  borderRadius={16}
+                  glowColor="190 90 60"
+                  colors={['#06b6d4', '#38bdf8', '#c084fc']}
+                  animated={true}
+                >
                   {/* Grid with internal separators via divide */}
                   <div className="grid grid-cols-2 bg-card/65 backdrop-blur-md divide-x divide-y divide-cyan-500/20 relative">
                     {[
@@ -1741,7 +1756,7 @@ export default function LandingPage() {
                       </div>
                     ))}
                   </div>
-                </div>
+                </BorderGlow>
               </motion.div>
 
               {/* Description Text */}
@@ -2313,80 +2328,89 @@ export default function LandingPage() {
               </span>
             </motion.div>
 
-            <motion.div {...contactFormAnimation} className="rounded-2xl border border-border bg-card/95 backdrop-blur-xl shadow-xl overflow-hidden p-6 md:p-8 relative">
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-violet-500/10 rounded-full blur-[48px] pointer-events-none" />
-              <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-[48px] pointer-events-none" />
+            <motion.div {...contactFormAnimation} className="w-full">
+              <BorderGlow
+                className="rounded-2xl border border-border bg-card/95 backdrop-blur-xl shadow-xl overflow-hidden p-6 md:p-8 relative"
+                backgroundColor="var(--card)"
+                borderRadius={16}
+                glowColor="263 90 70"
+                colors={['#c084fc', '#f472b6', '#38bdf8']}
+                animated={true}
+              >
+                <div className="absolute -top-10 -right-10 w-40 h-40 bg-violet-500/10 rounded-full blur-[48px] pointer-events-none" />
+                <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-[48px] pointer-events-none" />
 
-              <motion.form onSubmit={handleContactSubmit} {...contactFieldsContainerAnimation} className="space-y-4 relative z-10">
-                {contactError && (
-                  <div className="text-xs font-semibold text-rose-500 dark:text-rose-450 bg-rose-500/10 border border-rose-500/20 rounded-xl p-4">
-                    {contactError}
-                  </div>
-                )}
-                {contactSuccess && (
-                  <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
-                    {contactSuccess}
-                  </div>
-                )}
+                <motion.form onSubmit={handleContactSubmit} {...contactFieldsContainerAnimation} className="space-y-4 relative z-10">
+                  {contactError && (
+                    <div className="text-xs font-semibold text-rose-500 dark:text-rose-450 bg-rose-500/10 border border-rose-500/20 rounded-xl p-4">
+                      {contactError}
+                    </div>
+                  )}
+                  {contactSuccess && (
+                    <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
+                      {contactSuccess}
+                    </div>
+                  )}
 
-                <motion.div variants={contactFieldItemVariants}>
-                  <label htmlFor="contact-name" className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
-                    Name
-                  </label>
-                  <input
-                    id="contact-name"
-                    type="text"
-                    required
-                    value={contactName}
-                    onChange={(e) => setContactName(e.target.value)}
-                    placeholder="Your Name"
-                    disabled={contactSubmitting}
-                    className="w-full bg-background/50 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/35 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-all"
-                  />
-                </motion.div>
+                  <motion.div variants={contactFieldItemVariants}>
+                    <label htmlFor="contact-name" className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                      Name
+                    </label>
+                    <input
+                      id="contact-name"
+                      type="text"
+                      required
+                      value={contactName}
+                      onChange={(e) => setContactName(e.target.value)}
+                      placeholder="Your Name"
+                      disabled={contactSubmitting}
+                      className="w-full bg-background/50 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/35 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-all"
+                    />
+                  </motion.div>
 
-                <motion.div variants={contactFieldItemVariants}>
-                  <label htmlFor="contact-email" className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
-                    Email Address
-                  </label>
-                  <input
-                    id="contact-email"
-                    type="email"
-                    required
-                    value={contactEmail}
-                    onChange={(e) => setContactEmail(e.target.value)}
-                    placeholder="your.email@example.com"
-                    disabled={contactSubmitting}
-                    className="w-full bg-background/50 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/35 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-all"
-                  />
-                </motion.div>
+                  <motion.div variants={contactFieldItemVariants}>
+                    <label htmlFor="contact-email" className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                      Email Address
+                    </label>
+                    <input
+                      id="contact-email"
+                      type="email"
+                      required
+                      value={contactEmail}
+                      onChange={(e) => setContactEmail(e.target.value)}
+                      placeholder="your.email@example.com"
+                      disabled={contactSubmitting}
+                      className="w-full bg-background/50 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/35 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-all"
+                    />
+                  </motion.div>
 
-                <motion.div variants={contactFieldItemVariants}>
-                  <label htmlFor="contact-message" className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
-                    Message
-                  </label>
-                  <textarea
-                    id="contact-message"
-                    required
-                    rows={3}
-                    value={contactMessage}
-                    onChange={(e) => setContactMessage(e.target.value)}
-                    placeholder="How can we help you?"
-                    disabled={contactSubmitting}
-                    className="w-full bg-background/50 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/35 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-all resize-none"
-                  />
-                </motion.div>
+                  <motion.div variants={contactFieldItemVariants}>
+                    <label htmlFor="contact-message" className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                      Message
+                    </label>
+                    <textarea
+                      id="contact-message"
+                      required
+                      rows={3}
+                      value={contactMessage}
+                      onChange={(e) => setContactMessage(e.target.value)}
+                      placeholder="How can we help you?"
+                      disabled={contactSubmitting}
+                      className="w-full bg-background/50 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/35 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 transition-all resize-none"
+                    />
+                  </motion.div>
 
-                <motion.div variants={contactFieldItemVariants}>
-                  <button
-                    type="submit"
-                    disabled={contactSubmitting}
-                    className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-sm font-semibold rounded-xl py-3.5 text-center cursor-pointer shadow-lg shadow-violet-500/20 hover:from-violet-550 hover:to-indigo-550 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {contactSubmitting ? 'Sending Message...' : 'Send Message'}
-                  </button>
-                </motion.div>
-              </motion.form>
+                  <motion.div variants={contactFieldItemVariants}>
+                    <button
+                      type="submit"
+                      disabled={contactSubmitting}
+                      className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-sm font-semibold rounded-xl py-3.5 text-center cursor-pointer shadow-lg shadow-violet-500/20 hover:from-violet-550 hover:to-indigo-550 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {contactSubmitting ? 'Sending Message...' : 'Send Message'}
+                    </button>
+                  </motion.div>
+                </motion.form>
+              </BorderGlow>
             </motion.div>
           </div>
         </Section>
