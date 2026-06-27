@@ -2570,12 +2570,12 @@ export default function LandingPage() {
       <footer className="fixed bottom-0 left-0 right-0 z-40 h-10 bg-background/70 backdrop-blur-[24px] border-t border-cyan-400/20 rounded-t-2xl shadow-[0_-4px_16px_rgba(6,182,212,0.15)] flex items-center px-6">
         <div className="w-full max-w-6xl mx-auto flex items-center justify-between relative text-[11px] text-muted-foreground">
           {/* Centered Copyright */}
-          <span className="absolute left-1/2 -translate-x-1/2 font-medium tracking-wide">
+          <span className="sm:absolute sm:left-1/2 sm:-translate-x-1/2 font-medium tracking-wide whitespace-nowrap ml-auto mr-4 sm:ml-0 sm:mr-0">
             &copy; 2026 OmniKey AI. All rights reserved.
           </span>
 
           {/* Right-aligned GitHub repository link */}
-          <div className="ml-auto flex items-center gap-1.5 z-10">
+          <div className="sm:ml-auto flex items-center gap-1.5 z-10">
             <a
               href="https://github.com/Felix-au/OmniKey-AI-Unified-Key-Manager"
               target="_blank"
