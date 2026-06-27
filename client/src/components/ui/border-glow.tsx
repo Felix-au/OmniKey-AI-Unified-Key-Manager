@@ -178,6 +178,7 @@ const BorderGlow: React.FC<BorderGlowProps> = ({
 
   useEffect(() => {
     if (!animated || !cardRef.current) return;
+    if (typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches) return;
     const card = cardRef.current;
     let cancels: (() => void)[] = [];
 

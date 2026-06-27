@@ -142,9 +142,10 @@
 }
 
 @media (hover: none) {
-  .border-glow-card:hover::before,
-  .border-glow-card:hover::after,
-  .border-glow-card:hover > .edge-light {
+  .border-glow-card::before,
+  .border-glow-card::after,
+  .border-glow-card > .edge-light {
     opacity: 0 !important;
+    transition: none !important;
   }
 }
