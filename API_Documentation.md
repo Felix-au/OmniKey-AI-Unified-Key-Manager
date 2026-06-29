@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="assets/logo.png" width="150" alt="OmniKey AI Logo"/>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark-theme.png">
+    <img src="assets/logo-light-theme.png" width="220" alt="OmniKey AI Logo">
+  </picture>
 </p>
 
 # OmniKey AI: Unified Key Manager — API Reference

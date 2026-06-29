@@ -1,9 +1,12 @@
 <p align="center">
-  <img src="assets/logo.png" width="150" alt="OmniKey AI Logo"/>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark-theme.png">
+    <img src="assets/logo-light-theme.png" width="220" alt="OmniKey AI Logo">
+  </picture>
 </p>
 <h1 align="center">OmniKey AI: Unified Key Manager</h1>
 <p align="center">
-  <strong>One OpenAI-compatible endpoint. Twelve free LLM providers. ~1B+ tokens per month.</strong><br/>
+  <strong>Unified OpenAI-compatible and Gemini-compatible endpoints. Twelve free LLM providers. ~1B+ tokens per month.</strong><br/>
   <em>One bearer token → speak to 60+ models offline or online — OmniKey AI routes, falls over, and tracks budget transparently</em>
 </p>
 

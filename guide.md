@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark-theme.png">
+    <img src="assets/logo-light-theme.png" width="220" alt="OmniKey AI Logo">
+  </picture>
+</p>
+
 # OmniKey AI: Unified Key Manager — Quick Guide
 
 An OpenAI-compatible proxy that routes across 12 free-tier LLM providers. Point any OpenAI client library at your local proxy server, and it routes transparently across whichever providers you've added keys for.
