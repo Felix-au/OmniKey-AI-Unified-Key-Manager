@@ -947,19 +947,7 @@ const providerLogos: Record<string, string> = {
   GitHub: '/logos/github.svg',
 }
 
-// ── Generated token phrases for Autoregressive Cascade ─────────────────────────
-const SIMULATED_TOKENS = [
-  { val: "System", type: "system" },
-  { val: "Prompt", type: "system" },
-  { val: "Vector", type: "vector" },
-  { val: "Weights", type: "attention" },
-  { val: "Query", type: "proxy" },
-  { val: "Resolve", type: "proxy" },
-  { val: "Model", type: "model" },
-  { val: "Decode", type: "attention" },
-  { val: "Cache", type: "proxy" },
-  { val: "Response", type: "model" },
-]
+
 
 // ── Mock Chat Messages ────────────────────────────────────────────────────────
 const mockChat = [
@@ -2416,128 +2404,7 @@ export default function LandingPage() {
         </Section>
       </div>
 
-      <div
-        className="fixed z-[1] pointer-events-none select-none hidden md:flex items-center justify-center animate-fade-in"
-        style={{
-          top: '102px',
-          left: '-20px',
-          width: '320px',
-          height: '280px',
-          perspective: '800px',
-          transformStyle: 'preserve-3d',
-          transform: 'scale(0.96)',
-          transformOrigin: 'top left'
-        }}
-      >
-        <div className="mlp-detailed-3d">
-          {/* 4 Layers of Nodes */}
-          {[
-            { name: "Input", nodes: 3, color: "#8b5cf6", shadow: "rgba(139,92,246,0.5)" },
-            { name: "Hidden 1", nodes: 5, color: "#06b6d4", shadow: "rgba(6,182,212,0.5)" },
-            { name: "Hidden 2", nodes: 4, color: "#ec4899", shadow: "rgba(236,72,153,0.5)" },
-            { name: "Output", nodes: 3, color: "#10b981", shadow: "rgba(16,185,129,0.5)" }
-          ].map((layer, layerIdx) => (
-            <div
-              key={layerIdx}
-              className={`mlp-detailed-layer layer-idx-${layerIdx}`}
-              style={{
-                transform: `rotateY(-20deg) translateZ(${(layerIdx - 1.5) * 90}px)`
-              }}
-            >
-              <div className="mlp-layer-header flex justify-between w-full px-2">
-                <span className="text-[7px] text-slate-500 dark:text-muted-foreground/60 tracking-wider uppercase font-bold">{layer.name}</span>
-                <span className="text-[7px] text-violet-600 dark:text-violet-400 font-mono">L{layerIdx}</span>
-              </div>
 
-              <div className="neuron-flex-container">
-                {Array.from({ length: layer.nodes }).map((_, nIdx) => (
-                  <div
-                    key={nIdx}
-                    className="neuron-node-detailed"
-                    style={{
-                      borderColor: layer.color,
-                      boxShadow: `0 0 12px ${layer.shadow}`
-                    }}
-                  >
-                    <span className="pulse-ring" style={{ animationDelay: `${nIdx * 0.2}s` }} />
-
-                    {/* Connective Synapse Tracks */}
-                    {layerIdx < 3 && (
-                      <div className="synapse-bundle">
-                        {Array.from({ length: [5, 4, 3][layerIdx] || 0 }).map((_, linkIdx) => {
-                          const skewAngle = (linkIdx - (([5, 4, 3][layerIdx] - 1) / 2)) * 14;
-                          return (
-                            <div
-                              key={linkIdx}
-                              className="synapse-track"
-                              style={{
-                                transform: `rotateZ(${skewAngle}deg)`,
-                                opacity: 0.12
-                              }}
-                            >
-                              {/* Forward Propagation Activation (Cyan/Blue) */}
-                              <span
-                                className="activation-pulse"
-                                style={{
-                                  animationDelay: `${nIdx * 0.35 + linkIdx * 0.25 + layerIdx * 0.6}s`
-                                }}
-                              />
-                              {/* Backward Propagation Gradient (Rose Red) */}
-                              <span
-                                className="backprop-pulse"
-                                style={{
-                                  animationDelay: `${(4 - nIdx) * 0.35 + (3 - linkIdx) * 0.25 + (3 - layerIdx) * 0.6}s`
-                                }}
-                              />
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── 3D Token Cascade Background Element ── */}
-      <div
-        className="fixed bottom-0 z-[1] pointer-events-none select-none hidden md:flex items-center justify-center"
-        style={{
-          right: '-25px',
-          width: '220px',
-          height: '280px',
-          perspective: '500px',
-          transformStyle: 'preserve-3d',
-          transform: 'scale(0.95)',
-          transformOrigin: 'bottom right',
-        }}
-      >
-        <div className="cascade-3d" style={{ '--cascade-speed': '4.5s' } as React.CSSProperties}>
-          {Array.from({ length: 5 }).map((_, i) => {
-            const delay = (i * 0.9).toFixed(1)
-            const tokenObj = SIMULATED_TOKENS[i % SIMULATED_TOKENS.length]
-            const displayValue = tokenObj.val
-
-            return (
-              <div
-                key={i}
-                className={`cascade-tile tile-type-${tokenObj.type}`}
-                style={{
-                  animationDelay: `${delay}s`,
-                  transformStyle: 'preserve-3d',
-                }}
-              >
-                <span className="tile-text">{displayValue}</span>
-                <div className="tile-glow"></div>
-              </div>
-            )
-          })}
-          <div className="target-compiler-line"></div>
-        </div>
-      </div>
 
       {/* Slide Navigation Indicator Dots (Fixed Right) */}
       <div className="fixed right-6 top-[48%] -translate-y-1/2 z-50 hidden md:flex flex-col gap-2.5 items-center">
