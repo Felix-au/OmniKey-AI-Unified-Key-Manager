@@ -11,7 +11,9 @@ import FallbackPage from '@/pages/FallbackPage'
 import AnalyticsPage from '@/pages/AnalyticsPage'
 import DevCornerPage from '@/pages/DevCornerPage'
 import AdminPage from '@/pages/AdminPage'
-import logoUrl from './assets/logo-without-text.webp'
+import logoDark from './assets/logo-dark-theme.webp'
+import logoLight from './assets/logo-light-theme.webp'
+import { useTheme } from '@/lib/useTheme'
 import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 import ModelsPage from '@/pages/ModelsPage'
 import ComparePage from '@/pages/ComparePage'
@@ -195,6 +197,8 @@ function MobileThemeToggle() {
 
 // ── Dashboard Layout ──────────────────────────────────────────────────────────
 function DashboardLayout() {
+  const dark = useTheme()
+  const logo = dark ? logoDark : logoLight
   const { user, loading, localDbEnabled, cloudDbAvailable, logout, setDatabaseMode } = useAuth()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -240,7 +244,7 @@ function DashboardLayout() {
             className={`shrink-0 rounded-lg transition-colors ${collapsed && !mobile ? 'hover:bg-accent/60 cursor-pointer p-1' : 'cursor-default'}`}
           >
             <img
-              src={logoUrl}
+              src={logo}
               alt="OmniKey AI"
               className={`object-contain transition-all duration-200 ${collapsed && !mobile ? 'h-9 w-9' : 'h-6 w-6'}`}
             />
@@ -375,7 +379,7 @@ function DashboardLayout() {
           >
             <IconMenu />
           </button>
-          <img src={logoUrl} alt="OmniKey AI" className="h-5 w-5 object-contain" />
+          <img src={logo} alt="OmniKey AI" className="h-5 w-5 object-contain" />
           <span className="font-semibold text-sm tracking-tight">OmniKey AI</span>
           <div className="ml-auto">
             <MobileThemeToggle />

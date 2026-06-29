@@ -7,7 +7,8 @@ import rehypeSlug from 'rehype-slug'
 import rehypeRaw from 'rehype-raw'
 import remarkGithubBlockquoteAlert from 'remark-github-blockquote-alert'
 import { useNavigate } from 'react-router-dom'
-import logoUrl from '../assets/logo-without-text.webp'
+import logoDark from '../assets/logo-dark-theme.webp'
+import logoLight from '../assets/logo-light-theme.webp'
 
 // Official GitHub markdown body CSS
 import 'github-markdown-css/github-markdown.css'
@@ -39,6 +40,7 @@ export default function DocsPage() {
     typeof window !== 'undefined' &&
     document.documentElement.classList.contains('dark')
   )
+  const logo = dark ? logoDark : logoLight
   const toggleDark = () => {
     const next = !dark
     setDark(next)
@@ -80,7 +82,7 @@ export default function DocsPage() {
             onClick={() => navigate('/')}
             style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', color: text, fontSize: 14, fontWeight: 600 }}
           >
-            <img src={logoUrl} alt="OmniKey AI" style={{ height: 20, width: 20, objectFit: 'contain' }} />
+            <img src={logo} alt="OmniKey AI" style={{ height: 20, width: 20, objectFit: 'contain' }} />
             OmniKey AI
           </button>
           <span style={{ color: border, userSelect: 'none' }}>/</span>
@@ -153,6 +155,26 @@ export default function DocsPage() {
             <ReactMarkdown
               remarkPlugins={[remarkGfm, remarkGithubBlockquoteAlert]}
               rehypePlugins={[rehypeSlug, rehypeHighlight, rehypeRaw]}
+              components={{
+                source: ({ node, ...props }) => {
+                  const srcSet = (props as any).srcSet || (props as any).srcset || ''
+                  if (srcSet.includes('logo-dark-theme.png') || srcSet.includes('logo-light-theme.png')) {
+                    return null
+                  }
+                  return <source {...props} />
+                },
+                img: ({ node, ...props }) => {
+                  const src = props.src || ''
+                  if (
+                    src.includes('logo-dark-theme.png') ||
+                    src.includes('logo-light-theme.png') ||
+                    src.includes('logo.png')
+                  ) {
+                    return <img src={logo} alt="OmniKey AI Logo" width="220" style={{ display: 'block', margin: '0 auto' }} />
+                  }
+                  return <img {...props} />
+                }
+              }}
             >
               {content}
             </ReactMarkdown>
