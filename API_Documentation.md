@@ -7,7 +7,7 @@
 
 # OmniKey AI: Unified Key Manager — API Reference
 
-> OmniKey AI exposes an OpenAI-compatible web API. Developers can point their client SDKs directly to the proxy server to query any of the 60+ integrated models. Below is the API reference detailing authentication, request formats, response structures, and client integrations.
+> OmniKey AI exposes both an OpenAI-compatible and Gemini-compatible web API. Developers can point their client SDKs directly to the proxy server to query any of the 60+ integrated models. Below is the API reference detailing authentication, request formats, response structures, and client integrations.
 
 ---
 

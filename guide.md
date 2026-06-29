@@ -7,7 +7,7 @@
 
 # OmniKey AI: Unified Key Manager — Quick Guide
 
-An OpenAI-compatible proxy that routes across 12 free-tier LLM providers. Point any OpenAI client library at your local proxy server, and it routes transparently across whichever providers you've added keys for.
+A unified proxy that exposes both OpenAI-compatible and Gemini-compatible APIs, routing across 12 free-tier LLM providers. Point any OpenAI or Gemini client library at your local proxy server, and it routes transparently across whichever providers you've added keys for.
 
 > [!IMPORTANT]
 > **Unlike cloud API routers** that centralize credentials, OmniKey AI is **entirely self-hosted**. Your upstream API keys are stored in a local SQLite database on your machine, encrypted using AES-256-GCM envelope encryption. Credentials and prompts never leave your local environment.
