@@ -49,6 +49,7 @@ export function initDb(dbPath?: string): Database.Database {
   migrateModelsV10(db);
   migrateModelsV11(db);
   migrateModelsV12(db);
+  migrateModelsV13(db);
   migrateModelsV14(db);
   migrateModelsV15(db);
   ensureUnifiedKey(db);
