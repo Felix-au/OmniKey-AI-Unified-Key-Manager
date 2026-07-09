@@ -171,4 +171,16 @@ describe('Gemini proxy router', () => {
       expect(result.candidates[0].content.parts[0].inlineData.data).toBe('chunkbase64');
     });
   });
+
+  it('rejects explicit groq/compound-mini generateContent with 400 when input tokens exceed 8192', async () => {
+    const geminiKey = getUnifiedGeminiApiKey();
+    const longPrompt = 'a'.repeat(33000);
+    const { status, body } = await request(app, 'POST', `/v1beta/models/groq/compound-mini:generateContent?key=${geminiKey}`, {
+      contents: [{ role: 'user', parts: [{ text: longPrompt }] }]
+    });
+
+    expect(status).toBe(400);
+    expect(body.error.message).toContain('only supports 8192 tokens and the input token is higher than 8192');
+    expect(body.error.status).toBe('INVALID_ARGUMENT');
+  });
 });

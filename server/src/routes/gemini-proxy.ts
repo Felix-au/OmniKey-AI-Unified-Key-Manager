@@ -488,6 +488,18 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
       modelId = modelId.replace(/^models\//, '');
     }
 
+    if (modelId && modelId !== AUTO_MODEL_ID && (modelId === 'groq/compound-mini' || modelId.includes('groq-mini'))) {
+      if (estimatedInputTokens > 8192) {
+        return res.status(400).json({
+          error: {
+            code: 400,
+            message: "The model you selected only supports 8192 tokens and the input token is higher than 8192, please select some other model",
+            status: "INVALID_ARGUMENT"
+          }
+        });
+      }
+    }
+
     let requiredModality = req.headers['x-required-modality'] as string | undefined;
 
     // Detect dynamic multimodal content in parts (e.g. inlineData) if header not present
@@ -571,7 +583,7 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       let route: RouteResult;
       try {
-        route = await routeRequest(estimatedTotal, skipKeys.size > 0 ? skipKeys : undefined, preferredModel, userId, requiredModality);
+        route = await routeRequest(estimatedTotal, skipKeys.size > 0 ? skipKeys : undefined, preferredModel, userId, requiredModality, estimatedInputTokens);
       } catch (err: any) {
         if (lastError) {
           return res.status(429).json({

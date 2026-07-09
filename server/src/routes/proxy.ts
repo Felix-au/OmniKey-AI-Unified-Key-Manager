@@ -441,6 +441,18 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
     }, 0);
     const estimatedTotal = estimatedInputTokens + (max_tokens ?? 1000);
 
+    if (requestedModel && (requestedModel === 'groq/compound-mini' || requestedModel.includes('groq-mini'))) {
+      if (estimatedInputTokens > 8192) {
+        res.status(400).json({
+          error: {
+            message: 'The model you selected only supports 8192 tokens and the input token is higher than 8192, please select some other model',
+            type: 'invalid_request_error',
+          },
+        });
+        return;
+      }
+    }
+
     // 3. Resolve preferred sticky / auto-routed model
     let preferredModel: number | string | undefined;
     if (isAutoModel(requestedModel)) {
@@ -512,7 +524,7 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       let route: RouteResult;
       try {
-        route = await routeRequest(estimatedTotal, skipKeys.size > 0 ? skipKeys : undefined, preferredModel, userId, requiredModality);
+        route = await routeRequest(estimatedTotal, skipKeys.size > 0 ? skipKeys : undefined, preferredModel, userId, requiredModality, estimatedInputTokens);
       } catch (err: any) {
         if (lastError) {
           res.status(429).json({

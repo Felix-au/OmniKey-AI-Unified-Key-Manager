@@ -109,4 +109,16 @@ describe('Virtual "auto" model', () => {
     expect(status).toBe(400);
     expect(body.error.code).toBe('model_not_found');
   });
+
+  it('rejects explicit groq/compound-mini request with 400 when input tokens exceed 8192', async () => {
+    const longPrompt = 'a'.repeat(33000);
+    const { status, body } = await request(app, 'POST', '/v1/chat/completions', {
+      model: 'groq/compound-mini',
+      messages: [{ role: 'user', content: longPrompt }],
+    }, authHeaders());
+
+    expect(status).toBe(400);
+    expect(body.error.message).toContain('only supports 8192 tokens and the input token is higher than 8192');
+    expect(body.error.type).toBe('invalid_request_error');
+  });
 });

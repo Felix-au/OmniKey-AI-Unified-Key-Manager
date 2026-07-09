@@ -93,4 +93,43 @@ describe('Router', () => {
     const result = await routeRequest();
     expect(result.platform).toBe('groq');
   });
+
+  it('should route to groq/compound-mini when input tokens <= 8192', async () => {
+    const db = getDb();
+    const key = encrypt('test-groq-key');
+    db.prepare(`
+      INSERT INTO api_keys (platform, label, encrypted_key, iv, auth_tag, status, enabled)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run('groq', 'test', key.encrypted, key.iv, key.authTag, 'healthy', 1);
+
+    const model = db.prepare("SELECT id FROM models WHERE platform = 'groq' AND model_id = 'groq/compound-mini'").get() as { id: number };
+    db.prepare("UPDATE fallback_config SET priority = 1 WHERE model_db_id = ?").run(model.id);
+
+    const result = await routeRequest(1000, undefined, undefined, undefined, undefined, 5000);
+    expect(result.modelId).toBe('groq/compound-mini');
+  });
+
+  it('should skip groq/compound-mini when input tokens > 8192 and select the next available model', async () => {
+    const db = getDb();
+    const groqKey = encrypt('test-groq-key');
+    db.prepare(`
+      INSERT INTO api_keys (platform, label, encrypted_key, iv, auth_tag, status, enabled)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run('groq', 'test', groqKey.encrypted, groqKey.iv, groqKey.authTag, 'healthy', 1);
+
+    const googleKey = encrypt('test-google-key');
+    db.prepare(`
+      INSERT INTO api_keys (platform, label, encrypted_key, iv, auth_tag, status, enabled)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run('google', 'test', googleKey.encrypted, googleKey.iv, googleKey.authTag, 'healthy', 1);
+
+    const miniModel = db.prepare("SELECT id FROM models WHERE platform = 'groq' AND model_id = 'groq/compound-mini'").get() as { id: number };
+    const otherModel = db.prepare("SELECT id FROM models WHERE platform = 'google' AND model_id = 'gemini-2.5-flash'").get() as { id: number };
+
+    db.prepare("UPDATE fallback_config SET priority = 1 WHERE model_db_id = ?").run(miniModel.id);
+    db.prepare("UPDATE fallback_config SET priority = 2 WHERE model_db_id = ?").run(otherModel.id);
+
+    const result = await routeRequest(10000, undefined, undefined, undefined, undefined, 8193);
+    expect(result.modelId).toBe('gemini-2.5-flash');
+  });
 });

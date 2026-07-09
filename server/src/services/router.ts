@@ -140,7 +140,8 @@ export async function routeRequest(
   skipKeys?: Set<string>,
   preferredModelDbId?: number | string,
   userId = 'local-dev-user-uid',
-  requiredModality?: string
+  requiredModality?: string,
+  estimatedInputTokens?: number
 ): Promise<RouteResult> {
 
   if (isLocalDbEnabled()) {
@@ -174,6 +175,12 @@ export async function routeRequest(
 
       const model = db.prepare('SELECT * FROM models WHERE id = ? AND enabled = 1').get(entry.model_db_id) as ModelRow | undefined;
       if (!model) continue;
+
+      if (model.model_id === 'groq/compound-mini' || model.model_id.includes('groq-mini')) {
+        if (estimatedInputTokens !== undefined && estimatedInputTokens > 8192) {
+          continue;
+        }
+      }
 
       if (requiredModality && model.platform !== 'google') continue;
 
@@ -286,6 +293,12 @@ export async function routeRequest(
       const model = item.model;
       if (!model || !model.enabled) continue;
 
+      if (model.modelId === 'groq/compound-mini' || model.modelId.includes('groq-mini')) {
+        if (estimatedInputTokens !== undefined && estimatedInputTokens > 8192) {
+          continue;
+        }
+      }
+
       if (requiredModality && model.platform !== 'google') continue;
 
       // Intercept virtual promo model in user's custom fallback chain
@@ -306,6 +319,13 @@ export async function routeRequest(
         const promoModels = await Model.find({ enabled: true, modelId: { $ne: 'omnikey-promo' } }).sort({ speedRank: 1 });
         for (const pm of promoModels) {
           if (requiredModality && pm.platform !== 'google') continue;
+
+          if (pm.modelId === 'groq/compound-mini' || pm.modelId.includes('groq-mini')) {
+            if (estimatedInputTokens !== undefined && estimatedInputTokens > 8192) {
+              continue;
+            }
+          }
+
           const provider = getProvider(pm.platform as any);
           if (!provider) continue;
 
