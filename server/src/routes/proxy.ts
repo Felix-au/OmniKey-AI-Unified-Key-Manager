@@ -443,13 +443,86 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
 
     if (requestedModel && (requestedModel === 'groq/compound-mini' || requestedModel.includes('groq-mini'))) {
       if (estimatedInputTokens > 8192) {
-        res.status(400).json({
-          error: {
-            message: 'The model you selected only supports 8192 tokens and the input token is higher than 8192, please select some other model',
-            type: 'invalid_request_error',
-          },
-        });
-        return;
+        const contentText = 'The model you selected only supports 8192 tokens and the input token is higher than 8192, please select some other model';
+        
+        logRequest(
+          'groq', 'groq/compound-mini', 'success',
+          estimatedInputTokens, 0,
+          Date.now() - start, null, userId,
+          undefined, (req as any).projectKey
+        );
+
+        if (stream) {
+          const chunkId = `chatcmpl-${crypto.randomUUID()}`;
+          const created = Math.floor(Date.now() / 1000);
+
+          res.setHeader('Content-Type', 'text/event-stream');
+          res.setHeader('Cache-Control', 'no-cache');
+          res.setHeader('Connection', 'keep-alive');
+          res.setHeader('X-Routed-Via', 'groq/compound-mini');
+          res.setHeader('X-Key-Used', 'local-validation');
+
+          res.write(`data: ${JSON.stringify({
+            id: chunkId,
+            object: 'chat.completion.chunk',
+            created,
+            model: 'groq/compound-mini',
+            choices: [{
+              index: 0,
+              delta: { role: 'assistant', content: '' },
+              finish_reason: null
+            }]
+          })}\n\n`);
+
+          res.write(`data: ${JSON.stringify({
+            id: chunkId,
+            object: 'chat.completion.chunk',
+            created,
+            model: 'groq/compound-mini',
+            choices: [{
+              index: 0,
+              delta: { content: contentText },
+              finish_reason: null
+            }]
+          })}\n\n`);
+
+          res.write(`data: ${JSON.stringify({
+            id: chunkId,
+            object: 'chat.completion.chunk',
+            created,
+            model: 'groq/compound-mini',
+            choices: [{
+              index: 0,
+              delta: {},
+              finish_reason: 'stop'
+            }]
+          })}\n\n`);
+
+          res.write('data: [DONE]\n\n');
+          res.end();
+          return;
+        } else {
+          res.json({
+            id: `chatcmpl-${crypto.randomUUID()}`,
+            object: 'chat.completion',
+            created: Math.floor(Date.now() / 1000),
+            model: 'groq/compound-mini',
+            choices: [{
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: contentText
+              },
+              finish_reason: 'stop'
+            }],
+            usage: {
+              prompt_tokens: estimatedInputTokens,
+              completion_tokens: 0,
+              total_tokens: estimatedInputTokens
+            }
+          });
+          return;
+        }
       }
     }
 

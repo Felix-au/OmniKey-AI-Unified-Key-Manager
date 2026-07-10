@@ -490,13 +490,69 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
 
     if (modelId && modelId !== AUTO_MODEL_ID && (modelId === 'groq/compound-mini' || modelId.includes('groq-mini'))) {
       if (estimatedInputTokens > 8192) {
-        return res.status(400).json({
-          error: {
-            code: 400,
-            message: "The model you selected only supports 8192 tokens and the input token is higher than 8192, please select some other model",
-            status: "INVALID_ARGUMENT"
+        const contentText = 'The model you selected only supports 8192 tokens and the input token is higher than 8192, please select some other model';
+        
+        logRequest(
+          'groq', 'groq/compound-mini', 'success',
+          estimatedInputTokens, 0,
+          Date.now() - start, null, userId,
+          undefined, (req as any).projectKey
+        );
+
+        if (isStream) {
+          const useSSE = req.query.alt === 'sse';
+          const geminiChunk = {
+            candidates: [
+              {
+                content: {
+                  parts: [{ text: contentText }],
+                  role: 'model'
+                },
+                finishReason: 'STOP',
+                index: 0
+              }
+            ],
+            usageMetadata: {
+              promptTokenCount: estimatedInputTokens,
+              candidatesTokenCount: 0,
+              totalTokenCount: estimatedInputTokens
+            },
+            modelVersion: modelId
+          };
+
+          if (useSSE) {
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.setHeader('Connection', 'keep-alive');
+            res.write(`data: ${JSON.stringify(geminiChunk)}\n\n`);
+          } else {
+            res.setHeader('Content-Type', 'application/json');
+            res.write('[\n');
+            res.write(JSON.stringify(geminiChunk));
+            res.write('\n]\n');
           }
-        });
+          res.end();
+          return;
+        } else {
+          return res.json({
+            candidates: [
+              {
+                content: {
+                  parts: [{ text: contentText }],
+                  role: 'model'
+                },
+                finishReason: 'STOP',
+                index: 0
+              }
+            ],
+            usageMetadata: {
+              promptTokenCount: estimatedInputTokens,
+              candidatesTokenCount: 0,
+              totalTokenCount: estimatedInputTokens
+            },
+            modelVersion: modelId
+          });
+        }
       }
     }
 
