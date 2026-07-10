@@ -118,7 +118,7 @@ describe('Virtual "auto" model', () => {
     }, authHeaders());
 
     expect(status).toBe(200);
-    expect(body.choices[0].message.content).toContain('only supports 7500 tokens and the input token is higher than 7500');
+    expect(body.choices[0].message.content).toContain('only supports 8192 tokens and the input token is higher than 8192');
     expect(body.choices[0].finish_reason).toBe('stop');
   });
 });

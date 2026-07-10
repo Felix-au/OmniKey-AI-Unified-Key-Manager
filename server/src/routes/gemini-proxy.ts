@@ -490,7 +490,7 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
 
     if (modelId && modelId !== AUTO_MODEL_ID && (modelId === 'groq/compound-mini' || modelId.includes('groq-mini'))) {
       if (estimatedInputTokens > 7500) {
-        const contentText = 'The model you selected only supports 7500 tokens and the input token is higher than 7500, please select some other model';
+        const contentText = 'The model you selected only supports 8192 tokens and the input token is higher than 8192, please select some other model';
         
         logRequest(
           'groq', 'groq/compound-mini', 'success',

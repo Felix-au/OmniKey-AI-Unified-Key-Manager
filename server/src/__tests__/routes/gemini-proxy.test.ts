@@ -180,7 +180,7 @@ describe('Gemini proxy router', () => {
     });
 
     expect(status).toBe(200);
-    expect(body.candidates[0].content.parts[0].text).toContain('only supports 7500 tokens and the input token is higher than 7500');
+    expect(body.candidates[0].content.parts[0].text).toContain('only supports 8192 tokens and the input token is higher than 8192');
     expect(body.candidates[0].finishReason).toBe('STOP');
   });
 });
