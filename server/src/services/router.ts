@@ -177,7 +177,7 @@ export async function routeRequest(
       if (!model) continue;
 
       if (model.model_id === 'groq/compound-mini' || model.model_id.includes('groq-mini')) {
-        if (estimatedInputTokens !== undefined && estimatedInputTokens > 8192) {
+        if (estimatedInputTokens !== undefined && estimatedInputTokens > 7500) {
           continue;
         }
       }
@@ -294,7 +294,7 @@ export async function routeRequest(
       if (!model || !model.enabled) continue;
 
       if (model.modelId === 'groq/compound-mini' || model.modelId.includes('groq-mini')) {
-        if (estimatedInputTokens !== undefined && estimatedInputTokens > 8192) {
+        if (estimatedInputTokens !== undefined && estimatedInputTokens > 7500) {
           continue;
         }
       }
@@ -321,7 +321,7 @@ export async function routeRequest(
           if (requiredModality && pm.platform !== 'google') continue;
 
           if (pm.modelId === 'groq/compound-mini' || pm.modelId.includes('groq-mini')) {
-            if (estimatedInputTokens !== undefined && estimatedInputTokens > 8192) {
+            if (estimatedInputTokens !== undefined && estimatedInputTokens > 7500) {
               continue;
             }
           }

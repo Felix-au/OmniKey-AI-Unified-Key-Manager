@@ -94,7 +94,7 @@ describe('Router', () => {
     expect(result.platform).toBe('groq');
   });
 
-  it('should route to groq/compound-mini when input tokens <= 8192', async () => {
+  it('should route to groq/compound-mini when input tokens <= 7500', async () => {
     const db = getDb();
     const key = encrypt('test-groq-key');
     db.prepare(`
@@ -109,7 +109,7 @@ describe('Router', () => {
     expect(result.modelId).toBe('groq/compound-mini');
   });
 
-  it('should skip groq/compound-mini when input tokens > 8192 and select the next available model', async () => {
+  it('should skip groq/compound-mini when input tokens > 7500 and select the next available model', async () => {
     const db = getDb();
     const groqKey = encrypt('test-groq-key');
     db.prepare(`
@@ -129,7 +129,7 @@ describe('Router', () => {
     db.prepare("UPDATE fallback_config SET priority = 1 WHERE model_db_id = ?").run(miniModel.id);
     db.prepare("UPDATE fallback_config SET priority = 2 WHERE model_db_id = ?").run(otherModel.id);
 
-    const result = await routeRequest(10000, undefined, undefined, undefined, undefined, 8193);
+    const result = await routeRequest(10000, undefined, undefined, undefined, undefined, 7501);
     expect(result.modelId).toBe('gemini-2.5-flash');
   });
 });

@@ -172,7 +172,7 @@ describe('Gemini proxy router', () => {
     });
   });
 
-  it('returns explicit groq/compound-mini generateContent warning response with 200 when input tokens exceed 8192', async () => {
+  it('returns explicit groq/compound-mini generateContent warning response with 200 when input tokens exceed 7500', async () => {
     const geminiKey = getUnifiedGeminiApiKey();
     const longPrompt = 'a'.repeat(33000);
     const { status, body } = await request(app, 'POST', `/v1beta/models/groq/compound-mini:generateContent?key=${geminiKey}`, {
@@ -180,7 +180,7 @@ describe('Gemini proxy router', () => {
     });
 
     expect(status).toBe(200);
-    expect(body.candidates[0].content.parts[0].text).toContain('only supports 8192 tokens and the input token is higher than 8192');
+    expect(body.candidates[0].content.parts[0].text).toContain('only supports 7500 tokens and the input token is higher than 7500');
     expect(body.candidates[0].finishReason).toBe('STOP');
   });
 });

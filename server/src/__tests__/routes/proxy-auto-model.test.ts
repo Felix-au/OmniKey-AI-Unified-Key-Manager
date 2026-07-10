@@ -110,7 +110,7 @@ describe('Virtual "auto" model', () => {
     expect(body.error.code).toBe('model_not_found');
   });
 
-  it('returns explicit groq/compound-mini warning response with 200 when input tokens exceed 8192', async () => {
+  it('returns explicit groq/compound-mini warning response with 200 when input tokens exceed 7500', async () => {
     const longPrompt = 'a'.repeat(33000);
     const { status, body } = await request(app, 'POST', '/v1/chat/completions', {
       model: 'groq/compound-mini',
@@ -118,7 +118,7 @@ describe('Virtual "auto" model', () => {
     }, authHeaders());
 
     expect(status).toBe(200);
-    expect(body.choices[0].message.content).toContain('only supports 8192 tokens and the input token is higher than 8192');
+    expect(body.choices[0].message.content).toContain('only supports 7500 tokens and the input token is higher than 7500');
     expect(body.choices[0].finish_reason).toBe('stop');
   });
 });
