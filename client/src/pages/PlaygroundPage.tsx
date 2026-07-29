@@ -121,7 +121,12 @@ export default function PlaygroundPage() {
   // Filter models based on selected mode
   const availableModels = fallbackEntries.filter(e => {
     if (e.keyCount === 0 || !e.enabled) return false
-    const isImageModel = e.modelId.includes('imagen')
+    const lowerId = e.modelId.toLowerCase();
+    const isImageModel = lowerId.includes('imagen') || 
+                         lowerId.includes('flux') || 
+                         lowerId.includes('stable-diffusion') || 
+                         lowerId.includes('dreamshaper') || 
+                         lowerId.includes('leonardo');
     if (mode === 'image') {
       return isImageModel
     }
