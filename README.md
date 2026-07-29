@@ -49,7 +49,7 @@
 
 ---
 
-## 🔍 Overview
+## <a id="overview"></a>🔍 Overview
 
 **OmniKey AI** is a self-hosted, multi-format API gateway proxy that wraps 12 free-tier LLM providers—Gemini, OpenRouter, Cerebras, Groq, Mistral, GitHub Models, SambaNova, Cohere, Cloudflare, Z.ai (Zhipu), HuggingFace, and NVIDIA—into a unified environment. 
 
@@ -61,7 +61,7 @@ Behind the scenes, OmniKey AI handles key storage (encrypted using AES-256-GCM),
 
 ---
 
-## ❓ Why OmniKey AI?
+## <a id="why-omnikey-ai"></a>❓ Why OmniKey AI?
 
 > **Most developers want access to a variety of models but don't want to pay high costs or manage multiple API keys. OmniKey AI handles this complexity for you.**
 
@@ -77,9 +77,9 @@ Behind the scenes, OmniKey AI handles key storage (encrypted using AES-256-GCM),
 
 ---
 
-## ✨ Features
+## <a id="features"></a>✨ Features
 
-### 🔑 Key and Database Management
+### <a id="key-and-database-management"></a>🔑 Key and Database Management
 | Feature | Description |
 |---|---|
 | **AES-256-GCM Encryption** | Stored provider API credentials are encrypted at rest using local envelope encryption. |
@@ -88,7 +88,7 @@ Behind the scenes, OmniKey AI handles key storage (encrypted using AES-256-GCM),
 | **Duplicate Protection** | Automatically checks for and blocks duplicate API keys during manual input or CSV imports. |
 | **Database Mode Switcher** | Toggles dynamically between Local-First SQLite and Cloud MongoDB contexts from the client login screen (saved in localStorage). |
 
-### 🔀 Dynamic Routing and Fallback
+### <a id="dynamic-routing-and-fallback"></a>🔀 Dynamic Routing and Fallback
 | Feature | Description |
 |---|---|
 | **Virtual "auto" Model** | Requests to `auto` automatically route to the highest priority active provider. |
@@ -96,7 +96,7 @@ Behind the scenes, OmniKey AI handles key storage (encrypted using AES-256-GCM),
 | **Intelligent Re-routing** | Dynamically skips exhausted keys without caller awareness. |
 | **Multi-Tenant Token Routing** | Automatically routes requests to Cloud MongoDB or SQLite databases dynamically by inspecting API key prefixes. |
 
-### 📊 Real-Time Dashboard and Admin Console
+### <a id="real-time-dashboard-and-admin-console"></a>📊 Real-Time Dashboard and Admin Console
 | Feature | Description |
 |---|---|
 | **Models Catalog Explorer** | Complete page listing 100+ models with sorting, search, column configurators, availability checks, and item count summaries. |
@@ -110,7 +110,7 @@ Behind the scenes, OmniKey AI handles key storage (encrypted using AES-256-GCM),
 
 ---
 
-## 🏗️ System Architecture
+## <a id="system-architecture"></a>🏗️ System Architecture
 
 ```mermaid
 graph TD
@@ -192,7 +192,7 @@ graph TD
 
 ---
 
-## 🔄 Pipeline Flow
+## <a id="pipeline-flow"></a>🔄 Pipeline Flow
 
 ```mermaid
 flowchart TD
@@ -256,7 +256,7 @@ Translate response layout, log token usage, & return JSON to client
 
 ---
 
-### ⚔️ Debate Arena Orchestration Sequence
+### <a id="debate-arena-orchestration-sequence"></a>⚔️ Debate Arena Orchestration Sequence
 
 ```mermaid
 sequenceDiagram
@@ -318,7 +318,7 @@ User          React Frontend (DebatePage)              OmniKey Router Server
 
 ---
 
-## 🔀 Dynamic Routing and Fallbacks
+## <a id="dynamic-routing-and-fallbacks"></a>🔀 Dynamic Routing and Fallbacks
 
 Instead of requiring manual configuration changes inside each calling client whenever a key rate limits or a provider goes down, OmniKey AI acts as an intelligent router:
 
@@ -328,7 +328,7 @@ Instead of requiring manual configuration changes inside each calling client whe
 
 ---
 
-## 🛡️ Smart Routing and Limits
+## <a id="smart-routing-and-limits"></a>🛡️ Smart Routing and Limits
 
 To prevent API keys from getting banned or throwing persistent rate limit errors, OmniKey AI applies:
 * **Token Budget Checks**: Before executing, checking if the current day's token consumption exceeds limits.
@@ -338,9 +338,9 @@ To prevent API keys from getting banned or throwing persistent rate limit errors
 
 ---
 
-## 🎨 User Interface Guides
+## <a id="user-interface-guides"></a>🎨 User Interface Guides
 
-### 📊 Dashboard and Models
+### <a id="dashboard-and-models"></a>📊 Dashboard and Models
 The React client dashboard has a responsive visual layout:
 * **Models Page**: Complete interactive page featuring columns configuration, name search, sorting, total model counts, and availability check indicators.
 * **Health Check Status**: Dials showing API latency, key states, and exact execution timing timestamps.
@@ -350,34 +350,34 @@ The React client dashboard has a responsive visual layout:
 * **Responsive Theme Switcher**: Toggle persistently between light and dark modes from the page header.
 * **Switch to Local**: A shortcut button next to the database status label to instantly toggle between local database mode and cloud mode.
 
-### ⚔️ Debate Arena
+### <a id="debate-arena"></a>⚔️ Debate Arena
 The **AI Debate Arena** is an advanced orchestration sandbox designed to pit two separate models against each other.
 * **Setup Panel**: Customize the topic, select active catalog models for "In Favor", "Against", and "Judge" roles, set the number of turns, and configure the judging interval (incremental critique every round or final verdict).
 * **Sandbox Floor**: Messages are rendered in user-friendly blocks colored by role (Green for In Favor, Red for Against, Gold/Amber for Judge critiques). Real-time telemetry logs show latency and routed key tags.
 * **History Sanitization**: The backend automatically cleans message logs to guarantee compatibility with strict upstream models.
 
-### 👑 Admin Console
+### <a id="admin-console"></a>👑 Admin Console
 The Administrative interface can be reached by appending `/admin` to your dashboard port. It allows operators to monitor, manage, and configure server infrastructure:
 * **Dashboard Tab**: Displays high-level KPIs including Total Users, active API Keys, Overall Savings (formatted in Rupees `₹` at 83 INR/USD), average savings per request, request volume charts, latency distribution, and error category tracking.
 * **Models Tab**: Enables administrators to enable or disable specific model definitions globally across all providers.
 * **Logs Tab**: Shows recent proxy request audit logs, mapping client UIDs to developer emails for audit clarity, with a quick flush utility.
 * **Security Tab**: Rotate administrative access credentials with HMAC-SHA256 hashed password persistence.
 
-### 🔑 Keys and Encryption
+### <a id="keys-and-encryption"></a>🔑 Keys and Encryption
 * **Master and Project Keys**: Generate master unified keys or custom project keys (OpenAI-compatible and Gemini-compatible formats). Project keys can also be promoted from default keys.
 * **AES-256-GCM Storage**: Stored upstream provider credentials are encrypted symmetrically at rest using a 32-byte encryption key.
 * **Confirmation Modals**: Project key deletions are protected by a themed confirmation modal to prevent accidental service disruption.
 
 ---
 
-## 🚀 Quick Start
+## <a id="quick-start"></a>🚀 Quick Start
 
-### 📋 Prerequisites
+### <a id="prerequisites"></a>📋 Prerequisites
 - Node.js 20+
 - npm (or yarn / pnpm)
 - SQLite3
 
-### 💻 Install and Run
+### <a id="install-and-run"></a>💻 Install and Run
 
 ```bash
 # 1. Clone the repository
@@ -400,7 +400,7 @@ npm run dev
 
 ---
 
-## 📂 Project Structure
+## <a id="project-structure"></a>📂 Project Structure
 
 ```
 OmniKey-AI-Unified-Key-Manager/
@@ -427,7 +427,7 @@ OmniKey-AI-Unified-Key-Manager/
 
 ---
 
-## 🛠️ Key Components
+## <a id="key-components"></a>🛠️ Key Components
 
 | Module / File | Role & Purpose |
 |---|---|
@@ -444,7 +444,7 @@ OmniKey-AI-Unified-Key-Manager/
 
 ---
 
-## 📦 Dependencies
+## <a id="dependencies"></a>📦 Dependencies
 
 | Module | Purpose |
 |---|---|
@@ -458,7 +458,7 @@ OmniKey-AI-Unified-Key-Manager/
 
 ---
 
-## ⚙️ Configuration
+## <a id="configuration"></a>⚙️ Configuration
 
 All configuration is loaded from the environment variables in your `.env` file:
 
@@ -476,11 +476,11 @@ All configuration is loaded from the environment variables in your `.env` file:
 
 ---
 
-## 🗄️ Database Schema and Multitenancy
+## <a id="database-schema-and-multitenancy"></a>🗄️ Database Schema and Multitenancy
 
 OmniKey AI operates with two database adapter contexts dynamically toggled on a per-request basis via `AsyncLocalStorage` middleware checking client headers:
 
-### 🗄️ 1. Local SQLite Context (Single User Mode)
+### <a id="1-local-sqlite-context-single-user-mode"></a>🗄️ 1. Local SQLite Context (Single User Mode)
 - `api_keys`: Stored credentials, decryption salts, and provider labels.
 - `fallback_config`: Priority ranking maps.
 - `catalog`: Provider model directory.
@@ -488,7 +488,7 @@ OmniKey AI operates with two database adapter contexts dynamically toggled on a 
 - `system_settings`: Master OpenAI unified key and Gemini unified key.
 - `project_keys`: Project keys and formats.
 
-### ☁️ 2. Cloud MongoDB Context (Multi-Tenant Mode)
+### <a id="2-cloud-mongodb-context-multi-tenant-mode"></a>☁️ 2. Cloud MongoDB Context (Multi-Tenant Mode)
 - Uses mongoose schemas to support concurrent multi-client sessions.
 - `UserSettings` schema contains `unifiedApiKey` and `unifiedGeminiApiKey` parameters.
 - `ProjectKey` schema contains project-specific keys and enablement toggles.
@@ -496,7 +496,7 @@ OmniKey AI operates with two database adapter contexts dynamically toggled on a 
 
 ---
 
-## 🔌 Upstream Provider Adapters
+## <a id="upstream-provider-adapters"></a>🔌 Upstream Provider Adapters
 
 Adapters normalize distinct APIs into a single standard:
 * **OpenAI-Compat Adapters**: Wraps Groq, Cerebras, SambaNova, Cohere, Mistral, GitHub Models.
@@ -504,23 +504,23 @@ Adapters normalize distinct APIs into a single standard:
 
 ---
 
-## ⚠️ Troubleshooting
+## <a id="troubleshooting"></a>⚠️ Troubleshooting
 
-### ⏱️ Keep-Alive Cron Pinger
+### <a id="keep-alive-cron-pinger"></a>⏱️ Keep-Alive Cron Pinger
 * **Symptom**: Cloud platform hosts (like Render) sleep after inactive periods.
-* **Solution**: Enable a cron ping target against `/api/cron-health` to receive uptime stats every 2 minutes.
+* **Solution**: Enable a cron pinger target against `/api/cron-health` to receive uptime stats every 2 minutes.
 
-### 🔓 Decryption Failures
+### <a id="decryption-failures"></a>🔓 Decryption Failures
 * **Symptom**: Server console outputs `Decryption failed` errors.
 * **Solution**: Ensure your `ENCRYPTION_KEY` in `.env` matches the key used when the database credentials were added.
 
-### 🔌 Port Conflicts
+### <a id="port-conflicts"></a>🔌 Port Conflicts
 * **Symptom**: `EADDRINUSE: address already in use :::3001`
 * **Solution**: Change `PORT` in `.env` to an open port (e.g., `PORT=3500`).
 
 ---
 
-## 🗺️ Roadmap
+## <a id="roadmap"></a>🗺️ Roadmap
 
 - [ ] **Multi-Key Allocation**: Support adding multiple keys per provider and auto-balancing between them.
 - [ ] **Streaming Fallbacks**: Re-route stream connections mid-generation if the socket drops.
@@ -529,13 +529,13 @@ Adapters normalize distinct APIs into a single standard:
 
 ---
 
-## 📄 License
+## <a id="license"></a>📄 License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for the full text.
 
 ---
 
-## ✍️ Author
+## <a id="author"></a>✍️ Author
 
 **Felix-au** (Harshit Soni)
 
