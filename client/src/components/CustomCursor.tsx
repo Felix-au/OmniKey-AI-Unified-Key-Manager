@@ -66,7 +66,7 @@ export default function CustomCursor() {
       if (!target) return;
 
       const interactive = target.closest<HTMLElement>(
-        'a, button, select, input[type="submit"], input[type="button"], [role="button"], .interactive-hover, .cursor-pointer, [class*="cursor-pointer"]'
+        'a, button, select, input[type="submit"], input[type="button"], [role="button"], .interactive-hover, .cursor-pointer, [class*="cursor-pointer"], .provider-pill, .stat-num'
       );
 
       // Check if it's a text input or text area (we want to restore native cursor and hide ring)
@@ -118,7 +118,7 @@ export default function CustomCursor() {
       if (!target) return;
 
       const interactive = target.closest(
-        'a, button, select, input[type="submit"], input[type="button"], [role="button"], .interactive-hover, .cursor-pointer, [class*="cursor-pointer"]'
+        'a, button, select, input[type="submit"], input[type="button"], [role="button"], .interactive-hover, .cursor-pointer, [class*="cursor-pointer"], .provider-pill, .stat-num'
       );
 
       if (interactive) {

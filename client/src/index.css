@@ -336,7 +336,8 @@ html.dark {
     a, button, select, 
     input[type="submit"], input[type="button"], 
     [role="button"], .interactive-hover,
-    .cursor-pointer, [class*="cursor-pointer"], [onclick] {
+    .cursor-pointer, [class*="cursor-pointer"], [onclick],
+    .provider-pill, .stat-num {
         cursor: none !important;
     }
     
