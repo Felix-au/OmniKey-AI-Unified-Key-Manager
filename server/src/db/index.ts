@@ -52,6 +52,7 @@ export function initDb(dbPath?: string): Database.Database {
   migrateModelsV13(db);
   migrateModelsV14(db);
   migrateModelsV15(db);
+  migrateModelsV16(db);
   ensureUnifiedKey(db);
   ensureUnifiedGeminiKey(db);
   seedAdmin(db);
@@ -1339,6 +1340,84 @@ function migrateModelsV15(db: Database.Database) {
   } catch (err: any) {
     if (!err.message.includes('duplicate column name')) {
       console.warn('[SQLite] Migration V15 failed:', err.message || err);
+    }
+  }
+}
+
+function migrateModelsV16(db: Database.Database) {
+  // 1) Correct context windows for matched models
+  db.prepare("UPDATE models SET context_window = 131072 WHERE platform = 'github' AND model_id = 'gpt-4o'").run();
+  db.prepare("UPDATE models SET context_window = 1048576 WHERE platform = 'github' AND model_id = 'openai/gpt-4.1'").run();
+  db.prepare("UPDATE models SET context_window = 200000 WHERE platform = 'zhipu' AND model_id = 'glm-4.7-flash'").run();
+
+  // 2) Update preview model IDs (Idempotent check)
+  const targetExists = db.prepare("SELECT id FROM models WHERE platform = 'google' AND model_id = 'gemini-3.1-flash-lite'").get();
+  if (targetExists) {
+    db.prepare("DELETE FROM fallback_config WHERE model_db_id IN (SELECT id FROM models WHERE platform = 'google' AND model_id = 'gemini-3.1-flash-lite-preview')").run();
+    db.prepare("DELETE FROM models WHERE platform = 'google' AND model_id = 'gemini-3.1-flash-lite-preview'").run();
+  } else {
+    db.prepare("UPDATE models SET model_id = 'gemini-3.1-flash-lite' WHERE platform = 'google' AND model_id = 'gemini-3.1-flash-lite-preview'").run();
+  }
+
+  // 3) Correct rate limits (stale / out-of-date)
+  db.prepare("UPDATE models SET tpd_limit = 100000, tpm_limit = 12000 WHERE platform = 'groq' AND model_id = 'llama-3.3-70b-versatile'").run();
+  db.prepare("UPDATE models SET rpm_limit = 240, rpd_limit = 48000 WHERE platform = 'sambanova' AND model_id = 'Meta-Llama-3.3-70B-Instruct'").run();
+
+  // 4) Cerebras provider: disable retired, insert new active ones
+  db.prepare("UPDATE models SET enabled = 0 WHERE platform = 'cerebras' AND model_id IN ('qwen-3-235b-a22b-instruct-2507', 'llama3.1-8b')").run();
+  db.prepare(`
+    UPDATE fallback_config 
+       SET enabled = 0 
+     WHERE model_db_id IN (SELECT id FROM models WHERE platform = 'cerebras' AND model_id IN ('qwen-3-235b-a22b-instruct-2507', 'llama3.1-8b'))
+  `).run();
+
+  const insertCerebras = db.prepare(`
+    INSERT OR IGNORE INTO models (platform, model_id, display_name, intelligence_rank, speed_rank, size_label, rpm_limit, rpd_limit, tpm_limit, tpd_limit, monthly_token_budget, context_window)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  insertCerebras.run('cerebras', 'gemma-4-31b', 'Gemma 4 31B (Cerebras)', 5, 1, 'Medium', 30, 1000, 60000, 1000000, '~30M', 131072);
+  insertCerebras.run('cerebras', 'zai-glm-4.7', 'GLM 4.7 (Cerebras)', 4, 1, 'Large', 30, 1000, 60000, 1000000, '~30M', 131072);
+
+  // 5) SambaNova provider: disable retired gemma-3-12b-it, insert active gemma-4-31b-it
+  db.prepare("UPDATE models SET enabled = 0 WHERE platform = 'sambanova' AND model_id = 'gemma-3-12b-it'").run();
+  db.prepare(`
+    UPDATE fallback_config 
+       SET enabled = 0 
+     WHERE model_db_id IN (SELECT id FROM models WHERE platform = 'sambanova' AND model_id = 'gemma-3-12b-it')
+  `).run();
+
+  const insertSamba = db.prepare(`
+    INSERT OR IGNORE INTO models (platform, model_id, display_name, intelligence_rank, speed_rank, size_label, rpm_limit, rpd_limit, tpm_limit, tpd_limit, monthly_token_budget, context_window)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  insertSamba.run('sambanova', 'gemma-4-31b-it', 'Gemma 4 31B (SambaNova)', 5, 9, 'Medium', 20, 20, null, 200000, '~3M', 131072);
+
+  // 6) NVIDIA provider: disable retired models, insert active ones
+  db.prepare("UPDATE models SET enabled = 0 WHERE platform = 'nvidia' AND model_id IN ('z-ai/glm-5.1', 'qwen/qwen3-coder-480b-a35b-instruct', 'meta/llama-3.1-70b-instruct', 'meta/llama-3.3-70b-instruct')").run();
+  db.prepare(`
+    UPDATE fallback_config 
+       SET enabled = 0 
+     WHERE model_db_id IN (SELECT id FROM models WHERE platform = 'nvidia' AND model_id IN ('z-ai/glm-5.1', 'qwen/qwen3-coder-480b-a35b-instruct', 'meta/llama-3.1-70b-instruct', 'meta/llama-3.3-70b-instruct'))
+  `).run();
+
+  const insertNvidia = db.prepare(`
+    INSERT OR IGNORE INTO models (platform, model_id, display_name, intelligence_rank, speed_rank, size_label, rpm_limit, rpd_limit, tpm_limit, tpd_limit, monthly_token_budget, context_window)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  insertNvidia.run('nvidia', 'z-ai/glm-5.2', 'GLM 5.2 (NV)', 3, 6, 'Large', 40, null, null, null, 'credits-based', 1000000);
+  insertNvidia.run('nvidia', 'qwen/qwen3.5-397b-a17b', 'Qwen 3.5 397B (NV)', 2, 6, 'Frontier', 40, null, null, null, 'credits-based', 262144);
+
+  // 7) Ensure fallback entries exist for new models
+  const missing = db.prepare(`
+    SELECT m.id FROM models m
+    LEFT JOIN fallback_config f ON m.id = f.model_db_id
+    WHERE f.id IS NULL ORDER BY m.intelligence_rank ASC
+  `).all() as { id: number }[];
+  if (missing.length > 0) {
+    const maxPriority = (db.prepare('SELECT COALESCE(MAX(priority), 0) AS mx FROM fallback_config').get() as { mx: number }).mx;
+    const addFb = db.prepare('INSERT INTO fallback_config (model_db_id, priority, enabled) VALUES (?, ?, 1)');
+    for (let i = 0; i < missing.length; i++) {
+      addFb.run(missing[i].id, maxPriority + i + 1);
     }
   }
 }
