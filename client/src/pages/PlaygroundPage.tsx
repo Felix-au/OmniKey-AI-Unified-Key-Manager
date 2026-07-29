@@ -60,7 +60,7 @@ export default function PlaygroundPage() {
   const [loading, setLoading] = useState(false)
   const [selectedModel, setSelectedModel] = useState<string>('auto')
   const [apiFormat, setApiFormat] = useState<'openai' | 'gemini'>('openai')
-  const [mode, setMode] = useState<'chat' | 'vision' | 'stt' | 'tts'>('chat')
+  const [mode, setMode] = useState<'chat' | 'vision' | 'stt' | 'tts' | 'image'>('chat')
   const [attachedFile, setAttachedFile] = useState<File | null>(null)
   const [filePreview, setFilePreview] = useState<string>('')
   
@@ -121,6 +121,12 @@ export default function PlaygroundPage() {
   // Filter models based on selected mode
   const availableModels = fallbackEntries.filter(e => {
     if (e.keyCount === 0 || !e.enabled) return false
+    const isImageModel = e.modelId.includes('imagen')
+    if (mode === 'image') {
+      return isImageModel
+    }
+    if (isImageModel) return false
+
     if (mode !== 'chat') {
       return e.platform === 'google'
     }
@@ -312,6 +318,42 @@ export default function PlaygroundPage() {
           })
         }
       }
+      // 🎨 IMAGE GENERATION MODE
+      else if (mode === 'image') {
+        if (apiFormat === 'gemini') {
+          const keyVal = keyData?.geminiApiKey || ''
+          const urlModel = selectedModel === 'auto' ? 'imagen-3.0-generate-002' : selectedModel
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+          
+          const body = {
+            prompt: text,
+            numberOfImages: 1
+          }
+
+          res = await fetch(`${base}/v1beta/models/${urlModel}:generateImages?key=${keyVal}`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(body)
+          })
+        } else {
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+          if (keyData?.apiKey) headers['Authorization'] = `Bearer ${keyData.apiKey}`
+
+          const body = {
+            prompt: text,
+            model: selectedModel === 'auto' ? 'imagen-3.0-generate-002' : selectedModel,
+            n: 1,
+            size: '1024x1024',
+            response_format: 'url'
+          }
+
+          res = await fetch(`${base}/v1/images/generations`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(body)
+          })
+        }
+      }
       // 👁️ VISION OR SIMPLE CHAT (OPENAI FORMAT)
       else if (apiFormat === 'openai') {
         const headers: Record<string, string> = { 'Content-Type': 'application/json' }
@@ -416,6 +458,44 @@ export default function PlaygroundPage() {
         setMessages([...newMessages, {
           role: 'assistant',
           content: `Error: ${err.error?.message ?? 'Unknown error'}`,
+        }])
+        return
+      }
+
+      // Handle Image Generation
+      if (mode === 'image') {
+        const data = await res.json()
+        const via = data._routed_via ?? (routedVia ? {
+          platform: routedVia.split('/')[0],
+          model: routedVia.split('/').slice(1).join('/'),
+          keyUsed: keyUsed ?? undefined,
+        } : undefined)
+
+        let imageUrl = ''
+        if (apiFormat === 'gemini') {
+          const imgBytes = data.generatedImages?.[0]?.image?.imageBytes
+          if (!imgBytes) {
+            throw new Error('No image bytes found in Gemini response')
+          }
+          imageUrl = `data:image/png;base64,${imgBytes}`
+        } else {
+          imageUrl = data.data?.[0]?.url || ''
+          if (!imageUrl) {
+            throw new Error('No image URL found in OpenAI response')
+          }
+        }
+
+        setMessages([...newMessages, {
+          role: 'assistant',
+          content: 'Generated image:',
+          imageUrl,
+          meta: {
+            platform: via?.platform || 'google',
+            model: via?.model || (selectedModel === 'auto' ? 'imagen-3.0-generate-002' : selectedModel),
+            latency,
+            fallbackAttempts: fallbackAttempts ? parseInt(fallbackAttempts) : undefined,
+            keyUsed: via?.keyUsed ?? keyUsed ?? undefined,
+          }
         }])
         return
       }
@@ -540,6 +620,7 @@ export default function PlaygroundPage() {
     vision: 'Vision Chat',
     stt: 'Voice',
     tts: 'Text to Speech',
+    image: 'Image Generation',
   }[mode]
 
   const apiFormatLabel = apiFormat === 'openai' ? 'OpenAI Format' : 'Gemini Format'
@@ -554,6 +635,9 @@ export default function PlaygroundPage() {
     if (mode === 'tts') {
       return "Type text to convert into speech..."
     }
+    if (mode === 'image') {
+      return "Type a description of the image you want to generate..."
+    }
     return "Type a message… (⏎ to send, ⇧⏎ for newline)"
   }
 
@@ -566,7 +650,7 @@ export default function PlaygroundPage() {
           <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             {/* Mode selection toggle */}
             <Select value={mode} onValueChange={(v) => {
-              setMode(v as 'chat' | 'vision' | 'stt' | 'tts')
+              setMode(v as 'chat' | 'vision' | 'stt' | 'tts' | 'image')
               removeAttachedFile()
             }}>
               <SelectTrigger className="w-full sm:w-[150px] font-semibold bg-background">
@@ -577,6 +661,7 @@ export default function PlaygroundPage() {
                 <SelectItem value="vision">Vision Chat</SelectItem>
                 <SelectItem value="stt">Voice</SelectItem>
                 <SelectItem value="tts">Text to Speech</SelectItem>
+                <SelectItem value="image">Image Generation</SelectItem>
               </SelectContent>
             </Select>
 
@@ -663,6 +748,11 @@ export default function PlaygroundPage() {
                     ) : (
                       <div>
                         <MarkdownRenderer content={msg.content} compact />
+                        {msg.imageUrl && (
+                          <div className="mt-2 rounded-lg overflow-hidden max-w-sm border border-border bg-background/50">
+                            <img src={msg.imageUrl} alt="Generated image result" className="w-full object-contain" />
+                          </div>
+                        )}
                         {msg.audioUrl && (
                           <div className="mt-2 pt-1 border-t border-border/30">
                             <audio controls src={msg.audioUrl} className="w-full max-w-md h-9 rounded bg-background" />
