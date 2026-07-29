@@ -91,17 +91,24 @@ export default function CustomCursor() {
         setIsHovered(true);
         const rect = interactive.getBoundingClientRect();
         
-        setIsMagnetic(true);
-        const computedStyle = window.getComputedStyle(interactive);
-        const rawRadius = parseFloat(computedStyle.borderRadius) || 8;
+        const isSmall = rect.width <= 280 && rect.height <= 280;
 
-        hoverTargetRef.current = {
-          x: rect.left + rect.width / 2,
-          y: rect.top + rect.height / 2,
-          w: rect.width + 8, // slight padding
-          h: rect.height + 8,
-          r: rawRadius + 4,
-        };
+        if (isSmall) {
+          setIsMagnetic(true);
+          const computedStyle = window.getComputedStyle(interactive);
+          const rawRadius = parseFloat(computedStyle.borderRadius) || 8;
+
+          hoverTargetRef.current = {
+            x: rect.left + rect.width / 2,
+            y: rect.top + rect.height / 2,
+            w: rect.width + 8, // slight padding
+            h: rect.height + 8,
+            r: rawRadius + 4,
+          };
+        } else {
+          setIsMagnetic(false);
+          hoverTargetRef.current = null;
+        }
       }
     };
 
