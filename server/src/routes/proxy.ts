@@ -988,6 +988,170 @@ proxyRouter.post('/audio/speech', async (req: Request, res: Response) => {
   });
 });
 
+proxyRouter.post('/images/generations', async (req: Request, res: Response) => {
+  const start = Date.now();
+  const auth = await authenticateRequest(req);
+  if (!auth.authenticated) {
+    res.status(401).json({
+      error: { message: 'Invalid or missing API key', type: 'authentication_error' },
+    });
+    return;
+  }
+
+  await dbModeStorage.run(auth.isLocal ? 'local' : 'cloud', async () => {
+    try {
+      const { prompt, model: requestedModel, n, size, response_format } = req.body;
+      if (!prompt || typeof prompt !== 'string') {
+        res.status(400).json({
+          error: { message: 'Missing or invalid prompt', type: 'invalid_request_error' },
+        });
+        return;
+      }
+
+      // Map model to the seeded Imagen model
+      let preferredModelId: string | number | undefined;
+      const targetModelId = 'imagen-3.0-generate-002';
+
+      if (isLocalDbEnabled()) {
+        const db = getDb();
+        const dbModel = db.prepare("SELECT id FROM models WHERE model_id = ? AND enabled = 1").get(targetModelId) as { id: number } | undefined;
+        if (dbModel) preferredModelId = dbModel.id;
+      } else {
+        const dbModel = await Model.findOne({ modelId: targetModelId, enabled: true });
+        if (dbModel) preferredModelId = dbModel._id.toString();
+      }
+
+      if (!preferredModelId) {
+        res.status(400).json({
+          error: { message: `Image model '${targetModelId}' is not found or is disabled.`, type: 'invalid_request_error' },
+        });
+        return;
+      }
+
+      const numImages = typeof n === 'number' ? Math.max(1, Math.min(4, n)) : 1;
+      const responseFormat = response_format === 'b64_json' ? 'b64_json' : 'url';
+
+      // Map OpenAI sizes to Gemini aspect ratios
+      const sizeStr = String(size || '1024x1024').toLowerCase();
+      let aspectRatio = '1:1';
+      if (sizeStr === '1792x1024' || sizeStr.startsWith('16:9')) {
+        aspectRatio = '16:9';
+      } else if (sizeStr === '1024x1792' || sizeStr.startsWith('9:16')) {
+        aspectRatio = '9:16';
+      } else if (sizeStr.startsWith('4:3')) {
+        aspectRatio = '4:3';
+      } else if (sizeStr.startsWith('3:4')) {
+        aspectRatio = '3:4';
+      }
+
+      const skipKeys = new Set<string>();
+      let lastError: any = null;
+
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        let route: RouteResult;
+        try {
+          route = await routeRequest(0, skipKeys.size > 0 ? skipKeys : undefined, preferredModelId, auth.userId, undefined, undefined, true);
+        } catch (err: any) {
+          if (lastError) {
+            res.status(429).json({
+              error: {
+                message: `All models rate-limited. Last error: ${lastError.message}`,
+                type: 'rate_limit_error',
+              },
+            });
+          } else {
+            res.status(err.status ?? 503).json({
+              error: { message: err.message, type: 'routing_error' },
+            });
+          }
+          return;
+        }
+
+        recordRequest(route.platform, route.modelId, route.keyId as any);
+
+        try {
+          const provider = route.provider as any;
+          if (typeof provider.generateImages !== 'function') {
+            throw new Error(`Provider for platform '${route.platform}' does not support image generation`);
+          }
+
+          const result = await provider.generateImages(route.apiKey, prompt, route.modelId, {
+            numberOfImages: numImages,
+            aspectRatio,
+            outputMimeType: 'image/png'
+          });
+
+          if (!result.generatedImages || result.generatedImages.length === 0) {
+            throw new Error('No images returned from Google API');
+          }
+
+          const dataArray = result.generatedImages.map((img: any) => {
+            const b64 = img.image?.imageBytes;
+            if (!b64) throw new Error('Missing imageBytes in Google response');
+
+            if (responseFormat === 'b64_json') {
+              return { b64_json: b64 };
+            } else {
+              return { url: `data:image/png;base64,${b64}` };
+            }
+          });
+
+          recordTokens(route.platform, route.modelId, route.keyId as any, 1000 * numImages);
+          recordSuccess(route.modelDbId);
+
+          logRequest(
+            route.platform, route.modelId, 'success',
+            1000 * numImages, 1000 * numImages,
+            Date.now() - start, null, auth.userId,
+            route.isPromo ? route.fundedByUserId : undefined,
+            (req as any).projectKey
+          );
+
+          res.json({
+            created: Math.floor(Date.now() / 1000),
+            data: dataArray
+          });
+          return;
+        } catch (err: any) {
+          const latency = Date.now() - start;
+
+          if (isRetryableError(err) && attempt < MAX_RETRIES - 1) {
+            logRequest(route!.platform, route!.modelId, 'fallback', 1000 * numImages, 0, latency, err.message, auth.userId, route!.isPromo ? route!.fundedByUserId : undefined, (req as any).projectKey);
+            const skipId = `${route!.platform}:${route!.modelId}:${route!.keyId}`;
+            skipKeys.add(skipId);
+            setCooldown(route!.platform, route!.modelId, route!.keyId as any, 120_000);
+            recordRateLimitHit(route!.modelDbId);
+            lastError = err;
+            console.log(`[Proxy] Image generation error ${err.message.slice(0, 60)} from ${route!.displayName}, falling back (attempt ${attempt + 1}/${MAX_RETRIES})`);
+            continue;
+          }
+
+          logRequest(route!.platform, route!.modelId, 'error', 1000 * numImages, 0, latency, err.message, auth.userId, route!.isPromo ? route!.fundedByUserId : undefined, (req as any).projectKey);
+          res.status(502).json({
+            error: {
+              message: `Provider error (${route!.displayName}): ${err.message}`,
+              type: 'provider_error',
+            },
+          });
+          return;
+        }
+      }
+
+      res.status(429).json({
+        error: {
+          message: `All models rate-limited after ${MAX_RETRIES} attempts. Last: ${lastError?.message}`,
+          type: 'rate_limit_error',
+        },
+      });
+    } catch (err: any) {
+      console.error('[Proxy] Image generation controller error:', err);
+      res.status(500).json({
+        error: { message: `Internal server error: ${err.message}`, type: 'server_error' },
+      });
+    }
+  });
+});
+
 function logRequest(
   platform: string,
   modelId: string,

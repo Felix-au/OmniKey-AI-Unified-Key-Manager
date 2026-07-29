@@ -585,6 +585,34 @@ export class GoogleProvider extends BaseProvider {
     }
   }
 
+  async generateImages(
+    apiKey: string,
+    prompt: string,
+    modelId: string,
+    options?: { numberOfImages?: number; aspectRatio?: string; outputMimeType?: string }
+  ): Promise<{ generatedImages: Array<{ image: { imageBytes: string } }> }> {
+    const url = `${API_BASE}/models/${modelId}:generateImages?key=${apiKey}`;
+    const body = {
+      prompt,
+      numberOfImages: options?.numberOfImages ?? 1,
+      outputMimeType: options?.outputMimeType ?? 'image/png',
+      aspectRatio: options?.aspectRatio ?? '1:1',
+    };
+
+    const res = await this.fetchWithTimeout(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(`Google API error ${res.status}: ${(err as any).error?.message ?? res.statusText}`);
+    }
+
+    return await res.json() as { generatedImages: Array<{ image: { imageBytes: string } }> };
+  }
+
   async validateKey(apiKey: string): Promise<boolean> {
     // Transport errors propagate — health.ts marks status='error' without
     // counting toward auto-disable. Only confirmed 401/403 disables a key.

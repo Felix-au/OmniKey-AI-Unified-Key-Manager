@@ -56,6 +56,7 @@ export function initDb(dbPath?: string): Database.Database {
   migrateModelsV17(db);
   migrateModelsV18(db);
   migrateModelsV19(db);
+  migrateModelsV20(db);
   ensureUnifiedKey(db);
   ensureUnifiedGeminiKey(db);
   seedAdmin(db);
@@ -1561,3 +1562,26 @@ export function regenerateUnifiedGeminiKey(): string {
   db.prepare("UPDATE settings SET value = ? WHERE key = 'unified_gemini_api_key'").run(key);
   return key;
 }
+
+function migrateModelsV20(db: Database.Database) {
+  // Insert Google's Imagen 3 model into the catalog
+  db.prepare(`
+    INSERT OR IGNORE INTO models (platform, model_id, display_name, intelligence_rank, speed_rank, size_label, rpm_limit, rpd_limit, tpm_limit, tpd_limit, monthly_token_budget, context_window, enabled)
+    VALUES ('google', 'imagen-3.0-generate-002', 'Imagen 3 (Google)', 5, 5, 'Large', 5, 100, null, null, '~1.5M', null, 1)
+  `).run();
+
+  // Add a fallback config entry for it
+  const missing = db.prepare(`
+    SELECT m.id, m.enabled FROM models m
+    LEFT JOIN fallback_config f ON m.id = f.model_db_id
+    WHERE f.id IS NULL ORDER BY m.intelligence_rank ASC
+  `).all() as { id: number; enabled: number }[];
+  if (missing.length > 0) {
+    const maxPriority = (db.prepare('SELECT COALESCE(MAX(priority), 0) AS mx FROM fallback_config').get() as { mx: number }).mx;
+    const addFb = db.prepare('INSERT INTO fallback_config (model_db_id, priority, enabled) VALUES (?, ?, ?)');
+    for (let i = 0; i < missing.length; i++) {
+      addFb.run(missing[i].id, maxPriority + i + 1, missing[i].enabled);
+    }
+  }
+}
+

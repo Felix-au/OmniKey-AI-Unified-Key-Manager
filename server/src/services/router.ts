@@ -141,7 +141,8 @@ export async function routeRequest(
   preferredModelDbId?: number | string,
   userId = 'local-dev-user-uid',
   requiredModality?: string,
-  estimatedInputTokens?: number
+  estimatedInputTokens?: number,
+  isImageGeneration = false
 ): Promise<RouteResult> {
 
   if (isLocalDbEnabled()) {
@@ -175,6 +176,10 @@ export async function routeRequest(
 
       const model = db.prepare('SELECT * FROM models WHERE id = ? AND enabled = 1').get(entry.model_db_id) as ModelRow | undefined;
       if (!model) continue;
+
+      const isImageModel = model.model_id.includes('imagen');
+      if (isImageGeneration && !isImageModel) continue;
+      if (!isImageGeneration && isImageModel) continue;
 
       if (model.model_id === 'groq/compound-mini' || model.model_id.includes('groq-mini')) {
         if (estimatedInputTokens !== undefined && estimatedInputTokens > 7500) {
@@ -293,6 +298,10 @@ export async function routeRequest(
       const model = item.model;
       if (!model || !model.enabled) continue;
 
+      const isImageModel = model.modelId.includes('imagen');
+      if (isImageGeneration && !isImageModel) continue;
+      if (!isImageGeneration && isImageModel) continue;
+
       if (model.modelId === 'groq/compound-mini' || model.modelId.includes('groq-mini')) {
         if (estimatedInputTokens !== undefined && estimatedInputTokens > 7500) {
           continue;
@@ -318,6 +327,9 @@ export async function routeRequest(
         // Try real models sorted by speedRank under the hood
         const promoModels = await Model.find({ enabled: true, modelId: { $ne: 'omnikey-promo' } }).sort({ speedRank: 1 });
         for (const pm of promoModels) {
+          const isImageModel = pm.modelId.includes('imagen');
+          if (isImageGeneration && !isImageModel) continue;
+          if (!isImageGeneration && isImageModel) continue;
           if (requiredModality && pm.platform !== 'google') continue;
 
           if (pm.modelId === 'groq/compound-mini' || pm.modelId.includes('groq-mini')) {
@@ -457,10 +469,11 @@ export async function routeRequest(
     }
   }
 
-  if (requiredModality && !isLocalDbEnabled()) {
+  if ((isImageGeneration || requiredModality) && !isLocalDbEnabled()) {
     const hasKeys = await ApiKey.exists({ userId, enabled: true, status: { $ne: 'invalid' } });
     if (!hasKeys) {
-      const err = new Error('Multimodal capabilities (Vision, Voice, TTS) are not available on the free promo tier. Please add your own Gemini API key under Keys page to use these features.') as any;
+      const feature = isImageGeneration ? 'Image generation capabilities' : 'Multimodal capabilities (Vision, Voice, TTS)';
+      const err = new Error(`${feature} are not available on the free promo tier. Please add your own Gemini API key under Keys page to use these features.`) as any;
       err.status = 403;
       throw err;
     }

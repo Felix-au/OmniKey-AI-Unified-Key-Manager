@@ -433,6 +433,134 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
 
   // Wrap inside DB context
   await dbModeStorage.run(isLocal ? 'local' : 'cloud', async () => {
+    const rawParam = req.params.model;
+    const modelParam = Array.isArray(rawParam) ? rawParam.join('/') : (rawParam as string || '');
+
+    if (modelParam.endsWith(':generateImages')) {
+      const modelId = modelParam.slice(0, -':generateImages'.length).replace(/^models\//, '');
+      const { prompt, numberOfImages, outputMimeType, aspectRatio } = req.body;
+      if (!prompt || typeof prompt !== 'string') {
+        return res.status(400).json({
+          error: {
+            code: 400,
+            message: 'Invalid request: prompt is missing or invalid',
+            status: 'INVALID_ARGUMENT'
+          }
+        });
+      }
+
+      // Map model to the seeded Imagen model
+      let preferredModelId: string | number | undefined;
+      const targetModelId = modelId === AUTO_MODEL_ID ? 'imagen-3.0-generate-002' : modelId;
+
+      if (isLocalDbEnabled()) {
+        const db = getDb();
+        const dbModel = db.prepare("SELECT id FROM models WHERE model_id = ? AND enabled = 1").get(targetModelId) as { id: number } | undefined;
+        if (dbModel) preferredModelId = dbModel.id;
+      } else {
+        const dbModel = await Model.findOne({ modelId: targetModelId, enabled: true });
+        if (dbModel) preferredModelId = dbModel._id.toString();
+      }
+
+      if (!preferredModelId) {
+        return res.status(400).json({
+          error: {
+            code: 400,
+            message: `Image model '${targetModelId}' is not found or is disabled.`,
+            status: 'INVALID_ARGUMENT'
+          }
+        });
+      }
+
+      const numImages = typeof numberOfImages === 'number' ? Math.max(1, Math.min(4, numberOfImages)) : 1;
+      const skipKeys = new Set<string>();
+      let lastError: any = null;
+      const MAX_RETRIES = 20;
+
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        let route: RouteResult;
+        try {
+          route = await routeRequest(0, skipKeys.size > 0 ? skipKeys : undefined, preferredModelId, userId, undefined, undefined, true);
+        } catch (err: any) {
+          if (lastError) {
+            return res.status(429).json({
+              error: {
+                code: 429,
+                message: `All models rate-limited. Last error: ${lastError.message}`,
+                status: 'RESOURCE_EXHAUSTED'
+              }
+            });
+          } else {
+            return res.status(err.status ?? 503).json({
+              error: {
+                code: err.status ?? 503,
+                message: err.message,
+                status: 'INTERNAL'
+              }
+            });
+          }
+        }
+
+        recordRequest(route.platform, route.modelId, route.keyId as any);
+
+        try {
+          const provider = route.provider as any;
+          if (typeof provider.generateImages !== 'function') {
+            throw new Error(`Provider for platform '${route.platform}' does not support image generation`);
+          }
+
+          const result = await provider.generateImages(route.apiKey, prompt, route.modelId, {
+            numberOfImages: numImages,
+            aspectRatio: aspectRatio || '1:1',
+            outputMimeType: outputMimeType || 'image/png'
+          });
+
+          recordTokens(route.platform, route.modelId, route.keyId as any, 1000 * numImages);
+          recordSuccess(route.modelDbId);
+
+          logRequest(
+            route.platform, route.modelId, 'success',
+            1000 * numImages, 1000 * numImages,
+            Date.now() - start, null, userId,
+            route.isPromo ? route.fundedByUserId : undefined,
+            (req as any).projectKey
+          );
+
+          return res.json(result);
+        } catch (err: any) {
+          const latency = Date.now() - start;
+
+          if (isRetryableError(err) && attempt < MAX_RETRIES - 1) {
+            logRequest(route!.platform, route!.modelId, 'fallback', 1000 * numImages, 0, latency, err.message, userId, route!.isPromo ? route!.fundedByUserId : undefined, (req as any).projectKey);
+            const skipId = `${route!.platform}:${route!.modelId}:${route!.keyId}`;
+            skipKeys.add(skipId);
+            setCooldown(route!.platform, route!.modelId, route!.keyId as any, 120_000);
+            recordRateLimitHit(route!.modelDbId);
+            lastError = err;
+            console.log(`[Gemini Proxy] Image generation error ${err.message.slice(0, 60)} from ${route!.displayName}, falling back (attempt ${attempt + 1}/${MAX_RETRIES})`);
+            continue;
+          }
+
+          logRequest(route!.platform, route!.modelId, 'error', 1000 * numImages, 0, latency, err.message, userId, route!.isPromo ? route!.fundedByUserId : undefined, (req as any).projectKey);
+          return res.status(502).json({
+            error: {
+              code: 502,
+              message: `Provider error (${route!.displayName}): ${err.message}`,
+              status: 'INTERNAL'
+            }
+          });
+        }
+      }
+
+      return res.status(429).json({
+        error: {
+          code: 429,
+          message: `All models rate-limited after ${MAX_RETRIES} attempts. Last: ${lastError?.message}`,
+          status: 'RESOURCE_EXHAUSTED'
+        }
+      });
+    }
+
     const parsed = translateGeminiRequest(req.body);
     if (parsed.messages.length === 0) {
       return res.status(400).json({
@@ -445,9 +573,6 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
     }
 
     const { messages, temperature, max_tokens, top_p, responseModalities, speechConfig } = parsed;
-    
-    const rawParam = req.params.model;
-    const modelParam = Array.isArray(rawParam) ? rawParam.join('/') : (rawParam as string || '');
     let modelId = modelParam;
     let method = 'generateContent';
     
