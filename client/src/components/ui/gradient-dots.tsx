@@ -9,7 +9,7 @@ type GradientDotsProps = React.ComponentProps<typeof motion.div> & {
 	dotSize?: number;
 	/** Dot radius for rendering (default: 1.5) */
 	dotRadius?: number;
-	/** Spacing between dots (default: 20) */
+	/** Spacing between dots (default: 28) */
 	spacing?: number;
 	/** Animation duration of background gradients (default: 30) */
 	duration?: number;
@@ -49,7 +49,7 @@ const TWO_PI = Math.PI * 2;
 export const GradientDots = memo(({
 	dotRadius = 1.5,
 	dotSize = 8, // Kept for backwards compatibility
-	spacing = 20,
+	spacing = 28,
 	duration = 30,
 	colorCycleDuration = 6,
 	backgroundColor = "var(--background)",
