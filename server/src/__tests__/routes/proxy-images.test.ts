@@ -224,4 +224,38 @@ describe('Image Generation Proxy', () => {
     expect(attempt).toBe(2);
     expect(body.data[0].url).toContain('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
   });
+
+  it('POST /v1/images/generations routes to Cloudflare and returns a data URI when model is flux-1-schnell', async () => {
+    // Add a Cloudflare API key
+    const addCFKey = await request(app, 'POST', '/api/keys', {
+      platform: 'cloudflare',
+      key: 'test-account-id:test-api-token',
+      label: 'cf-key',
+    });
+    expect(addCFKey.status).toBe(201);
+
+    const origFetch = global.fetch;
+    const dummyArrayBuffer = new TextEncoder().encode('cloudflare-image-data').buffer;
+
+    vi.spyOn(global, 'fetch').mockImplementation(async (url, init) => {
+      const urlStr = typeof url === 'string' ? url : url.toString();
+      if (urlStr.includes('/ai/run/@cf/black-forest-labs/flux-1-schnell')) {
+        return {
+          ok: true,
+          status: 200,
+          arrayBuffer: () => Promise.resolve(dummyArrayBuffer),
+        } as any;
+      }
+      return origFetch(url, init);
+    });
+
+    const { status, body } = await request(app, 'POST', '/v1/images/generations', {
+      prompt: 'a futuristic city',
+      model: 'flux-1-schnell',
+      response_format: 'url',
+    }, authHeaders());
+
+    expect(status).toBe(200);
+    expect(body.data[0].url).toContain('data:image/png;base64,Y2xvdWRmbGFyZS1pbWFnZS1kYXRh');
+  });
 });

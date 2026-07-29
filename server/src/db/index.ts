@@ -57,6 +57,7 @@ export function initDb(dbPath?: string): Database.Database {
   migrateModelsV18(db);
   migrateModelsV19(db);
   migrateModelsV20(db);
+  migrateModelsV21(db);
   ensureUnifiedKey(db);
   ensureUnifiedGeminiKey(db);
   seedAdmin(db);
@@ -1584,4 +1585,37 @@ function migrateModelsV20(db: Database.Database) {
     }
   }
 }
+
+function migrateModelsV21(db: Database.Database) {
+  // Insert Cloudflare Workers AI image models into the catalog
+  db.prepare(`
+    INSERT OR IGNORE INTO models (platform, model_id, display_name, intelligence_rank, speed_rank, size_label, rpm_limit, rpd_limit, tpm_limit, tpd_limit, monthly_token_budget, context_window, enabled)
+    VALUES ('cloudflare', 'flux-1-schnell', 'Flux 1 Schnell (Cloudflare)', 5, 5, 'Large', 5, 100, null, null, '~1.5M', null, 1)
+  `).run();
+
+  db.prepare(`
+    INSERT OR IGNORE INTO models (platform, model_id, display_name, intelligence_rank, speed_rank, size_label, rpm_limit, rpd_limit, tpm_limit, tpd_limit, monthly_token_budget, context_window, enabled)
+    VALUES ('cloudflare', 'stable-diffusion-xl-base-1.0', 'Stable Diffusion XL (Cloudflare)', 5, 5, 'Large', 5, 100, null, null, '~1.5M', null, 1)
+  `).run();
+
+  db.prepare(`
+    INSERT OR IGNORE INTO models (platform, model_id, display_name, intelligence_rank, speed_rank, size_label, rpm_limit, rpd_limit, tpm_limit, tpd_limit, monthly_token_budget, context_window, enabled)
+    VALUES ('cloudflare', 'dreamshaper-8-lcm', 'DreamShaper 8 LCM (Cloudflare)', 5, 5, 'Large', 5, 100, null, null, '~1.5M', null, 1)
+  `).run();
+
+  // Add fallback config entries for them
+  const missing = db.prepare(`
+    SELECT m.id, m.enabled FROM models m
+    LEFT JOIN fallback_config f ON m.id = f.model_db_id
+    WHERE f.id IS NULL ORDER BY m.intelligence_rank ASC
+  `).all() as { id: number; enabled: number }[];
+  if (missing.length > 0) {
+    const maxPriority = (db.prepare('SELECT COALESCE(MAX(priority), 0) AS mx FROM fallback_config').get() as { mx: number }).mx;
+    const addFb = db.prepare('INSERT INTO fallback_config (model_db_id, priority, enabled) VALUES (?, ?, ?)');
+    for (let i = 0; i < missing.length; i++) {
+      addFb.run(missing[i].id, maxPriority + i + 1, missing[i].enabled);
+    }
+  }
+}
+
 

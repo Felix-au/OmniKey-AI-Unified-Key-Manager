@@ -1008,9 +1008,14 @@ proxyRouter.post('/images/generations', async (req: Request, res: Response) => {
         return;
       }
 
-      // Map model to the seeded Imagen model
       let preferredModelId: string | number | undefined;
-      const targetModelId = 'imagen-3.0-generate-002';
+      let targetModelId = 'imagen-3.0-generate-002';
+      if (requestedModel && typeof requestedModel === 'string') {
+        targetModelId = requestedModel;
+        if (targetModelId.includes('/')) {
+          targetModelId = targetModelId.split('/').pop() || targetModelId;
+        }
+      }
 
       if (isLocalDbEnabled()) {
         const db = getDb();

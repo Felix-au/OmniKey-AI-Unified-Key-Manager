@@ -132,6 +132,15 @@ export function getAllPenalties(): Array<{ modelDbId: string; count: number; pen
   return result.sort((a, b) => b.penalty - a.penalty);
 }
 
+export function isImageModel(modelId: string): boolean {
+  const lower = modelId.toLowerCase();
+  return lower.includes('imagen') || 
+         lower.includes('flux') || 
+         lower.includes('stable-diffusion') || 
+         lower.includes('dreamshaper') || 
+         lower.includes('leonardo');
+}
+
 /**
  * Route a request to the best available model.
  */
@@ -177,9 +186,9 @@ export async function routeRequest(
       const model = db.prepare('SELECT * FROM models WHERE id = ? AND enabled = 1').get(entry.model_db_id) as ModelRow | undefined;
       if (!model) continue;
 
-      const isImageModel = model.model_id.includes('imagen');
-      if (isImageGeneration && !isImageModel) continue;
-      if (!isImageGeneration && isImageModel) continue;
+      const isImg = isImageModel(model.model_id);
+      if (isImageGeneration && !isImg) continue;
+      if (!isImageGeneration && isImg) continue;
 
       if (model.model_id === 'groq/compound-mini' || model.model_id.includes('groq-mini')) {
         if (estimatedInputTokens !== undefined && estimatedInputTokens > 7500) {
@@ -298,9 +307,9 @@ export async function routeRequest(
       const model = item.model;
       if (!model || !model.enabled) continue;
 
-      const isImageModel = model.modelId.includes('imagen');
-      if (isImageGeneration && !isImageModel) continue;
-      if (!isImageGeneration && isImageModel) continue;
+      const isImg = isImageModel(model.modelId);
+      if (isImageGeneration && !isImg) continue;
+      if (!isImageGeneration && isImg) continue;
 
       if (model.modelId === 'groq/compound-mini' || model.modelId.includes('groq-mini')) {
         if (estimatedInputTokens !== undefined && estimatedInputTokens > 7500) {
@@ -327,9 +336,9 @@ export async function routeRequest(
         // Try real models sorted by speedRank under the hood
         const promoModels = await Model.find({ enabled: true, modelId: { $ne: 'omnikey-promo' } }).sort({ speedRank: 1 });
         for (const pm of promoModels) {
-          const isImageModel = pm.modelId.includes('imagen');
-          if (isImageGeneration && !isImageModel) continue;
-          if (!isImageGeneration && isImageModel) continue;
+          const isImg = isImageModel(pm.modelId);
+          if (isImageGeneration && !isImg) continue;
+          if (!isImageGeneration && isImg) continue;
           if (requiredModality && pm.platform !== 'google') continue;
 
           if (pm.modelId === 'groq/compound-mini' || pm.modelId.includes('groq-mini')) {

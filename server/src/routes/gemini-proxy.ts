@@ -449,9 +449,11 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
         });
       }
 
-      // Map model to the seeded Imagen model
       let preferredModelId: string | number | undefined;
-      const targetModelId = modelId === AUTO_MODEL_ID ? 'imagen-3.0-generate-002' : modelId;
+      let targetModelId = modelId === AUTO_MODEL_ID ? 'imagen-3.0-generate-002' : modelId;
+      if (targetModelId.includes('/')) {
+        targetModelId = targetModelId.split('/').pop() || targetModelId;
+      }
 
       if (isLocalDbEnabled()) {
         const db = getDb();

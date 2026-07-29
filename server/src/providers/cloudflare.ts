@@ -127,6 +127,59 @@ export class CloudflareProvider extends BaseProvider {
     }
   }
 
+  async generateImages(
+    apiKey: string,
+    prompt: string,
+    modelId: string,
+    options?: { numberOfImages?: number; aspectRatio?: string; outputMimeType?: string }
+  ): Promise<{ generatedImages: Array<{ image: { imageBytes: string } }> }> {
+    const { accountId, token } = this.parseKey(apiKey);
+    
+    let cfModelId = modelId;
+    if (!cfModelId.includes('/')) {
+      if (cfModelId.includes('flux-1-schnell')) {
+        cfModelId = '@cf/black-forest-labs/flux-1-schnell';
+      } else if (cfModelId.includes('stable-diffusion-xl-base-1.0')) {
+        cfModelId = '@cf/stabilityai/stable-diffusion-xl-base-1.0';
+      } else if (cfModelId.includes('dreamshaper-8-lcm')) {
+        cfModelId = '@cf/lykon/dreamshaper-8-lcm';
+      } else {
+        cfModelId = `@cf/black-forest-labs/${cfModelId}`;
+      }
+    }
+
+    const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${cfModelId}`;
+
+    const res = await this.fetchWithTimeout(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        prompt,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(`Cloudflare API error ${res.status}: ${(err as any).error?.message ?? (err as any).errors?.[0]?.message ?? res.statusText}`);
+    }
+
+    const buffer = await res.arrayBuffer();
+    const base64 = Buffer.from(buffer).toString('base64');
+
+    return {
+      generatedImages: [
+        {
+          image: {
+            imageBytes: base64,
+          },
+        },
+      ],
+    };
+  }
+
   async validateKey(apiKey: string): Promise<boolean> {
     // Transport errors propagate — health.ts marks status='error' without
     // counting toward auto-disable. Only confirmed bad/inactive tokens disable.
