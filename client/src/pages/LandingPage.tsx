@@ -926,11 +926,17 @@ function useDark() {
   return { dark, toggle }
 }
 
-const providers = ['Google', 'Groq', 'Mistral', 'NVIDIA', 'Cerebras', 'SambaNova', 'Cohere', 'OpenRouter', 'Cloudflare', 'Zhipu', 'HuggingFace', 'GitHub']
+const providers = [
+  'Google', 'Groq', 'Mistral', 'NVIDIA', 'Cerebras', 'SambaNova', 
+  'Cohere', 'OpenRouter', 'Cloudflare', 'Zhipu', 'HuggingFace', 'GitHub',
+  'Ollama', 'Kilo', 'Pollinations', 'LLM7', 'OpenCode', 'Custom'
+]
 const providerColors: Record<string, string> = {
   Google: 'bg-blue-500', Groq: 'bg-orange-500', Mistral: 'bg-purple-500', NVIDIA: 'bg-green-500',
   Cerebras: 'bg-teal-500', SambaNova: 'bg-red-500', Cohere: 'bg-yellow-500', OpenRouter: 'bg-slate-400',
   Cloudflare: 'bg-orange-400', Zhipu: 'bg-cyan-500', HuggingFace: 'bg-yellow-400', GitHub: 'bg-slate-500',
+  Ollama: 'bg-emerald-500', Kilo: 'bg-blue-400', Pollinations: 'bg-pink-500', LLM7: 'bg-indigo-500',
+  OpenCode: 'bg-rose-500', Custom: 'bg-muted-foreground/40',
 }
 
 const providerLogos: Record<string, string> = {
@@ -1090,7 +1096,7 @@ const faqData = [
   },
   {
     question: "Is there a free tier for developers?",
-    answer: "Yes, we offer a generous free tier that includes up to 10 million free tokens on signup, access to 12+ providers, basic failover routing, and real-time usage analytics on your dashboard.",
+    answer: "Yes, we offer a generous free tier that includes up to 10 million free tokens on signup, access to 18+ providers, basic failover routing, and real-time usage analytics on your dashboard.",
     tag: "general"
   },
   {
