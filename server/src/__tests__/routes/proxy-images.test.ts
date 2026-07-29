@@ -243,6 +243,9 @@ describe('Image Generation Proxy', () => {
         return {
           ok: true,
           status: 200,
+          headers: {
+            get: (name: string) => name.toLowerCase() === 'content-type' ? 'image/png' : null
+          },
           arrayBuffer: () => Promise.resolve(dummyArrayBuffer),
         } as any;
       }

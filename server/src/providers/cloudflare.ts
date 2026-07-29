@@ -136,15 +136,43 @@ export class CloudflareProvider extends BaseProvider {
     const { accountId, token } = this.parseKey(apiKey);
     
     let cfModelId = modelId;
+    const payload: any = { prompt };
+
     if (!cfModelId.includes('/')) {
       if (cfModelId.includes('flux-1-schnell')) {
         cfModelId = '@cf/black-forest-labs/flux-1-schnell';
+        payload.steps = 4;
+      } else if (cfModelId.includes('flux-2-dev')) {
+        cfModelId = '@cf/black-forest-labs/flux-2-dev';
+        payload.steps = 20;
+      } else if (cfModelId.includes('flux-2-klein-4b')) {
+        cfModelId = '@cf/black-forest-labs/flux-2-klein-4b';
+        payload.steps = 4;
+      } else if (cfModelId.includes('flux-2-klein-9b')) {
+        cfModelId = '@cf/black-forest-labs/flux-2-klein-9b';
+        payload.steps = 4;
+      } else if (cfModelId.includes('phoenix-1.0')) {
+        cfModelId = '@cf/leonardo/phoenix-1.0';
+        payload.steps = 20;
+      } else if (cfModelId.includes('lucid-origin')) {
+        cfModelId = '@cf/leonardo/lucid-origin';
+        payload.steps = 20;
       } else if (cfModelId.includes('stable-diffusion-xl-base-1.0')) {
         cfModelId = '@cf/stabilityai/stable-diffusion-xl-base-1.0';
       } else if (cfModelId.includes('dreamshaper-8-lcm')) {
         cfModelId = '@cf/lykon/dreamshaper-8-lcm';
       } else {
         cfModelId = `@cf/black-forest-labs/${cfModelId}`;
+        if (cfModelId.includes('flux')) {
+          payload.steps = 4;
+        }
+      }
+    } else {
+      // If full path is passed, ensure steps are added if missing
+      if (cfModelId.includes('flux-1-schnell') || cfModelId.includes('flux-2-klein-4b') || cfModelId.includes('flux-2-klein-9b')) {
+        payload.steps = 4;
+      } else if (cfModelId.includes('flux-2-dev')) {
+        payload.steps = 20;
       }
     }
 
@@ -156,9 +184,7 @@ export class CloudflareProvider extends BaseProvider {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        prompt,
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (!res.ok) {
@@ -166,8 +192,22 @@ export class CloudflareProvider extends BaseProvider {
       throw new Error(`Cloudflare API error ${res.status}: ${(err as any).error?.message ?? (err as any).errors?.[0]?.message ?? res.statusText}`);
     }
 
-    const buffer = await res.arrayBuffer();
-    const base64 = Buffer.from(buffer).toString('base64');
+    const contentType = res.headers.get('content-type') || '';
+    let base64 = '';
+
+    if (contentType.includes('application/json')) {
+      const data = await res.json() as any;
+      if (data.result?.image) {
+        base64 = data.result.image;
+      } else if (data.image) {
+        base64 = data.image;
+      } else {
+        throw new Error('Cloudflare API response missing image field');
+      }
+    } else {
+      const buffer = await res.arrayBuffer();
+      base64 = Buffer.from(buffer).toString('base64');
+    }
 
     return {
       generatedImages: [

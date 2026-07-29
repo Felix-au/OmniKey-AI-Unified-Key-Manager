@@ -1595,6 +1595,31 @@ function migrateModelsV21(db: Database.Database) {
 
   db.prepare(`
     INSERT OR IGNORE INTO models (platform, model_id, display_name, intelligence_rank, speed_rank, size_label, rpm_limit, rpd_limit, tpm_limit, tpd_limit, monthly_token_budget, context_window, enabled)
+    VALUES ('cloudflare', 'flux-2-dev', 'Flux 2 Dev (Cloudflare)', 5, 5, 'Large', 5, 100, null, null, '~1.5M', null, 1)
+  `).run();
+
+  db.prepare(`
+    INSERT OR IGNORE INTO models (platform, model_id, display_name, intelligence_rank, speed_rank, size_label, rpm_limit, rpd_limit, tpm_limit, tpd_limit, monthly_token_budget, context_window, enabled)
+    VALUES ('cloudflare', 'flux-2-klein-4b', 'Flux 2 Klein 4B (Cloudflare)', 5, 5, 'Large', 5, 100, null, null, '~1.5M', null, 1)
+  `).run();
+
+  db.prepare(`
+    INSERT OR IGNORE INTO models (platform, model_id, display_name, intelligence_rank, speed_rank, size_label, rpm_limit, rpd_limit, tpm_limit, tpd_limit, monthly_token_budget, context_window, enabled)
+    VALUES ('cloudflare', 'flux-2-klein-9b', 'Flux 2 Klein 9B (Cloudflare)', 5, 5, 'Large', 5, 100, null, null, '~1.5M', null, 1)
+  `).run();
+
+  db.prepare(`
+    INSERT OR IGNORE INTO models (platform, model_id, display_name, intelligence_rank, speed_rank, size_label, rpm_limit, rpd_limit, tpm_limit, tpd_limit, monthly_token_budget, context_window, enabled)
+    VALUES ('cloudflare', 'phoenix-1.0', 'Leonardo Phoenix 1.0 (Cloudflare)', 5, 5, 'Large', 5, 100, null, null, '~1.5M', null, 1)
+  `).run();
+
+  db.prepare(`
+    INSERT OR IGNORE INTO models (platform, model_id, display_name, intelligence_rank, speed_rank, size_label, rpm_limit, rpd_limit, tpm_limit, tpd_limit, monthly_token_budget, context_window, enabled)
+    VALUES ('cloudflare', 'lucid-origin', 'Leonardo Lucid Origin (Cloudflare)', 5, 5, 'Large', 5, 100, null, null, '~1.5M', null, 1)
+  `).run();
+
+  db.prepare(`
+    INSERT OR IGNORE INTO models (platform, model_id, display_name, intelligence_rank, speed_rank, size_label, rpm_limit, rpd_limit, tpm_limit, tpd_limit, monthly_token_budget, context_window, enabled)
     VALUES ('cloudflare', 'stable-diffusion-xl-base-1.0', 'Stable Diffusion XL (Cloudflare)', 5, 5, 'Large', 5, 100, null, null, '~1.5M', null, 1)
   `).run();
 

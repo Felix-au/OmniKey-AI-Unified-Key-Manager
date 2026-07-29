@@ -1087,12 +1087,12 @@ proxyRouter.post('/images/generations', async (req: Request, res: Response) => {
           });
 
           if (!result.generatedImages || result.generatedImages.length === 0) {
-            throw new Error('No images returned from Google API');
+            throw new Error('No images returned from provider API');
           }
 
           const dataArray = result.generatedImages.map((img: any) => {
             const b64 = img.image?.imageBytes;
-            if (!b64) throw new Error('Missing imageBytes in Google response');
+            if (!b64) throw new Error('Missing imageBytes in provider response');
 
             if (responseFormat === 'b64_json') {
               return { b64_json: b64 };
@@ -1111,6 +1111,10 @@ proxyRouter.post('/images/generations', async (req: Request, res: Response) => {
             route.isPromo ? route.fundedByUserId : undefined,
             (req as any).projectKey
           );
+
+          res.setHeader('X-Routed-Via', `${route.platform}/${route.modelId}`);
+          if (route.keyId) res.setHeader('X-Key-Used', route.keyId.toString());
+          if (attempt > 0) res.setHeader('X-Fallback-Attempts', attempt.toString());
 
           res.json({
             created: Math.floor(Date.now() / 1000),
