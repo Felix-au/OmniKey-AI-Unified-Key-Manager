@@ -347,9 +347,9 @@ function DashboardLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="h-screen overflow-hidden bg-background flex">
       {/* ── Desktop Sidebar (hidden on mobile) ── */}
-      <aside className={`hidden md:flex ${sidebarW} shrink-0 flex-col border-r border-border bg-background/95 backdrop-blur sticky top-0 h-screen overflow-hidden transition-all duration-200 z-40`}>
+      <aside className={`hidden md:flex ${sidebarW} shrink-0 flex-col border-r border-border bg-background/95 backdrop-blur h-full overflow-hidden transition-all duration-200 z-40`}>
         <SidebarContent />
       </aside>
 
@@ -373,7 +373,7 @@ function DashboardLayout() {
       )}
 
       {/* ── Main content ── */}
-      <div className="flex-1 min-w-0 overflow-auto">
+      <div className="flex-1 min-w-0 h-full overflow-y-auto">
         {/* Mobile top bar */}
         <div className="md:hidden sticky top-0 z-30 flex items-center gap-3 h-14 px-4 border-b border-border bg-background/95 backdrop-blur">
           <button
