@@ -1565,11 +1565,11 @@ export function regenerateUnifiedGeminiKey(): string {
 }
 
 function migrateModelsV20(db: Database.Database) {
-  // Insert Google's Imagen 3 model into the catalog
   db.prepare(`
     INSERT OR IGNORE INTO models (platform, model_id, display_name, intelligence_rank, speed_rank, size_label, rpm_limit, rpd_limit, tpm_limit, tpd_limit, monthly_token_budget, context_window, enabled)
-    VALUES ('google', 'imagen-3.0-generate-002', 'Imagen 3 (Google)', 5, 5, 'Large', 5, 100, null, null, '~1.5M', null, 1)
+    VALUES ('google', 'imagen-3.0-generate-002', 'Imagen 3 (Google)', 5, 5, 'Large', 5, 100, null, null, '~1.5M', null, 0)
   `).run();
+  db.prepare("UPDATE models SET enabled = 0 WHERE model_id = 'imagen-3.0-generate-002'").run();
 
   // Add a fallback config entry for it
   const missing = db.prepare(`

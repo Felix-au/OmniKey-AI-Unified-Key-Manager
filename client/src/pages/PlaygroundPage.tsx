@@ -120,7 +120,7 @@ export default function PlaygroundPage() {
 
   // Filter models based on selected mode
   const availableModels = fallbackEntries.filter(e => {
-    if (e.keyCount === 0 || !e.enabled) return false
+    if (e.keyCount === 0 || !e.enabled || e.globallyDisabled) return false
     const lowerId = e.modelId.toLowerCase();
     const isImageModel = lowerId.includes('imagen') || 
                          lowerId.includes('flux') || 

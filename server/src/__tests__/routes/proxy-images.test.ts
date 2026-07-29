@@ -40,6 +40,8 @@ describe('Image Generation Proxy', () => {
     const db = getDb();
     db.prepare('DELETE FROM api_keys').run();
     db.prepare('DELETE FROM requests').run();
+    db.prepare("UPDATE models SET enabled = 1 WHERE model_id = 'imagen-3.0-generate-002'").run();
+    db.prepare("UPDATE fallback_config SET enabled = 1 WHERE model_db_id IN (SELECT id FROM models WHERE model_id = 'imagen-3.0-generate-002')").run();
 
     // Add a Google API key
     const addKey = await request(app, 'POST', '/api/keys', {

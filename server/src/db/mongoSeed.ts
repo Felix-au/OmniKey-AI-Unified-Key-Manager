@@ -1858,7 +1858,7 @@ function getDefaultModels() {
     "tpd_limit": null,
     "monthly_token_budget": "~1.5M",
     "context_window": null,
-    "enabled": 1
+    "enabled": 0
   },
   {
     "id": 16657,
