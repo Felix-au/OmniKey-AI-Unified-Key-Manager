@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import { Router } from 'express';
 import type { Request, Response } from 'express';
 import type { ChatMessage } from '@omnikey-ai/shared/types.js';
-import { routeRequest, recordRateLimitHit, recordSuccess, type RouteResult } from '../services/router.js';
+import { routeRequest, recordRateLimitHit, recordSuccess, isImageModel, type RouteResult } from '../services/router.js';
 import { recordRequest, recordTokens, setCooldown } from '../services/ratelimit.js';
 import { getDb, getUnifiedGeminiApiKey, getUnifiedApiKey } from '../db/index.js';
 import { contentToString } from '../lib/content.js';
@@ -450,25 +450,58 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
       }
 
       let preferredModelId: string | number | undefined;
-      let targetModelId = modelId === AUTO_MODEL_ID ? 'imagen-3.0-generate-002' : modelId;
-      if (targetModelId.includes('/')) {
-        targetModelId = targetModelId.split('/').pop() || targetModelId;
+      let targetModelId: string | undefined;
+
+      if (modelId !== AUTO_MODEL_ID) {
+        targetModelId = modelId;
+        if (targetModelId.includes('/')) {
+          targetModelId = targetModelId.split('/').pop() || targetModelId;
+        }
       }
 
       if (isLocalDbEnabled()) {
         const db = getDb();
-        const dbModel = db.prepare("SELECT id FROM models WHERE model_id = ? AND enabled = 1").get(targetModelId) as { id: number } | undefined;
-        if (dbModel) preferredModelId = dbModel.id;
+        if (targetModelId) {
+          const dbModel = db.prepare("SELECT id FROM models WHERE model_id = ? AND enabled = 1").get(targetModelId) as { id: number } | undefined;
+          if (dbModel) preferredModelId = dbModel.id;
+        } else {
+          // Fallback to highest priority enabled image model
+          const dbModel = db.prepare(`
+            SELECT m.id, m.model_id FROM fallback_config f
+            JOIN models m ON f.model_db_id = m.id
+            WHERE m.enabled = 1 AND f.enabled = 1 AND (
+              m.model_id LIKE '%imagen%' OR
+              m.model_id LIKE '%flux%' OR
+              m.model_id LIKE '%stable-diffusion%' OR
+              m.model_id LIKE '%dreamshaper%' OR
+              m.model_id LIKE '%leonardo%'
+            )
+            ORDER BY f.priority ASC LIMIT 1
+          `).get() as { id: number; model_id: string } | undefined;
+          if (dbModel) {
+            preferredModelId = dbModel.id;
+            targetModelId = dbModel.model_id;
+          }
+        }
       } else {
-        const dbModel = await Model.findOne({ modelId: targetModelId, enabled: true });
-        if (dbModel) preferredModelId = dbModel._id.toString();
+        if (targetModelId) {
+          const dbModel = await Model.findOne({ modelId: targetModelId, enabled: true });
+          if (dbModel) preferredModelId = dbModel._id.toString();
+        } else {
+          const enabledModels = await Model.find({ enabled: true });
+          const dbModel = enabledModels.find(m => isImageModel(m.modelId));
+          if (dbModel) {
+            preferredModelId = dbModel._id.toString();
+            targetModelId = dbModel.modelId;
+          }
+        }
       }
 
       if (!preferredModelId) {
         return res.status(400).json({
           error: {
             code: 400,
-            message: `Image model '${targetModelId}' is not found or is disabled.`,
+            message: `Image model '${targetModelId || 'auto'}' is not found or is disabled.`,
             status: 'INVALID_ARGUMENT'
           }
         });
