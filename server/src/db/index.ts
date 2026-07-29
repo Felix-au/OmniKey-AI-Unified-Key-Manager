@@ -55,6 +55,7 @@ export function initDb(dbPath?: string): Database.Database {
   migrateModelsV16(db);
   migrateModelsV17(db);
   migrateModelsV18(db);
+  migrateModelsV19(db);
   ensureUnifiedKey(db);
   ensureUnifiedGeminiKey(db);
   seedAdmin(db);
@@ -1489,6 +1490,26 @@ function migrateModelsV18(db: Database.Database) {
     UPDATE fallback_config 
        SET enabled = 0 
      WHERE model_db_id = (SELECT id FROM models WHERE platform = 'openrouter' AND model_id = ?)
+  `);
+
+  for (const mId of retired) {
+    disableModel.run(mId);
+    disableFallback.run(mId);
+  }
+}
+
+function migrateModelsV19(db: Database.Database) {
+  // Disable retired Groq models shut down on July 17, 2026
+  const retired = [
+    'qwen/qwen3-32b',
+    'meta-llama/llama-4-scout-17b-16e-instruct'
+  ];
+
+  const disableModel = db.prepare("UPDATE models SET enabled = 0 WHERE platform = 'groq' AND model_id = ?");
+  const disableFallback = db.prepare(`
+    UPDATE fallback_config 
+       SET enabled = 0 
+     WHERE model_db_id = (SELECT id FROM models WHERE platform = 'groq' AND model_id = ?)
   `);
 
   for (const mId of retired) {
