@@ -951,6 +951,12 @@ const providerLogos: Record<string, string> = {
   Cloudflare: '/logos/cloudflare.svg',
   Zhipu: '/logos/zai.svg',
   GitHub: '/logos/github.svg',
+  Ollama: '/logos/ollama.svg',
+  Kilo: '/logos/kilo.svg',
+  Pollinations: '/logos/pollinations.svg',
+  LLM7: '/logos/llm7.svg',
+  OpenCode: '/logos/opencode.svg',
+  Custom: '/logos/custom.svg',
 }
 
 
