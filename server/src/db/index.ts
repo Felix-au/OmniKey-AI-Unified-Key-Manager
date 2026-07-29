@@ -53,6 +53,7 @@ export function initDb(dbPath?: string): Database.Database {
   migrateModelsV14(db);
   migrateModelsV15(db);
   migrateModelsV16(db);
+  migrateModelsV17(db);
   ensureUnifiedKey(db);
   ensureUnifiedGeminiKey(db);
   seedAdmin(db);
@@ -1420,6 +1421,56 @@ function migrateModelsV16(db: Database.Database) {
     const addFb = db.prepare('INSERT INTO fallback_config (model_db_id, priority, enabled) VALUES (?, ?, 1)');
     for (let i = 0; i < missing.length; i++) {
       addFb.run(missing[i].id, maxPriority + i + 1);
+    }
+  }
+}
+
+function migrateModelsV17(db: Database.Database) {
+  // 1) Disable retired models unique to our project
+  db.prepare("UPDATE models SET enabled = 0 WHERE platform = 'sambanova' AND model_id = 'DeepSeek-V3.2'").run();
+  db.prepare("UPDATE fallback_config SET enabled = 0 WHERE model_db_id = (SELECT id FROM models WHERE platform = 'sambanova' AND model_id = 'DeepSeek-V3.2')").run();
+
+  db.prepare("UPDATE models SET enabled = 0 WHERE platform = 'openrouter' AND model_id = 'minimax/minimax-m2.5:free'").run();
+  db.prepare("UPDATE fallback_config SET enabled = 0 WHERE model_db_id = (SELECT id FROM models WHERE platform = 'openrouter' AND model_id = 'minimax/minimax-m2.5:free')").run();
+
+  db.prepare("UPDATE models SET enabled = 0 WHERE platform = 'openrouter' AND model_id = 'arcee-ai/trinity-large-thinking:free'").run();
+  db.prepare("UPDATE fallback_config SET enabled = 0 WHERE model_db_id = (SELECT id FROM models WHERE platform = 'openrouter' AND model_id = 'arcee-ai/trinity-large-thinking:free')").run();
+
+  // 2) Insert unique FreeLLMAPI models (skipping gemini-3.1-flash-lite-preview as we already have gemini-3.1-flash-lite)
+  const insertModel = db.prepare(`
+    INSERT OR IGNORE INTO models (platform, model_id, display_name, intelligence_rank, speed_rank, size_label, rpm_limit, rpd_limit, tpm_limit, tpd_limit, monthly_token_budget, context_window, enabled)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  insertModel.run('opencode', 'big-pickle', 'Big Pickle (OpenCode Zen, stealth)', 10, 4, 'Large', 20, 200, null, null, 'promo (trial)', 131072, 1);
+  insertModel.run('opencode', 'deepseek-v4-flash-free', 'DeepSeek V4 Flash Free (OpenCode Zen)', 4, 4, 'Frontier', 20, 200, null, null, 'promo (trial)', 131072, 1);
+  insertModel.run('opencode', 'mimo-v2.5-free', 'MiMo-V2.5 Free (OpenCode Zen)', 14, 4, 'Medium', 20, 200, null, null, 'promo (trial)', 131072, 1);
+  insertModel.run('opencode', 'nemotron-3-super-free', 'Nemotron 3 Super Free (OpenCode Zen)', 12, 4, 'Large', 20, 200, null, null, 'promo (trial)', 131072, 0);
+  insertModel.run('google', 'gemma-4-31b-it', 'Gemma 4 31B IT', 19, 4, 'Large', 15, 1000, 250000, null, '~30M', 32768, 1);
+  insertModel.run('google', 'gemma-4-26b-a4b-it', 'Gemma 4 26B IT', 20, 4, 'Large', 15, 1000, 250000, null, '~30M', 32768, 1);
+  insertModel.run('kilo', 'poolside/laguna-m.1:free', 'Poolside Laguna M.1 (Kilo)', 13, 8, 'Large', null, null, null, null, 'free · 200/hr per IP', 262144, 1);
+  insertModel.run('kilo', 'poolside/laguna-xs.2:free', 'Poolside Laguna XS.2 (Kilo)', 16, 4, 'Medium', null, null, null, null, 'free · 200/hr per IP', 262144, 1);
+  insertModel.run('kilo', 'stepfun/step-3.7-flash:free', 'StepFun Step 3.7 Flash (Kilo)', 14, 3, 'Medium', null, null, null, null, 'free · 200/hr per IP', 262144, 1);
+  insertModel.run('openrouter', 'moonshotai/kimi-k2.6:free', 'Kimi K2.6 (OR free)', 3, 9, 'Frontier', 20, 200, null, null, '~6M', 262144, 1);
+  insertModel.run('openrouter', 'nvidia/nemotron-3-ultra-550b-a55b:free', 'Nemotron 3 Ultra 550B (free, slow)', 7, 11, 'Frontier', 20, 200, null, null, '~6M', 1000000, 0);
+  insertModel.run('openrouter', 'nvidia/nemotron-nano-12b-v2-vl:free', 'Nemotron Nano 12B VL (free)', 26, 9, 'Medium', 20, 200, null, null, '~6M', 128000, 1);
+  insertModel.run('openrouter', 'meta-llama/llama-3.2-3b-instruct:free', 'Llama 3.2 3B (free)', 30, 9, 'Small', 20, 200, null, null, '~6M', 131072, 1);
+  insertModel.run('openrouter', 'cognitivecomputations/dolphin-mistral-24b-venice-edition:free', 'Dolphin Mistral 24B Venice (free)', 25, 9, 'Medium', 20, 200, null, null, '~6M', 32768, 1);
+  insertModel.run('zhipu', 'glm-4.6v-flash', 'GLM-4.6V Flash', 21, 4, 'Large', null, null, null, null, '~30M', 131072, 1);
+  insertModel.run('opencode', 'nemotron-3-ultra-free', 'Nemotron 3 Ultra Free (OpenCode Zen)', 7, 4, 'Frontier', 20, 200, null, null, 'promo (trial)', 131072, 1);
+  insertModel.run('opencode', 'minimax-m3-free', 'MiniMax M3 Free (OpenCode Zen)', 4, 4, 'Frontier', 20, 200, null, null, 'promo (trial)', 131072, 0);
+
+  // 3) Ensure fallback entries exist for new models
+  const missing = db.prepare(`
+    SELECT m.id, m.enabled FROM models m
+    LEFT JOIN fallback_config f ON m.id = f.model_db_id
+    WHERE f.id IS NULL ORDER BY m.intelligence_rank ASC
+  `).all() as { id: number; enabled: number }[];
+  if (missing.length > 0) {
+    const maxPriority = (db.prepare('SELECT COALESCE(MAX(priority), 0) AS mx FROM fallback_config').get() as { mx: number }).mx;
+    const addFb = db.prepare('INSERT INTO fallback_config (model_db_id, priority, enabled) VALUES (?, ?, ?)');
+    for (let i = 0; i < missing.length; i++) {
+      addFb.run(missing[i].id, maxPriority + i + 1, missing[i].enabled);
     }
   }
 }
