@@ -1542,7 +1542,7 @@ export default function LandingPage() {
       <GradientDots className="fixed inset-0 z-[-1] pointer-events-none" />
 
       {/* NAV */}
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-background/70 backdrop-blur-[24px] border-b border-cyan-400/20 shadow-[0_4px_16px_rgba(6,182,212,0.15)] rounded-b-2xl ${scrolled ? 'h-12' : 'h-16'}`}>
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-background/70 backdrop-blur-[24px] border-b border-cyan-400/10 shadow-[0_4px_16px_rgba(6,182,212,0.06)] rounded-b-2xl ${scrolled ? 'h-12' : 'h-16'}`}>
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between relative h-full transition-all duration-300">
           <div className="flex items-center gap-2 shrink-0">
             <span
@@ -2434,7 +2434,7 @@ export default function LandingPage() {
       </div>
 
       {/* ── FOOTER: Persistent Frosted Glass Footer ── */}
-      <footer className="fixed bottom-0 left-0 right-0 z-40 h-10 bg-background/70 backdrop-blur-[24px] border-t border-cyan-400/20 rounded-t-2xl shadow-[0_-4px_16px_rgba(6,182,212,0.15)] flex items-center px-6">
+      <footer className="fixed bottom-0 left-0 right-0 z-40 h-10 bg-background/70 backdrop-blur-[24px] border-t border-cyan-400/10 rounded-t-2xl shadow-[0_-4px_16px_rgba(6,182,212,0.06)] flex items-center px-6">
         <div className="w-full max-w-6xl mx-auto flex items-center justify-between relative text-[11px] text-muted-foreground">
           {/* Centered Copyright */}
           <span className="sm:absolute sm:left-1/2 sm:-translate-x-1/2 font-medium tracking-wide whitespace-nowrap ml-auto mr-4 sm:ml-0 sm:mr-0">
