@@ -201,7 +201,7 @@ export class CloudflareProvider extends BaseProvider {
       method: 'POST',
       headers,
       body: requestBody,
-    });
+    }, 60000);
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));

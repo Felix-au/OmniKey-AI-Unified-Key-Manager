@@ -603,7 +603,7 @@ export class GoogleProvider extends BaseProvider {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-    });
+    }, 60000);
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
