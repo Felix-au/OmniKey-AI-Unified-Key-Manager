@@ -142,18 +142,40 @@ export default function CustomCursor() {
     let animationFrameId: number;
 
     const tick = () => {
-      const mouse = mouseRef.current;
+       const mouse = mouseRef.current;
       const ring = ringRef.current;
       const hasReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      let currentHovered = isHovered;
+      let currentMagnetic = isMagnetic;
+
+      // Instantly release hover lock if mouse has moved outside the boundary
+      if (isHovered && hoverTargetRef.current) {
+        const target = hoverTargetRef.current;
+        const padding = 16; // 16px threshold
+        const isOutside =
+          mouse.x < target.x - target.w / 2 - padding ||
+          mouse.x > target.x + target.w / 2 + padding ||
+          mouse.y < target.y - target.h / 2 - padding ||
+          mouse.y > target.y + target.h / 2 + padding;
+
+        if (isOutside) {
+          currentHovered = false;
+          currentMagnetic = false;
+          hoverTargetRef.current = null;
+          setIsHovered(false);
+          setIsMagnetic(false);
+        }
+      }
 
       // Targets depending on current state
       let targetX = mouse.x;
       let targetY = mouse.y;
-      let targetW = isHovered ? CONFIG.hoverRingSize : CONFIG.idleRingSize;
-      let targetH = isHovered ? CONFIG.hoverRingSize : CONFIG.idleRingSize;
-      let targetR = isHovered ? 9999 : 9999;
+      let targetW = currentHovered ? CONFIG.hoverRingSize : CONFIG.idleRingSize;
+      let targetH = currentHovered ? CONFIG.hoverRingSize : CONFIG.idleRingSize;
+      let targetR = currentHovered ? 9999 : 9999;
 
-      if (isHovered && isMagnetic && hoverTargetRef.current) {
+      if (currentHovered && currentMagnetic && hoverTargetRef.current) {
         const target = hoverTargetRef.current;
         targetX = target.x;
         targetY = target.y;
@@ -171,7 +193,7 @@ export default function CustomCursor() {
       // Linear interpolation (lerp) calculations
       const currentLerp = hasReducedMotion 
         ? 1.0 
-        : (isMagnetic ? CONFIG.lerpSpeedMagnetic : CONFIG.lerpSpeed);
+        : (currentMagnetic ? CONFIG.lerpSpeedMagnetic : CONFIG.lerpSpeed);
 
       ring.x += (targetX - ring.x) * currentLerp;
       ring.y += (targetY - ring.y) * currentLerp;
@@ -183,7 +205,7 @@ export default function CustomCursor() {
       if (dotElRef.current) {
         dotElRef.current.style.transform = `translate3d(${mouse.x}px, ${mouse.y}px, 0) translate3d(-50%, -50%, 0)`;
         // Fade out inner dot when wrapping magnetically
-        dotElRef.current.style.opacity = isMagnetic ? '0' : isClicked ? '0.7' : '1';
+        dotElRef.current.style.opacity = currentMagnetic ? '0' : isClicked ? '0.7' : '1';
       }
 
       // Update outer ring
