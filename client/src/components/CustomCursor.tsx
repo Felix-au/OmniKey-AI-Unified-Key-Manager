@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 
 const CONFIG = {
-  idleDotSize: 6,
-  idleRingSize: 24,
-  hoverRingSize: 44,
+  idleDotSize: 8,
+  idleRingSize: 28,
+  hoverRingSize: 52,
   lerpSpeed: 0.16,
   lerpSpeedMagnetic: 0.24,
 };
@@ -242,7 +242,7 @@ export default function CustomCursor() {
             : 'border-black/20 dark:border-white/20 bg-transparent'
         }`}
         style={{
-          borderWidth: '1.25px',
+          borderWidth: '2.5px',
           borderStyle: 'solid',
           transitionProperty: 'border-color, background-color, box-shadow, opacity',
         }}
@@ -255,7 +255,7 @@ export default function CustomCursor() {
               width: '100%',
               height: '100%',
               animationDuration: '400ms',
-              borderWidth: '1.25px',
+              borderWidth: '2.5px',
             }}
           />
         )}
