@@ -23,6 +23,7 @@ import EmailVerificationPage from '@/pages/EmailVerificationPage'
 import DocsPage from '@/pages/DocsPage'
 import { OnboardingTour } from '@/components/OnboardingTour'
 import { Analytics } from '@vercel/analytics/react'
+import CustomCursor from '@/components/CustomCursor'
 
 const queryClient = new QueryClient()
 
@@ -497,6 +498,7 @@ function App() {
       <AuthProvider>
         <BrowserRouter basename={import.meta.env.BASE_URL}>
           <RouteMeta />
+          <CustomCursor />
           <Routes>
             <Route path="/"       element={<LandingPage />} />
             <Route path="/docs"  element={<DocsPage />} />

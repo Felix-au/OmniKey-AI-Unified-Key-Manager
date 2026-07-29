@@ -329,4 +329,22 @@ html.dark {
     scrollbar-color: oklch(0.30 0 0) transparent;
 }
 
+/* ── Premium Custom Cursors ── */
+@media (hover: hover) and (pointer: fine) {
+    /* Hide native cursor globally on desktop interactive nodes */
+    html, body, 
+    a, button, select, 
+    input[type="submit"], input[type="button"], 
+    [role="button"], .interactive-hover {
+        cursor: none !important;
+    }
+    
+    /* Retain native text insert caret on input elements */
+    input[type="text"], input[type="email"], input[type="password"], input[type="search"], input[type="number"], 
+    textarea, [contenteditable="true"] {
+        cursor: text !important;
+    }
+}
+
+
 
