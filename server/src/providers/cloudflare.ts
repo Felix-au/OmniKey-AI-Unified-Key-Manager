@@ -178,13 +178,29 @@ export class CloudflareProvider extends BaseProvider {
 
     const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${cfModelId}`;
 
+    const useMultipart = cfModelId.includes('flux-2-dev') || 
+                         cfModelId.includes('flux-2-klein-4b') || 
+                         cfModelId.includes('flux-2-klein-9b');
+
+    const headers: any = {
+      'Authorization': `Bearer ${token}`,
+    };
+    let requestBody: any;
+
+    if (useMultipart) {
+      const fd = new FormData();
+      fd.append('prompt', prompt);
+      fd.append('steps', String(payload.steps || 4));
+      requestBody = fd;
+    } else {
+      headers['Content-Type'] = 'application/json';
+      requestBody = JSON.stringify(payload);
+    }
+
     const res = await this.fetchWithTimeout(url, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
+      headers,
+      body: requestBody,
     });
 
     if (!res.ok) {
