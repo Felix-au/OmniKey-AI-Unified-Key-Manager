@@ -54,6 +54,7 @@ export function initDb(dbPath?: string): Database.Database {
   migrateModelsV15(db);
   migrateModelsV16(db);
   migrateModelsV17(db);
+  migrateModelsV18(db);
   ensureUnifiedKey(db);
   ensureUnifiedGeminiKey(db);
   seedAdmin(db);
@@ -1472,6 +1473,27 @@ function migrateModelsV17(db: Database.Database) {
     for (let i = 0; i < missing.length; i++) {
       addFb.run(missing[i].id, maxPriority + i + 1, missing[i].enabled);
     }
+  }
+}
+
+function migrateModelsV18(db: Database.Database) {
+  // Disable retired OpenRouter free models verified unavailable in live requests
+  const retired = [
+    'liquid/lfm-2.5-1.2b-instruct:free',
+    'liquid/lfm-2.5-1.2b-thinking:free',
+    'meta-llama/llama-3.3-70b-instruct:free'
+  ];
+
+  const disableModel = db.prepare("UPDATE models SET enabled = 0 WHERE platform = 'openrouter' AND model_id = ?");
+  const disableFallback = db.prepare(`
+    UPDATE fallback_config 
+       SET enabled = 0 
+     WHERE model_db_id = (SELECT id FROM models WHERE platform = 'openrouter' AND model_id = ?)
+  `);
+
+  for (const mId of retired) {
+    disableModel.run(mId);
+    disableFallback.run(mId);
   }
 }
 
