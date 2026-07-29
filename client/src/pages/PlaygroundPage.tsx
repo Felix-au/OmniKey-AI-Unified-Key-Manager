@@ -38,6 +38,7 @@ interface FallbackEntry {
   displayName: string
   sizeLabel: string
   keyCount: number
+  globallyDisabled?: boolean
 }
 
 interface ChatMessage {
