@@ -1377,6 +1377,8 @@ function migrateModelsV16(db: Database.Database) {
   `);
   insertCerebras.run('cerebras', 'gemma-4-31b', 'Gemma 4 31B (Cerebras)', 5, 1, 'Medium', 30, 1000, 60000, 1000000, '~30M', 131072);
   insertCerebras.run('cerebras', 'zai-glm-4.7', 'GLM 4.7 (Cerebras)', 4, 1, 'Large', 30, 1000, 60000, 1000000, '~30M', 131072);
+  db.prepare("UPDATE models SET enabled = 1 WHERE platform = 'cerebras' AND model_id = 'zai-glm-4.7'").run();
+  db.prepare("UPDATE fallback_config SET enabled = 1 WHERE model_db_id = (SELECT id FROM models WHERE platform = 'cerebras' AND model_id = 'zai-glm-4.7')").run();
 
   // 5) SambaNova provider: disable retired gemma-3-12b-it, insert active gemma-4-31b-it
   db.prepare("UPDATE models SET enabled = 0 WHERE platform = 'sambanova' AND model_id = 'gemma-3-12b-it'").run();
