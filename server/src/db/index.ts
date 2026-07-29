@@ -1628,6 +1628,10 @@ function migrateModelsV21(db: Database.Database) {
     VALUES ('cloudflare', 'dreamshaper-8-lcm', 'DreamShaper 8 LCM (Cloudflare)', 5, 5, 'Large', 5, 100, null, null, '~1.5M', null, 1)
   `).run();
 
+  // Ensure flux-2-dev is globally enabled
+  db.prepare("UPDATE models SET enabled = 1 WHERE model_id = 'flux-2-dev'").run();
+  db.prepare("UPDATE fallback_config SET enabled = 1 WHERE model_db_id IN (SELECT id FROM models WHERE model_id = 'flux-2-dev')").run();
+
   // Add fallback config entries for them
   const missing = db.prepare(`
     SELECT m.id, m.enabled FROM models m
