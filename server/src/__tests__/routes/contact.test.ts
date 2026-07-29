@@ -120,6 +120,7 @@ describe('Contact API', () => {
     const secondBody = JSON.parse(secondCallArgs[1]?.body as string);
     expect(secondBody.from).toBe('OmniKey AI Support <omnikeyai@felixau.in>');
     expect(secondBody.to).toBe('user@example.com');
+    expect(secondBody.reply_to).toBe('omnikeyai@felixau.in');
     expect(secondBody.subject).toContain('We received your message');
   });
 

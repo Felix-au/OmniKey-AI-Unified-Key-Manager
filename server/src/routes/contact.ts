@@ -77,6 +77,7 @@ contactRouter.post('/', async (req: Request, res: Response, next: NextFunction) 
       body: JSON.stringify({
         from: "OmniKey AI Support <omnikeyai@felixau.in>",
         to: email,
+        reply_to: "omnikeyai@felixau.in",
         subject: "We received your message - OmniKey AI Support",
         html: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 32px; color: #1f2937; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 16px; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);">
