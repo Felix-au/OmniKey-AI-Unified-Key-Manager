@@ -54,8 +54,8 @@
 **OmniKey AI** is a self-hosted, multi-format API gateway proxy that wraps 12 free-tier LLM providers—Gemini, OpenRouter, Cerebras, Groq, Mistral, GitHub Models, SambaNova, Cohere, Cloudflare, Z.ai (Zhipu), HuggingFace, and NVIDIA—into a unified environment. 
 
 The proxy serves two endpoints natively:
-* **OpenAI-Compatible Endpoint (`/v1`)**: Point OpenAI SDKs or clients at `/v1/chat/completions` using your unified OpenAI key (`omnikey-` prefix). Supports standard chat, vision, transcription (Voice STT), and text-to-speech (Voice TTS).
-* **Gemini-Compatible Endpoint (`/v1beta`)**: Point Gemini SDKs or REST clients at `/v1beta/models/:model` (supporting `generateContent` and `streamGenerateContent` methods) using your unified Gemini key (`omnikey-g-` prefix). Supports multimodal inputs including text, images (Vision), and voice (Speech Input & Response Generation).
+* **OpenAI-Compatible Endpoint (`/v1`)**: Point OpenAI SDKs or clients at `/v1` using your unified OpenAI key (`omnikey-` prefix). Supports standard chat completions (`/v1/chat/completions`), vision, transcription (`/v1/audio/transcriptions`), text-to-speech (`/v1/audio/speech`), and text-to-image generation (`/v1/images/generations`).
+* **Gemini-Compatible Endpoint (`/v1beta`)**: Point Gemini SDKs or REST clients at `/v1beta/models/:model` using your unified Gemini key (`omnikey-g-` prefix). Supports `generateContent` (chat, vision, audio input), `streamGenerateContent`, and `generateImages` (text-to-image generation).
 
 Behind the scenes, OmniKey AI handles key storage (encrypted using AES-256-GCM), key duplication protection, rate limits, model routing, fallback cascades, and local telemetry logging of daily/monthly token counts.
 
@@ -69,6 +69,7 @@ Behind the scenes, OmniKey AI handles key storage (encrypted using AES-256-GCM),
 |---|---|---|
 | **API Endpoints** | A dozen different URLs and payload formats | Dual `/v1` (OpenAI format) & `/v1beta` (Gemini format) |
 | **API Keys** | 12 separate keys to rotate, secure, and manage | Twin unified keys (`omnikey-` / `omnikey-g-`) stored securely |
+| **Image Generation** | Manual model hosting or API integration | Unified `/v1/images/generations` and `/v1beta/models/:model:generateImages` routing |
 | **Failover** | Manual retry logic; app crashes when provider is down | Automatic fallback to backup providers in milliseconds |
 | **Rate-Limits (429)** | Request fails immediately | Transparent retry across next best provider |
 | **Usage Tracking** | Custom logging per platform to track free caps | Automatic local tracking of daily/monthly token usage |

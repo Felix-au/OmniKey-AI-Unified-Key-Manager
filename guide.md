@@ -7,7 +7,7 @@
 
 # OmniKey AI: Unified Key Manager — Quick Guide
 
-A unified proxy that exposes both OpenAI-compatible and Gemini-compatible APIs, routing across 12 free-tier LLM providers. Point any OpenAI or Gemini client library at your local proxy server, and it routes transparently across whichever providers you've added keys for.
+A unified proxy that exposes both OpenAI-compatible and Gemini-compatible APIs, routing across 12 free-tier LLM providers. Point any OpenAI or Gemini client library at your local proxy server (supporting text chat, streaming, vision, speech transcriptions/synthesis, and image generation), and it routes transparently across whichever providers you've added keys for.
 
 > [!IMPORTANT]
 > **Unlike cloud API routers** that centralize credentials, OmniKey AI is **entirely self-hosted**. Your upstream API keys are stored in a local SQLite database on your machine, encrypted using AES-256-GCM envelope encryption. Credentials and prompts never leave your local environment.
@@ -73,7 +73,7 @@ node server/dist/index.js
 3. **Add Upstream Keys** — Go to the **Keys** tab and paste your API keys. They are immediately encrypted and saved, checking automatically to reject duplicate credentials.
 4. **Order the Fallback Chain** — Drag and drop providers to establish your priority chain.
 5. **Get your Unified Keys** — Display and copy either your OpenAI-compatible master key (`omnikey-...`) or your Gemini-compatible master key (`omnikey-g-...`) from the **Keys** page.
-6. **Query the Proxy** — Point your client libraries (OpenAI SDK to `/v1` or Gemini SDK to `/v1beta`) at the local proxy server.
+6. **Query the Proxy** — Point your client libraries (OpenAI SDK to `/v1` or Gemini SDK to `/v1beta`) at the local proxy server. You can generate text responses, stream completions, analyze images/audio, transcribe voices, synthesize text-to-speech, and generate images directly.
 
 ---
 

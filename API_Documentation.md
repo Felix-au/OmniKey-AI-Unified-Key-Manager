@@ -24,6 +24,7 @@
 - [Vision Modality (Multimodal)](#vision-modality-multimodal)
 - [Voice (Speech Input and Transcription)](#voice-speech-input-and-transcription)
 - [Text-to-Speech Synthesis and Audio Output](#text-to-speech-synthesis-and-audio-output)
+- [Image Generation](#image-generation)
 - [Promo Tier Restrictions and Modalities](#promo-tier-restrictions-and-modalities)
 - [Dashboard Management APIs](#dashboard-management-apis)
 - [Admin Console APIs](#admin-console-apis)
@@ -69,6 +70,8 @@ Authorization: Bearer omnikey-your-unified-openai-key-here
 | **POST** | `/v1/chat/completions` | Create a vision completion (OpenAI compatible) | Client | `vision` (auto-detected) |
 | **POST** | `/v1/audio/transcriptions` | Transcribe audio files to text (Voice) | Client | `audio_input` |
 | **POST** | `/v1/audio/speech` | Synthesize text to speech (TTS) | Client | `audio_output` |
+| **POST** | `/v1/images/generations` | Generate images from text prompts (OpenAI compatible) | Client | `image` |
+| **POST** | `/v1beta/models/:model:generateImages` | Generate images from text prompts (Gemini compatible) | Client | `image` |
 | **GET** | `/v1/models` | List all supported models (OpenAI compatible) | Client | - |
 | **POST** | `/v1beta/models/:model:generateContent` | Generate a Gemini-compatible completion | Client | `chat` / `vision` / `audio_input` / `audio_output` |
 | **POST** | `/v1beta/models/:model:streamGenerateContent` | Stream a Gemini-compatible completion | Client | `chat` / `vision` / `audio_input` / `audio_output` |
@@ -549,17 +552,68 @@ Returns the model text response alongside the synthesized audio block inside can
 
 ---
 
+## Image Generation
+
+The gateway provides unified access to multiple image-generation capable models. If the requested model is `"auto"` (or omitted), the proxy automatically routes the prompt to the highest priority enabled image model in the catalog fallback config.
+
+### 1. OpenAI-Compatible Format
+
+**Endpoint:** `POST /v1/images/generations`  
+**Headers:** `Authorization: Bearer omnikey-your-unified-openai-key-here`
+
+#### Request Body (JSON)
+* `prompt` (String, Required): Description of the image to generate.
+* `model` (String, Optional): Model ID (e.g. `flux-1-schnell`), or `"auto"` (default).
+* `n` (Integer, Optional): Number of images (default `1`).
+* `size` (String, Optional): Dimensions, e.g. `"1024x1024"`.
+* `response_format` (String, Optional): `"url"` (default, returns inline base64 data URIs) or `"b64_json"` (returns raw base64).
+
+#### Success Response (`200 OK`)
+```json
+{
+  "created": 1785355673,
+  "data": [
+    {
+      "url": "data:image/png;base64,/9j/4AAQ..."
+    }
+  ]
+}
+```
+
+### 2. Gemini-Compatible Format
+
+**Endpoint:** `POST /v1beta/models/:model:generateImages?key=omnikey-g-your-unified-gemini-key-here`
+
+#### Request Body (JSON)
+* `prompt` (String, Required): Description of the image to generate.
+* `numberOfImages` (Integer, Optional): Number of images (default `1`).
+
+#### Success Response (`200 OK`)
+```json
+{
+  "generatedImages": [
+    {
+      "image": {
+        "imageBytes": "/9j/4AAQ..."
+      }
+    }
+  ]
+}
+```
+
+---
+
 ## Promo Tier Restrictions and Modalities
 
 To prevent exhaustion of pooled admin resources, strict modality-based authorization checks are enforced inside the router's key iteration loops:
 
-* **Modality Classes**: `vision`, `audio_input` (Voice), and `audio_output` (TTS) are flagged as specialized capabilities.
+* **Modality Classes**: `vision`, `audio_input` (Voice), `audio_output` (TTS), and `image` (Image Generation) are flagged as specialized capabilities.
 * **Key Exclusions**: When processing requests categorized under these modalities, the router **skips all administrative promo funding keys** unless the user has added their own personal Gemini/OpenAI key.
-* **Rejection Error**: If a promo user attempts to invoke multimodal endpoints without adding a personal API key, the gateway returns a `403 Forbidden` response:
+* **Rejection Error**: If a promo user attempts to invoke multimodal or image generation endpoints without adding a personal API key, the gateway returns a `403 Forbidden` response:
   ```json
   {
     "error": {
-      "message": "Multimodal capabilities (Vision, Voice, TTS) are not available on the free promo tier. Please add your own Gemini API key under Keys page to use these features.",
+      "message": "Image generation capabilities / Multimodal capabilities (Vision, Voice, TTS) are not available on the free promo tier. Please add your own Gemini API key under Keys page to use these features.",
       "status": 403
     }
   }
