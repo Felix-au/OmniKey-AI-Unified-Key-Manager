@@ -226,7 +226,7 @@ export default function CustomCursor() {
       {/* Inner Dot */}
       <div
         ref={dotElRef}
-        className="fixed top-0 left-0 pointer-events-none z-[9999] bg-ring rounded-full transition-opacity duration-200"
+        className="fixed top-0 left-0 pointer-events-none z-[9999] bg-black dark:bg-white rounded-full transition-opacity duration-200"
         style={{
           width: `${CONFIG.idleDotSize}px`,
           height: `${CONFIG.idleDotSize}px`,
@@ -236,27 +236,26 @@ export default function CustomCursor() {
       {/* Outer Ring */}
       <div
         ref={ringElRef}
-        className={`fixed top-0 left-0 pointer-events-none z-[9998] border border-border rounded-full flex items-center justify-center transition-colors duration-250 ${
+        className={`fixed top-0 left-0 pointer-events-none z-[9998] rounded-full flex items-center justify-center transition-colors duration-250 ${
           isHovered
-            ? 'border-ring bg-ring/5 shadow-[0_0_12px_var(--color-ring-glow)]'
-            : 'border-border bg-transparent'
+            ? 'border-black dark:border-white bg-black/[0.04] dark:bg-white/[0.05] shadow-[0_0_12px_rgba(0,0,0,0.12)] dark:shadow-[0_0_12px_rgba(255,255,255,0.18)]'
+            : 'border-black/20 dark:border-white/20 bg-transparent'
         }`}
         style={{
-          boxShadow: isHovered ? '0 0 12px oklch(var(--ring) / 0.15)' : undefined,
-          borderColor: isHovered ? 'oklch(var(--ring))' : undefined,
-          backgroundColor: isHovered ? 'oklch(var(--ring) / 0.04)' : undefined,
+          borderWidth: '1.25px',
+          borderStyle: 'solid',
           transitionProperty: 'border-color, background-color, box-shadow, opacity',
         }}
       >
         {/* Satisfying Click Ripple Effect */}
         {rippleActive && (
           <div
-            className="absolute rounded-full border border-ring/60 animate-ping pointer-events-none"
+            className="absolute rounded-full border border-black/40 dark:border-white/40 animate-ping pointer-events-none"
             style={{
               width: '100%',
               height: '100%',
               animationDuration: '400ms',
-              borderColor: 'oklch(var(--ring) / 0.5)',
+              borderWidth: '1.25px',
             }}
           />
         )}
