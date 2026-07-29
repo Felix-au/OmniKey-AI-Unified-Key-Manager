@@ -117,6 +117,7 @@ function DarkModeToggle({ collapsed }: { collapsed: boolean }) {
     <button
       onClick={toggle}
       title="Toggle theme"
+      aria-label="Toggle theme"
       className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors"
     >
       <span className="shrink-0">{dark ? <IconSun /> : <IconMoon />}</span>
@@ -241,6 +242,7 @@ function DashboardLayout() {
           <button
             onClick={() => { if (collapsed && !mobile) setCollapsed(false) }}
             title={collapsed && !mobile ? 'Expand sidebar' : undefined}
+            aria-label={collapsed && !mobile ? 'Expand sidebar' : 'OmniKey AI Logo'}
             className={`shrink-0 rounded-lg transition-colors ${collapsed && !mobile ? 'hover:bg-accent/60 cursor-pointer p-1' : 'cursor-default'}`}
           >
             <img
@@ -262,6 +264,7 @@ function DashboardLayout() {
             <button
               onClick={() => setCollapsed(true)}
               title="Collapse sidebar"
+              aria-label="Collapse sidebar"
               className="ml-auto shrink-0 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors"
             >
               <IconChevron collapsed={false} />

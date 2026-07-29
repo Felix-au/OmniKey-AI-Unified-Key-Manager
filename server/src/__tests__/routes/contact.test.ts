@@ -101,15 +101,15 @@ describe('Contact API', () => {
     expect(status).toBe(200);
     expect(body.success).toBe(true);
     expect(body.message).toContain('Message dispatched successfully');
-    
+
     // Should have sent two emails to Resend, plus 1 call for the request function
     expect(fetchSpy).toHaveBeenCalledTimes(3);
-    
+
     // Check parameters of first Resend call (which is the second call overall since request is first)
     const firstCallArgs = fetchSpy.mock.calls[1];
     expect(firstCallArgs[0]).toBe('https://api.resend.com/emails');
     const firstBody = JSON.parse(firstCallArgs[1]?.body as string);
-    expect(firstBody.from).toBe('OmniKey AI <omnikeyai@felix-au.me>');
+    expect(firstBody.from).toBe('OmniKey AI <omnikeyai@felixau.in>');
     expect(firstBody.to).toBe('felixaugum@gmail.com');
     expect(firstBody.reply_to).toBe('user@example.com');
     expect(firstBody.subject).toContain('New Inquiry from Felix');
@@ -118,7 +118,7 @@ describe('Contact API', () => {
     const secondCallArgs = fetchSpy.mock.calls[2];
     expect(secondCallArgs[0]).toBe('https://api.resend.com/emails');
     const secondBody = JSON.parse(secondCallArgs[1]?.body as string);
-    expect(secondBody.from).toBe('OmniKey AI Support <omnikeyai@felix-au.me>');
+    expect(secondBody.from).toBe('OmniKey AI Support <omnikeyai@felixau.in>');
     expect(secondBody.to).toBe('user@example.com');
     expect(secondBody.subject).toContain('We received your message');
   });

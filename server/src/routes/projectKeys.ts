@@ -422,7 +422,7 @@ projectKeysRouter.post('/fund-request', async (req: AuthenticatedRequest, res: R
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: "OmniKey AI <omnikeyai@felix-au.me>",
+            from: "OmniKey AI <omnikeyai@felixau.in>",
             to: "felixaugum@gmail.com",
             reply_to: userEmail,
             subject: `OmniKey AI: Project Funding Request from ${userEmail}`,

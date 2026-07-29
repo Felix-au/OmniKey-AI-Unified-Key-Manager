@@ -49,12 +49,22 @@ export function createApp() {
     });
   });
 
+  // Dynamic HSTS for secure production HTTPS deployments, bypassing localhost
+  app.use((req, res, next) => {
+    const isLocal = ['localhost', '127.0.0.1', '::1'].includes(req.hostname);
+    const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
+    if (!isLocal && isSecure) {
+      res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+    }
+    next();
+  });
+
   // CSP intentionally disabled — the SPA bundles inline styles and the OG
   // image is loaded from the same origin; enabling helmet's default CSP
-  // breaks the React build's hashed-asset loader. HSTS off because this is
-  // a single-user local proxy, served over HTTP on localhost. Both should
-  // stay disabled unless someone serves the proxy over HTTPS publicly
-  // (which is also not a supported deployment — see README).
+  // breaks the React build's hashed-asset loader. HSTS off by default in helmet
+  // because this is a single-user local proxy, served over HTTP on localhost,
+  // but handled dynamically above for HTTPS deployments. Both should stay
+  // disabled here unless someone serves the proxy over HTTPS publicly.
   app.use(helmet({ contentSecurityPolicy: false, hsts: false }));
   app.use(cors({
     origin(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
@@ -187,13 +197,24 @@ export function createApp() {
 
   // Serve client static files (after API error handler)
   const clientDist = path.resolve(__dirname, '../../client/dist');
-  app.use(express.static(clientDist));
+  app.use(express.static(clientDist, {
+    maxAge: '1d', // default fallback max-age
+    setHeaders: (res, filepath) => {
+      const ext = path.extname(filepath);
+      if (ext === '.html') {
+        res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+      } else if (/\.(js|css|woff2?|png|jpg|jpeg|gif|svg|ico|webp)$/.test(filepath)) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+    }
+  }));
   // SPA fallback — serve index.html for non-API routes
   app.use((req, res, next) => {
-    if (req.path.startsWith('/api/') || req.path.startsWith('/v1/')) {
+    if (req.path.startsWith('/api/') || req.path.startsWith('/v1/') || req.path.startsWith('/v1beta/')) {
       next();
       return;
     }
+    res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
     res.sendFile(path.join(clientDist, 'index.html'));
   });
 

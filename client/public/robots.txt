@@ -9,5 +9,8 @@ Disallow: /keys
 Disallow: /fallback
 Disallow: /analytics
 Disallow: /dev-corner
+Disallow: /api/
+Disallow: /v1/
+Disallow: /v1beta/
 
-Sitemap: https://omni-key-ai.vercel.app/sitemap.xml
+Sitemap: https://omnikeyai.felixau.in/sitemap.xml
