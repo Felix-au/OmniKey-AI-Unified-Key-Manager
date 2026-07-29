@@ -4,7 +4,7 @@ import { apiFetch } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PageHeader } from '@/components/page-header'
-import { MessageSquare, Eye, Mic, Volume2, Upload, X, Square, Info } from 'lucide-react'
+import { MessageSquare, Eye, Mic, Volume2, Upload, X, Square, Info, Image } from 'lucide-react'
 
 
 const base64ToBlob = (base64: string, mimeType: string): Blob => {
@@ -27,7 +27,7 @@ interface FallbackEntry {
 }
 
 export default function DevCornerPage() {
-  const [mode, setMode] = useState<'chat' | 'vision' | 'stt' | 'tts'>('chat')
+  const [mode, setMode] = useState<'chat' | 'vision' | 'stt' | 'tts' | 'image'>('chat')
   const [selectedModel, setSelectedModel] = useState('auto')
   const [temperature, setTemperature] = useState(0.7)
   const [maxTokens, setMaxTokens] = useState('')
@@ -43,6 +43,7 @@ export default function DevCornerPage() {
   const [file, setFile] = useState<File | null>(null)
   const [filePreview, setFilePreview] = useState<string>('')
   const [audioOutputUrl, setAudioOutputUrl] = useState<string>('')
+  const [imageOutputUrl, setImageOutputUrl] = useState<string>('')
   const [voice, setVoice] = useState<string>('alloy')
 
   const [isRecording, setIsRecording] = useState(false)
@@ -110,7 +111,16 @@ export default function DevCornerPage() {
   // Filter models based on modality rules
   const filteredModels = mode === 'chat'
     ? availableModels
-    : availableModels.filter(m => m.platform === 'google')
+    : mode === 'image'
+      ? availableModels.filter(m => {
+          const lowerId = m.modelId.toLowerCase();
+          return lowerId.includes('imagen') ||
+                 lowerId.includes('flux') ||
+                 lowerId.includes('stable-diffusion') ||
+                 lowerId.includes('dreamshaper') ||
+                 lowerId.includes('leonardo');
+        })
+      : availableModels.filter(m => m.platform === 'google')
 
   const base = (import.meta.env.VITE_API_URL || import.meta.env.BASE_URL).replace(/\/$/, '')
   const baseApiUrl = base.startsWith('http') ? base : `${window.location.origin}${base}`
@@ -125,6 +135,10 @@ export default function DevCornerPage() {
     completionEndpoint = apiFormat === 'gemini'
       ? `${baseApiUrl}/v1beta/models/${selectedModel}:generateContent`
       : `${baseApiUrl}/v1/audio/speech`
+  } else if (mode === 'image') {
+    completionEndpoint = apiFormat === 'gemini'
+      ? `${baseApiUrl}/v1beta/models/${selectedModel}:generateImages`
+      : `${baseApiUrl}/v1/images/generations`
   } else if (mode === 'vision' && apiFormat === 'gemini') {
     completionEndpoint = `${baseApiUrl}/v1beta/models/${selectedModel}:generateContent`
   } else if (mode === 'chat' && apiFormat === 'gemini') {
@@ -150,11 +164,12 @@ export default function DevCornerPage() {
     }
   }, [mode, filteredModels, selectedModel])
 
-  const handleModeChange = (newMode: 'chat' | 'vision' | 'stt' | 'tts') => {
+  const handleModeChange = (newMode: 'chat' | 'vision' | 'stt' | 'tts' | 'image') => {
     setMode(newMode)
     setFile(null)
     setFilePreview('')
     setResponseOutput('')
+    setImageOutputUrl('')
     if (audioOutputUrl) {
       URL.revokeObjectURL(audioOutputUrl)
       setAudioOutputUrl('')
@@ -169,6 +184,8 @@ export default function DevCornerPage() {
       setUserPrompt('')
     } else if (newMode === 'tts') {
       setUserPrompt('Welcome to the OmniKey AI Developer Corner.')
+    } else if (newMode === 'image') {
+      setUserPrompt('A futuristic city on Mars, cinematic lighting, digital art')
     }
   }
 
@@ -551,6 +568,63 @@ async function generateSpeech() {
 }
 
 generateSpeech();`
+    } else if (mode === 'image') {
+      jsCodeSnippet = apiFormat === 'openai'
+        ? `// OmniKey AI Image Generation Request Example
+const apiKey = '${apiKey}';
+const endpoint = '${completionEndpoint}';
+
+async function generateImage() {
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': \`Bearer \${apiKey}\`
+      },
+      body: JSON.stringify({
+        model: '${selectedModel}',
+        prompt: '${userPrompt.replace(/'/g, "\\'")}',
+        n: 1,
+        size: '1024x1024',
+        response_format: 'url'
+      })
+    });
+
+    const data = await response.json();
+    console.log('Generated Image URL:', data.data?.[0]?.url);
+  } catch (error) {
+    console.error('Image generation failed:', error);
+  }
+}
+
+generateImage();`
+        : `// OmniKey AI Image Generation Request Example (Gemini Format)
+const apiKey = '${apiKey}';
+const endpoint = '${completionEndpoint}';
+
+async function generateImage() {
+  try {
+    const url = \`\${endpoint}?key=\${apiKey}\`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        prompt: '${userPrompt.replace(/'/g, "\\'")}',
+        numberOfImages: 1
+      })
+    });
+
+    const data = await response.json();
+    console.log('Generated Image Bytes (Base64):', data.generatedImages?.[0]?.image?.imageBytes);
+  } catch (error) {
+    console.error('Image generation failed:', error);
+  }
+}
+
+generateImage();`
     }
   } else if (selectedLang === 'python') {
     if (mode === 'chat') {
@@ -821,6 +895,57 @@ try:
         print("Audio saved successfully to speech.wav")
 except Exception as e:
     print("Speech generation failed:", e)`
+    } else if (mode === 'image') {
+      jsCodeSnippet = apiFormat === 'openai'
+        ? `# OmniKey AI Image Generation Request Example
+import requests
+
+endpoint = '${completionEndpoint}'
+apiKey = '${apiKey}'
+
+payload = {
+    "model": "${selectedModel}",
+    "prompt": "${userPrompt.replace(/"/g, '\\"')}",
+    "n": 1,
+    "size": "1024x1024",
+    "response_format": "url"
+}
+
+headers = {
+    "Content-Type": "application/json",
+    "Authorization": f"Bearer {apiKey}"
+}
+
+try:
+    response = requests.post(endpoint, headers=headers, json=payload)
+    response.raise_for_status()
+    data = response.json()
+    print("Generated Image URL:", data['data'][0]['url'])
+except Exception as e:
+    print("Image generation failed:", e)`
+        : `# OmniKey AI Image Generation Request Example (Gemini Format)
+import requests
+
+endpoint = '${completionEndpoint}'
+apiKey = '${apiKey}'
+url = f"{endpoint}?key={apiKey}"
+
+payload = {
+    "prompt": "${userPrompt.replace(/"/g, '\\"')}",
+    "numberOfImages": 1
+}
+
+headers = {
+    "Content-Type": "application/json"
+}
+
+try:
+    response = requests.post(url, headers=headers, json=payload)
+    response.raise_for_status()
+    data = response.json()
+    print("Generated Image Bytes (Base64):", data['generatedImages'][0]['image']['imageBytes'])
+except Exception as e:
+    print("Image generation failed:", e)`
     }
   } else if (selectedLang === 'go') {
     if (mode === 'chat') {
@@ -1205,6 +1330,81 @@ func main() {
     // Parse candidates and inlineData from response map...
     fmt.Println("Response parsed successfully.")
 }`
+    } else if (mode === 'image') {
+      jsCodeSnippet = apiFormat === 'openai'
+        ? `package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+func main() {
+    apiKey := "${apiKey}"
+    endpoint := "${completionEndpoint}"
+
+    payload := map[string]interface{}{
+        "model": "${selectedModel}",
+        "prompt": "${userPrompt.replace(/"/g, '\\"')}",
+        "n": 1,
+        "size": "1024x1024",
+        "response_format": "url",
+    }
+
+    jsonPayload, _ := json.Marshal(payload)
+    req, _ := http.NewRequest("POST", endpoint, bytes.NewBuffer(jsonPayload))
+    req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("Authorization", "Bearer "+apiKey)
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        fmt.Println("Error:", err)
+        return
+    }
+    defer resp.Body.Close()
+
+    body, _ := io.ReadAll(resp.Body)
+    fmt.Println("Response:", string(body))
+}`
+        : `package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+func main() {
+    apiKey := "${apiKey}"
+    endpoint := "${completionEndpoint}"
+    url := endpoint + "?key=" + apiKey
+
+    payload := map[string]interface{}{
+        "prompt": "${userPrompt.replace(/"/g, '\\"')}",
+        "numberOfImages": 1,
+    }
+
+    jsonPayload, _ := json.Marshal(payload)
+    req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonPayload))
+    req.Header.Set("Content-Type", "application/json")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        fmt.Println("Error:", err)
+        return
+    }
+    defer resp.Body.Close()
+
+    body, _ := io.ReadAll(resp.Body)
+    fmt.Println("Response:", string(body))
+}`
     }
   } else if (selectedLang === 'rust') {
     if (mode === 'chat') {
@@ -1492,6 +1692,59 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Response: {}", body);
     Ok(())
 }`
+    } else if (mode === 'image') {
+      jsCodeSnippet = apiFormat === 'openai'
+        ? `use reqwest::Client;
+use serde_json::json;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let api_key = "${apiKey}";
+    let endpoint = "${completionEndpoint}";
+
+    let payload = json!({
+        "model": "${selectedModel}",
+        "prompt": "${userPrompt.replace(/'/g, "\\'")}",
+        "n": 1,
+        "size": "1024x1024",
+        "response_format": "url"
+    });
+
+    let client = Client::new();
+    let res = client.post(endpoint)
+        .header("Authorization", format!("Bearer {}", api_key))
+        .json(&payload)
+        .send()
+        .await?;
+
+    let body = res.text().await?;
+    println!("Response: {}", body);
+    Ok(())
+}`
+        : `use reqwest::Client;
+use serde_json::json;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let api_key = "${apiKey}";
+    let endpoint = "${completionEndpoint}";
+    let url = format!("{}?key={}", endpoint, api_key);
+
+    let payload = json!({
+        "prompt": "${userPrompt.replace(/'/g, "\\'")}",
+        "numberOfImages": 1
+    });
+
+    let client = Client::new();
+    let res = client.post(&url)
+        .json(&payload)
+        .send()
+        .await?;
+
+    let body = res.text().await?;
+    println!("Response: {}", body);
+    Ok(())
+}`
     }
   } else if (selectedLang === 'curl') {
     if (mode === 'chat') {
@@ -1625,6 +1878,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
       }
     }
   }'`
+    } else if (mode === 'image') {
+      jsCodeSnippet = apiFormat === 'openai'
+        ? `curl ${completionEndpoint} \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer ${apiKey}" \\
+  -d '{
+    "model": "${selectedModel}",
+    "prompt": "${userPrompt.replace(/'/g, "\\'")}",
+    "n": 1,
+    "size": "1024x1024",
+    "response_format": "url"
+  }'`
+        : `curl -X POST "${completionEndpoint}?key=${apiKey}" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "prompt": "${userPrompt.replace(/'/g, "\\'")}",
+    "numberOfImages": 1
+  }'`
     }
   }
 
@@ -1638,13 +1909,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
   const handleExecuteRequest = async () => {
     setExecuting(true)
     setResponseOutput('Sending request to server...')
+    setImageOutputUrl('')
     if (audioOutputUrl) {
       URL.revokeObjectURL(audioOutputUrl)
       setAudioOutputUrl('')
     }
 
     try {
-      let res: Response
+      let res: Response = null as any
       if (mode === 'chat') {
         if (apiFormat === 'openai') {
           const body: any = {
@@ -1784,7 +2056,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             body: formData
           })
         }
-      } else {
+      } else if (mode === 'tts') {
         // TTS Mode
         if (apiFormat === 'gemini') {
           const body = {
@@ -1827,6 +2099,34 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             })
           })
         }
+      } else if (mode === 'image') {
+        if (apiFormat === 'openai') {
+          const body: any = {
+            model: selectedModel,
+            prompt: userPrompt,
+            n: 1,
+            size: '1024x1024',
+            response_format: 'url'
+          }
+          res = await fetch(`${base}/v1/images/generations`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify(body)
+          })
+        } else {
+          const body: any = {
+            prompt: userPrompt,
+            numberOfImages: 1
+          }
+          res = await fetch(`${base}/v1beta/models/${selectedModel}:generateImages?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          })
+        }
       }
 
       if (!res.ok) {
@@ -1836,7 +2136,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         return
       }
 
-      if (mode === 'tts') {
+      if (mode === 'image') {
+        const data = await res.json()
+        let url = ''
+        if (apiFormat === 'gemini') {
+          const imgBytes = data.generatedImages?.[0]?.image?.imageBytes
+          if (!imgBytes) {
+            throw new Error('No image bytes found in Gemini response')
+          }
+          url = `data:image/png;base64,${imgBytes}`
+        } else {
+          url = data.data?.[0]?.url || ''
+          if (!url) {
+            throw new Error('No image URL found in OpenAI response')
+          }
+        }
+        setImageOutputUrl(url)
+        setResponseOutput(JSON.stringify(data, null, 2))
+      } else if (mode === 'tts') {
         let url = ''
         if (apiFormat === 'gemini') {
           const data = await res.json()
@@ -1958,6 +2275,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
               >
                 <Volume2 className="w-3.5 h-3.5" />
                 TTS
+              </button>
+              <button
+                onClick={() => handleModeChange('image')}
+                className={`flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-all duration-200 ${
+                  mode === 'image'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/25'
+                }`}
+              >
+                <Image className="w-3.5 h-3.5" />
+                Image
               </button>
             </div>
           </div>
@@ -2130,7 +2458,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                   min="0"
                   max="2"
                   step="0.1"
-                  disabled={mode === 'stt'}
+                  disabled={mode === 'stt' || mode === 'image'}
                   value={temperature}
                   onChange={e => setTemperature(parseFloat(e.target.value))}
                   className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-violet-600 disabled:opacity-50"
@@ -2144,7 +2472,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 <input
                   type="number"
                   placeholder="Limit"
-                  disabled={mode === 'stt' || mode === 'tts'}
+                  disabled={mode === 'stt' || mode === 'tts' || mode === 'image'}
                   value={maxTokens}
                   onChange={e => setMaxTokens(e.target.value)}
                   className="w-full bg-background border rounded-lg px-3 h-8 text-xs focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
@@ -2160,7 +2488,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                   step="0.05"
                   min="0"
                   max="1"
-                  disabled={mode === 'stt' || mode === 'tts'}
+                  disabled={mode === 'stt' || mode === 'tts' || mode === 'image'}
                   value={topP}
                   onChange={e => setTopP(parseFloat(e.target.value))}
                   className="w-full bg-background border rounded-lg px-3 h-8 text-xs focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
@@ -2168,7 +2496,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
               </div>
             </div>
 
-            {mode !== 'stt' && mode !== 'tts' && (
+            {mode !== 'stt' && mode !== 'tts' && mode !== 'image' && (
               <div>
                 <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
                   Developer System Prompt
@@ -2186,7 +2514,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             {mode !== 'stt' && (
               <div>
                 <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
-                  {mode === 'tts' ? 'Speech Input Text' : 'User Conversation Prompt'}
+                  {mode === 'tts' ? 'Speech Input Text' : mode === 'image' ? 'Image Generation Prompt' : 'User Conversation Prompt'}
                 </label>
                 <textarea
                   rows={3}
@@ -2270,6 +2598,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 <div className="mt-4 p-3 bg-card border rounded-xl flex flex-col gap-2 shrink-0">
                   <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Audio Playback Console</span>
                   <audio src={audioOutputUrl} controls className="w-full h-8" />
+                </div>
+              )}
+              {imageOutputUrl && (
+                <div className="mt-4 p-3 bg-card border rounded-xl flex flex-col gap-2 shrink-0 max-w-[240px] mx-auto">
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Generated Image Preview</span>
+                  <img src={imageOutputUrl} alt="Generated output" className="w-full h-auto rounded-lg shadow-sm border border-border" />
                 </div>
               )}
             </div>
