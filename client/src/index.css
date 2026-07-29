@@ -335,7 +335,8 @@ html.dark {
     html, body, 
     a, button, select, 
     input[type="submit"], input[type="button"], 
-    [role="button"], .interactive-hover {
+    [role="button"], .interactive-hover,
+    .cursor-pointer, [class*="cursor-pointer"], [onclick] {
         cursor: none !important;
     }
     
