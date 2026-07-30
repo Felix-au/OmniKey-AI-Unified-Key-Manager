@@ -2224,69 +2224,54 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* API Parameter Configuration Panel */}
         <div className="bg-card border rounded-2xl p-6 shadow-sm space-y-6">
-          <div className="flex flex-col sm:flex-row justify-between gap-3 items-start sm:items-center">
+          <div className="space-y-4">
             <div className="space-y-1">
               <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Request Configuration</h3>
-              <p className="text-xs text-muted-foreground">Adjust parameters and execute proxy requests.</p>
+              <p className="text-xs text-muted-foreground">Select a modality class and adjust downstream proxy parameters.</p>
             </div>
-            
-            {/* Mode selection tabs */}
-            <div className="flex bg-muted p-1 rounded-xl border border-border/40 shrink-0">
-              <button
-                onClick={() => handleModeChange('chat')}
-                className={`flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-all duration-200 ${
-                  mode === 'chat'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-background/25'
-                }`}
-              >
-                <MessageSquare className="w-3.5 h-3.5" />
-                Chat
-              </button>
-              <button
-                onClick={() => handleModeChange('vision')}
-                className={`flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-all duration-200 ${
-                  mode === 'vision'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-background/25'
-                }`}
-              >
-                <Eye className="w-3.5 h-3.5" />
-                Vision
-              </button>
-              <button
-                onClick={() => handleModeChange('stt')}
-                className={`flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-all duration-200 ${
-                  mode === 'stt'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-background/25'
-                }`}
-              >
-                <Mic className="w-3.5 h-3.5" />
-                Voice
-              </button>
-              <button
-                onClick={() => handleModeChange('tts')}
-                className={`flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-all duration-200 ${
-                  mode === 'tts'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-background/25'
-                }`}
-              >
-                <Volume2 className="w-3.5 h-3.5" />
-                TTS
-              </button>
-              <button
-                onClick={() => handleModeChange('image')}
-                className={`flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-all duration-200 ${
-                  mode === 'image'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-background/25'
-                }`}
-              >
-                <Image className="w-3.5 h-3.5" />
-                Image
-              </button>
+
+            {/* Improved Modality Selector Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 w-full">
+              {[
+                { id: 'chat', label: 'Chat', desc: 'Text & Chat', icon: MessageSquare, color: 'from-violet-500 to-indigo-500' },
+                { id: 'vision', label: 'Vision', desc: 'Image Input', icon: Eye, color: 'from-blue-500 to-cyan-500' },
+                { id: 'stt', label: 'Voice', desc: 'Speech to Text', icon: Mic, color: 'from-amber-500 to-orange-500' },
+                { id: 'tts', label: 'TTS', desc: 'Text to Speech', icon: Volume2, color: 'from-emerald-500 to-teal-500' },
+                { id: 'image', label: 'Image', desc: 'Text to Image', icon: Image, color: 'from-pink-500 to-rose-500' },
+              ].map(item => {
+                const Icon = item.icon
+                const isActive = mode === item.id
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleModeChange(item.id as any)}
+                    className={`relative flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-300 group cursor-pointer text-center select-none ${
+                      isActive
+                        ? 'bg-gradient-to-b from-card to-muted/40 border-violet-500/40 shadow-sm shadow-violet-500/5 ring-1 ring-violet-500/20'
+                        : 'bg-card border-border/60 hover:border-border hover:bg-muted/10'
+                    }`}
+                  >
+                    <div
+                      className={`p-2 rounded-lg mb-1.5 transition-transform duration-300 group-hover:scale-110 ${
+                        isActive
+                          ? `bg-gradient-to-br ${item.color} text-white shadow-sm shadow-violet-500/10`
+                          : 'bg-muted text-muted-foreground group-hover:text-foreground'
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                    </div>
+                    <span className={`text-[11px] font-bold tracking-tight ${isActive ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'}`}>
+                      {item.label}
+                    </span>
+                    <span className="text-[9px] text-muted-foreground font-medium mt-0.5 whitespace-nowrap">
+                      {item.desc}
+                    </span>
+                    {isActive && (
+                      <span className={`absolute -bottom-[1px] left-1/2 -translate-x-1/2 w-8 h-[2px] rounded-full bg-gradient-to-r ${item.color}`} />
+                    )}
+                  </button>
+                )
+              })}
             </div>
           </div>
 
