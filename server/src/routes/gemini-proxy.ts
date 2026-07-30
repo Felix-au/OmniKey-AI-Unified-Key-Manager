@@ -18,6 +18,9 @@ export const geminiProxyRouter = Router();
 
 const AUTO_MODEL_ID = 'auto';
 
+// Image token weight (economically aligned with API usage costs)
+const IMAGE_TOKEN_WEIGHT = 25000;
+
 // Constant-time string comparison for the unified API key.
 function timingSafeStringEqual(provided: string, expected: string): boolean {
   const a = Buffer.from(provided);
@@ -550,12 +553,12 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
             outputMimeType: outputMimeType || 'image/png'
           });
 
-          recordTokens(route.platform, route.modelId, route.keyId as any, 1000 * numImages);
+          recordTokens(route.platform, route.modelId, route.keyId as any, IMAGE_TOKEN_WEIGHT * numImages);
           recordSuccess(route.modelDbId);
 
           logRequest(
             route.platform, route.modelId, 'success',
-            1000 * numImages, 1000 * numImages,
+            IMAGE_TOKEN_WEIGHT * numImages, IMAGE_TOKEN_WEIGHT * numImages,
             Date.now() - start, null, userId,
             route.isPromo ? route.fundedByUserId : undefined,
             (req as any).projectKey
@@ -566,7 +569,7 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
           const latency = Date.now() - start;
 
           if (isRetryableError(err) && attempt < MAX_RETRIES - 1) {
-            logRequest(route!.platform, route!.modelId, 'fallback', 1000 * numImages, 0, latency, err.message, userId, route!.isPromo ? route!.fundedByUserId : undefined, (req as any).projectKey);
+            logRequest(route!.platform, route!.modelId, 'fallback', IMAGE_TOKEN_WEIGHT * numImages, 0, latency, err.message, userId, route!.isPromo ? route!.fundedByUserId : undefined, (req as any).projectKey);
             const skipId = `${route!.platform}:${route!.modelId}:${route!.keyId}`;
             skipKeys.add(skipId);
             setCooldown(route!.platform, route!.modelId, route!.keyId as any, 120_000);
@@ -576,7 +579,7 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
             continue;
           }
 
-          logRequest(route!.platform, route!.modelId, 'error', 1000 * numImages, 0, latency, err.message, userId, route!.isPromo ? route!.fundedByUserId : undefined, (req as any).projectKey);
+          logRequest(route!.platform, route!.modelId, 'error', IMAGE_TOKEN_WEIGHT * numImages, 0, latency, err.message, userId, route!.isPromo ? route!.fundedByUserId : undefined, (req as any).projectKey);
           return res.status(502).json({
             error: {
               code: 502,
