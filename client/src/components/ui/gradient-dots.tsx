@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, memo } from "react";
+import { useEffect, useRef, memo } from "react";
 import { motion } from "motion/react";
 import type React from "react";
 
@@ -72,16 +72,6 @@ export const GradientDots = memo(({
 	const engagement = useRef(0);
 	const resolvedBgRef = useRef("rgb(11, 9, 15)");
 
-	const [isMobile, setIsMobile] = useState(false);
-
-	useEffect(() => {
-		const checkMobile = () => {
-			setIsMobile(window.innerWidth < 768);
-		};
-		checkMobile();
-		window.addEventListener("resize", checkMobile);
-		return () => window.removeEventListener("resize", checkMobile);
-	}, []);
 
 	const propsRef = useRef({
 		dotRadius,
@@ -339,18 +329,6 @@ export const GradientDots = memo(({
 		};
 	}, []);
 
-	if (isMobile) {
-		return (
-			<motion.div
-				className={`absolute inset-0 ${className}`}
-				style={{
-					backgroundColor,
-					...style,
-				}}
-				{...props}
-			/>
-		);
-	}
 
 	return (
 		<motion.div
