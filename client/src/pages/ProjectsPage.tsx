@@ -217,9 +217,9 @@ export default function ProjectsPage() {
   const [reqImageGen, setReqImageGen] = useState(false)
 
   const requestFunding = useMutation({
-    mutationFn: (body: { 
-      projectKeyId: string; 
-      projectLink: string; 
+    mutationFn: (body: {
+      projectKeyId: string;
+      projectLink: string;
       remarks: string;
       poolUpgrade: boolean;
       allowVision: boolean;
@@ -266,9 +266,9 @@ export default function ProjectsPage() {
       return;
     }
 
-    requestFunding.mutate({ 
-      projectKeyId: fundKeyId, 
-      projectLink: fundLink, 
+    requestFunding.mutate({
+      projectKeyId: fundKeyId,
+      projectLink: fundLink,
       remarks: fundRemarks,
       poolUpgrade: reqPoolUpgrade,
       allowVision: reqVision,
@@ -400,7 +400,7 @@ export default function ProjectsPage() {
                     Take your project to the next level. You can request to upgrade your default 10 Million promotional token pool to <strong className="text-violet-600 dark:text-violet-400">100 Million tokens</strong>, as well as request special access to advanced multimodal capabilities (Vision, Speech-to-Text, Text-to-Speech, and Image Generation) for this project's key.
                   </p>
                 </div>
-                
+
                 <div className="space-y-2 border-t pt-4 border-border/40 pb-2">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -457,26 +457,24 @@ export default function ProjectsPage() {
                   <Label className="text-xs font-semibold">Access Upgrades Requested</Label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {/* Card 1: Image Generation Access */}
-                    <label className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer select-none transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] shadow-sm ${
-                      reqImageGen 
-                        ? 'bg-violet-500/10 border-violet-500/40 text-violet-900 dark:text-violet-200 ring-1 ring-violet-500/20' 
+                    <label className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer select-none transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] shadow-sm ${reqImageGen
+                        ? 'bg-violet-500/10 border-violet-500/40 text-violet-900 dark:text-violet-200 ring-1 ring-violet-500/20'
                         : 'bg-muted/30 border-border/40 hover:bg-muted/50 text-slate-700 dark:text-zinc-300'
-                    }`}>
+                      }`}>
                       <input
                         type="checkbox"
                         checked={reqImageGen}
                         onChange={(e) => setReqImageGen(e.target.checked)}
                         className="sr-only"
                       />
-                      <div className={`p-2 rounded-lg border transition-all ${
-                        reqImageGen 
-                          ? 'bg-violet-600 text-white border-violet-600/20 shadow-sm' 
+                      <div className={`p-2 rounded-lg border transition-all ${reqImageGen
+                          ? 'bg-violet-600 text-white border-violet-600/20 shadow-sm'
                           : 'bg-card text-muted-foreground border-border/60'
-                      }`}>
+                        }`}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5">
-                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                          <circle cx="8.5" cy="8.5" r="1.5"/>
-                          <polyline points="21 15 16 10 5 21"/>
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                          <circle cx="8.5" cy="8.5" r="1.5" />
+                          <polyline points="21 15 16 10 5 21" />
                         </svg>
                       </div>
                       <div className="space-y-0.5">
@@ -486,25 +484,23 @@ export default function ProjectsPage() {
                     </label>
 
                     {/* Card 2: Vision Access */}
-                    <label className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer select-none transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] shadow-sm ${
-                      reqVision 
-                        ? 'bg-violet-500/10 border-violet-500/40 text-violet-900 dark:text-violet-200 ring-1 ring-violet-500/20' 
+                    <label className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer select-none transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] shadow-sm ${reqVision
+                        ? 'bg-violet-500/10 border-violet-500/40 text-violet-900 dark:text-violet-200 ring-1 ring-violet-500/20'
                         : 'bg-muted/30 border-border/40 hover:bg-muted/50 text-slate-700 dark:text-zinc-300'
-                    }`}>
+                      }`}>
                       <input
                         type="checkbox"
                         checked={reqVision}
                         onChange={(e) => setReqVision(e.target.checked)}
                         className="sr-only"
                       />
-                      <div className={`p-2 rounded-lg border transition-all ${
-                        reqVision 
-                          ? 'bg-violet-600 text-white border-violet-600/20 shadow-sm' 
+                      <div className={`p-2 rounded-lg border transition-all ${reqVision
+                          ? 'bg-violet-600 text-white border-violet-600/20 shadow-sm'
                           : 'bg-card text-muted-foreground border-border/60'
-                      }`}>
+                        }`}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5">
-                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
-                          <circle cx="12" cy="12" r="3"/>
+                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                          <circle cx="12" cy="12" r="3" />
                         </svg>
                       </div>
                       <div className="space-y-0.5">
@@ -514,26 +510,24 @@ export default function ProjectsPage() {
                     </label>
 
                     {/* Card 3: Voice Access (STT) */}
-                    <label className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer select-none transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] shadow-sm ${
-                      reqVoice 
-                        ? 'bg-violet-500/10 border-violet-500/40 text-violet-900 dark:text-violet-200 ring-1 ring-violet-500/20' 
+                    <label className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer select-none transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] shadow-sm ${reqVoice
+                        ? 'bg-violet-500/10 border-violet-500/40 text-violet-900 dark:text-violet-200 ring-1 ring-violet-500/20'
                         : 'bg-muted/30 border-border/40 hover:bg-muted/50 text-slate-700 dark:text-zinc-300'
-                    }`}>
+                      }`}>
                       <input
                         type="checkbox"
                         checked={reqVoice}
                         onChange={(e) => setReqVoice(e.target.checked)}
                         className="sr-only"
                       />
-                      <div className={`p-2 rounded-lg border transition-all ${
-                        reqVoice 
-                          ? 'bg-violet-600 text-white border-violet-600/20 shadow-sm' 
+                      <div className={`p-2 rounded-lg border transition-all ${reqVoice
+                          ? 'bg-violet-600 text-white border-violet-600/20 shadow-sm'
                           : 'bg-card text-muted-foreground border-border/60'
-                      }`}>
+                        }`}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5">
-                          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                          <line x1="12" x2="12" y1="19" y2="22"/>
+                          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                          <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                          <line x1="12" x2="12" y1="19" y2="22" />
                         </svg>
                       </div>
                       <div className="space-y-0.5">
@@ -543,25 +537,23 @@ export default function ProjectsPage() {
                     </label>
 
                     {/* Card 4: TTS Access */}
-                    <label className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer select-none transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] shadow-sm ${
-                      reqTTS 
-                        ? 'bg-violet-500/10 border-violet-500/40 text-violet-900 dark:text-violet-200 ring-1 ring-violet-500/20' 
+                    <label className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer select-none transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] shadow-sm ${reqTTS
+                        ? 'bg-violet-500/10 border-violet-500/40 text-violet-900 dark:text-violet-200 ring-1 ring-violet-500/20'
                         : 'bg-muted/30 border-border/40 hover:bg-muted/50 text-slate-700 dark:text-zinc-300'
-                    }`}>
+                      }`}>
                       <input
                         type="checkbox"
                         checked={reqTTS}
                         onChange={(e) => setReqTTS(e.target.checked)}
                         className="sr-only"
                       />
-                      <div className={`p-2 rounded-lg border transition-all ${
-                        reqTTS 
-                          ? 'bg-violet-600 text-white border-violet-600/20 shadow-sm' 
+                      <div className={`p-2 rounded-lg border transition-all ${reqTTS
+                          ? 'bg-violet-600 text-white border-violet-600/20 shadow-sm'
                           : 'bg-card text-muted-foreground border-border/60'
-                      }`}>
+                        }`}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5">
-                          <path d="M11 5L6 9H2v6h4l5 4V5z"/>
-                          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                          <path d="M11 5L6 9H2v6h4l5 4V5z" />
+                          <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
                         </svg>
                       </div>
                       <div className="space-y-0.5">
@@ -571,24 +563,22 @@ export default function ProjectsPage() {
                     </label>
 
                     {/* Card 5: 100M Token Upgrade */}
-                    <label className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer select-none transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] shadow-sm sm:col-span-2 ${
-                      reqPoolUpgrade 
-                        ? 'bg-violet-500/10 border-violet-500/40 text-violet-900 dark:text-violet-200 ring-1 ring-violet-500/20' 
+                    <label className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer select-none transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] shadow-sm sm:col-span-2 ${reqPoolUpgrade
+                        ? 'bg-violet-500/10 border-violet-500/40 text-violet-900 dark:text-violet-200 ring-1 ring-violet-500/20'
                         : 'bg-muted/30 border-border/40 hover:bg-muted/50 text-slate-700 dark:text-zinc-300'
-                    }`}>
+                      }`}>
                       <input
                         type="checkbox"
                         checked={reqPoolUpgrade}
                         onChange={(e) => setReqPoolUpgrade(e.target.checked)}
                         className="sr-only"
                       />
-                      <div className={`p-2 rounded-lg border transition-all ${
-                        reqPoolUpgrade 
-                          ? 'bg-violet-600 text-white border-violet-600/20 shadow-sm' 
+                      <div className={`p-2 rounded-lg border transition-all ${reqPoolUpgrade
+                          ? 'bg-violet-600 text-white border-violet-600/20 shadow-sm'
                           : 'bg-card text-muted-foreground border-border/60'
-                      }`}>
+                        }`}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5">
-                          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                         </svg>
                       </div>
                       <div className="space-y-0.5">
@@ -609,10 +599,10 @@ export default function ProjectsPage() {
                   />
                 </div>
 
-                <Button 
-                  type="submit" 
-                  size="sm" 
-                  className="w-full bg-violet-600 hover:bg-violet-700 text-white font-semibold shadow-md shadow-violet-600/10 h-9" 
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="w-full bg-violet-600 hover:bg-violet-700 text-white font-semibold shadow-md shadow-violet-600/10 h-9 mt-[22px]"
                   disabled={!fundKeyId || !fundLink || requestFunding.isPending}
                 >
                   {requestFunding.isPending ? 'Submitting Request…' : 'Submit Access Upgrade Request'}
@@ -759,9 +749,8 @@ export default function ProjectsPage() {
                                 type="text"
                                 value={k.projectLink || 'No Project Link'}
                                 readOnly
-                                className={`w-[200px] h-8 font-mono text-xs bg-muted/40 select-all cursor-text text-center ${
-                                  !k.projectLink ? 'text-amber-500 font-semibold' : 'text-violet-500'
-                                }`}
+                                className={`w-[200px] h-8 font-mono text-xs bg-muted/40 select-all cursor-text text-center ${!k.projectLink ? 'text-amber-500 font-semibold' : 'text-violet-500'
+                                  }`}
                                 title="Project URL Link"
                               />
                               {k.projectLink ? (
@@ -879,7 +868,7 @@ export default function ProjectsPage() {
                     {req.remarks && (
                       <p className="text-xs text-muted-foreground italic">"{req.remarks}"</p>
                     )}
-                    
+
                     {/* Requested items listing */}
                     <div className="flex flex-wrap gap-1.5 mt-1.5">
                       <span className="text-[10px] text-muted-foreground mr-1 font-semibold">Requested:</span>
@@ -928,13 +917,12 @@ export default function ProjectsPage() {
                   </div>
                   <div>
                     <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                        req.status === 'approved'
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${req.status === 'approved'
                           ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
                           : req.status === 'rejected'
-                          ? 'bg-rose-500/10 text-rose-500 border-rose-500/20'
-                          : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                      }`}
+                            ? 'bg-rose-500/10 text-rose-500 border-rose-500/20'
+                            : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                        }`}
                     >
                       {req.status}
                     </span>
