@@ -595,14 +595,14 @@ export default function ProjectsPage() {
                     value={fundRemarks}
                     onChange={e => setFundRemarks(e.target.value)}
                     placeholder="Tell us what you are building and why you need these model access upgrades..."
-                    className="w-full h-16 text-xs rounded-md border border-input bg-muted/40 px-3 py-2 shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                    className="w-full h-[92px] text-xs rounded-md border border-input bg-muted/40 px-3 py-2 shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
                   />
                 </div>
 
                 <Button
                   type="submit"
                   size="sm"
-                  className="w-full bg-violet-600 hover:bg-violet-700 text-white font-semibold shadow-md shadow-violet-600/10 h-9 mt-[22px]"
+                  className="w-full bg-violet-600 hover:bg-violet-700 text-white font-semibold shadow-md shadow-violet-600/10 h-9"
                   disabled={!fundKeyId || !fundLink || requestFunding.isPending}
                 >
                   {requestFunding.isPending ? 'Submitting Request…' : 'Submit Access Upgrade Request'}
