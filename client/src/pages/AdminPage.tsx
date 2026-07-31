@@ -91,6 +91,10 @@ interface AdminStats {
     format: string;
     enabled: boolean;
     isPromoted: boolean;
+    allowVision: boolean;
+    allowVoice: boolean;
+    allowTTS: boolean;
+    allowImageGen: boolean;
     projectLink?: string;
     createdAt: string;
     userEmail: string;
@@ -114,6 +118,16 @@ interface AdminStats {
     projectLink: string;
     remarks: string;
     status: 'pending' | 'approved' | 'rejected';
+    poolUpgrade: boolean;
+    allowVision: boolean;
+    allowVoice: boolean;
+    allowTTS: boolean;
+    allowImageGen: boolean;
+    approvedPoolUpgrade: boolean;
+    approvedAllowVision: boolean;
+    approvedAllowVoice: boolean;
+    approvedAllowTTS: boolean;
+    approvedAllowImageGen: boolean;
     createdAt: string;
   }>;
 }
