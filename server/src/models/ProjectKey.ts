@@ -8,6 +8,10 @@ export interface IProjectKey extends Document {
   enabled: boolean;
   isPromoted: boolean;
   projectLink?: string;
+  allowVision: boolean;
+  allowVoice: boolean;
+  allowTTS: boolean;
+  allowImageGen: boolean;
   createdAt: Date;
 }
 
@@ -19,6 +23,10 @@ const ProjectKeySchema: Schema = new Schema({
   enabled: { type: Boolean, default: true },
   isPromoted: { type: Boolean, default: false },
   projectLink: { type: String, default: '' },
+  allowVision: { type: Boolean, default: false },
+  allowVoice: { type: Boolean, default: false },
+  allowTTS: { type: Boolean, default: false },
+  allowImageGen: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
 });
 

@@ -17,6 +17,10 @@ interface ProjectKey {
   enabled: boolean
   isPromoted: boolean
   projectLink: string
+  allowVision?: boolean
+  allowVoice?: boolean
+  allowTTS?: boolean
+  allowImageGen?: boolean
   createdAt: string
   metrics?: {
     totalRequests: number
@@ -34,6 +38,16 @@ interface FundingRequest {
   projectLink: string
   remarks: string
   status: 'pending' | 'approved' | 'rejected'
+  poolUpgrade: boolean
+  allowVision: boolean
+  allowVoice: boolean
+  allowTTS: boolean
+  allowImageGen: boolean
+  approvedPoolUpgrade: boolean
+  approvedAllowVision: boolean
+  approvedAllowVoice: boolean
+  approvedAllowTTS: boolean
+  approvedAllowImageGen: boolean
   createdAt: string
 }
 
@@ -196,9 +210,23 @@ export default function ProjectsPage() {
   const [fundKeyId, setFundKeyId] = useState('')
   const [fundLink, setFundLink] = useState('')
   const [fundRemarks, setFundRemarks] = useState('')
+  const [reqPoolUpgrade, setReqPoolUpgrade] = useState(true)
+  const [reqVision, setReqVision] = useState(false)
+  const [reqVoice, setReqVoice] = useState(false)
+  const [reqTTS, setReqTTS] = useState(false)
+  const [reqImageGen, setReqImageGen] = useState(false)
 
   const requestFunding = useMutation({
-    mutationFn: (body: { projectKeyId: string; projectLink: string; remarks: string }) =>
+    mutationFn: (body: { 
+      projectKeyId: string; 
+      projectLink: string; 
+      remarks: string;
+      poolUpgrade: boolean;
+      allowVision: boolean;
+      allowVoice: boolean;
+      allowTTS: boolean;
+      allowImageGen: boolean;
+    }) =>
       apiFetch('/api/project-keys/fund-request', { method: 'POST', body: JSON.stringify(body) }),
     onSuccess: () => {
       setSuccessOpen(true)
@@ -206,6 +234,11 @@ export default function ProjectsPage() {
       setFundKeyId('')
       setFundLink('')
       setFundRemarks('')
+      setReqPoolUpgrade(true)
+      setReqVision(false)
+      setReqVoice(false)
+      setReqTTS(false)
+      setReqImageGen(false)
     },
     onError: (err: any) => {
       alert(err.message || 'Failed to submit funding request')
@@ -228,7 +261,21 @@ export default function ProjectsPage() {
       return;
     }
 
-    requestFunding.mutate({ projectKeyId: fundKeyId, projectLink: fundLink, remarks: fundRemarks })
+    if (!reqPoolUpgrade && !reqVision && !reqVoice && !reqTTS && !reqImageGen) {
+      alert('Please select at least one access upgrade request option.')
+      return;
+    }
+
+    requestFunding.mutate({ 
+      projectKeyId: fundKeyId, 
+      projectLink: fundLink, 
+      remarks: fundRemarks,
+      poolUpgrade: reqPoolUpgrade,
+      allowVision: reqVision,
+      allowVoice: reqVoice,
+      allowTTS: reqTTS,
+      allowImageGen: reqImageGen
+    })
   }
 
   const handleDeleteClick = (key: ProjectKey) => {
@@ -339,44 +386,47 @@ export default function ProjectsPage() {
         {/* Row 2: Request Project Funding Upgrade (Styled Standalone Section) */}
         <div className="w-full">
           <section className="rounded-lg border border-violet-500/20 bg-card p-6 shadow-md bg-gradient-to-br from-violet-600/5 via-card to-emerald-500/5">
-            <div className="grid gap-6 md:grid-cols-[1.2fr_1.8fr] items-start">
-              {/* Left Column: Information Card */}
+            <form onSubmit={handleRequestFunding} className="grid gap-6 md:grid-cols-[1.2fr_1.8fr] items-start">
+              {/* Left Column: Information Card & Key Selectors */}
               <div className="space-y-4">
                 <div>
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20 mb-2">
-                    PROMOTIONAL POOL UPGRADE
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20 mb-2 uppercase tracking-wide">
+                    Project Upgrades & Modality Access
                   </span>
                   <h2 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-                    Request Project Funding
+                    Request Project Upgrades
                   </h2>
                   <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                    Serious about what you're building? You can request to upgrade your default 10 Million promotional token pool to <strong className="text-violet-600 dark:text-violet-400">100 Million tokens</strong>.
+                    Take your project to the next level. You can request to upgrade your default 10 Million promotional token pool to <strong className="text-violet-600 dark:text-violet-400">100 Million tokens</strong>, as well as request special access to advanced multimodal capabilities (Vision, Speech-to-Text, Text-to-Speech, and Image Generation) for this project's key.
                   </p>
                 </div>
                 
-                <div className="space-y-2 border-t pt-4 border-border/40">
+                <div className="space-y-2 border-t pt-4 border-border/40 pb-2">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                     </svg>
-                    <span>User-wide pool upgrade across all project keys</span>
+                    <span>Boost token budget to 100M for higher volume usage</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                     </svg>
-                    <span>Verification and review by admin</span>
+                    <span>Enable advanced modalities (Vision & Audio models)</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                    </svg>
+                    <span>Selective admin verification and review</span>
                   </div>
                 </div>
-              </div>
 
-              {/* Right Column: Upgrade Form */}
-              <form onSubmit={handleRequestFunding} className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-3 border-t pt-4 border-border/40">
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold">Select Project Key</Label>
                     <Select value={fundKeyId} onValueChange={(v) => setFundKeyId(v || '')}>
-                      <SelectTrigger className="w-full">
+                      <SelectTrigger className="w-full h-8 text-xs bg-muted/40">
                         <SelectValue>{selectedText}</SelectValue>
                       </SelectTrigger>
                       <SelectContent>
@@ -399,13 +449,162 @@ export default function ProjectsPage() {
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* Right Column: Upgrade Form checkboxes & action */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold">Access Upgrades Requested</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Card 1: Image Generation Access */}
+                    <label className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer select-none transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] shadow-sm ${
+                      reqImageGen 
+                        ? 'bg-violet-500/10 border-violet-500/40 text-violet-900 dark:text-violet-200 ring-1 ring-violet-500/20' 
+                        : 'bg-muted/30 border-border/40 hover:bg-muted/50 text-slate-700 dark:text-zinc-300'
+                    }`}>
+                      <input
+                        type="checkbox"
+                        checked={reqImageGen}
+                        onChange={(e) => setReqImageGen(e.target.checked)}
+                        className="sr-only"
+                      />
+                      <div className={`p-2 rounded-lg border transition-all ${
+                        reqImageGen 
+                          ? 'bg-violet-600 text-white border-violet-600/20 shadow-sm' 
+                          : 'bg-card text-muted-foreground border-border/60'
+                      }`}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5">
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                          <circle cx="8.5" cy="8.5" r="1.5"/>
+                          <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                      </div>
+                      <div className="space-y-0.5">
+                        <div className="text-xs font-semibold">Image Generation Access</div>
+                        <div className="text-[10px] text-muted-foreground/90 leading-snug">Allows generating images via Flux / Stable Diffusion models</div>
+                      </div>
+                    </label>
+
+                    {/* Card 2: Vision Access */}
+                    <label className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer select-none transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] shadow-sm ${
+                      reqVision 
+                        ? 'bg-violet-500/10 border-violet-500/40 text-violet-900 dark:text-violet-200 ring-1 ring-violet-500/20' 
+                        : 'bg-muted/30 border-border/40 hover:bg-muted/50 text-slate-700 dark:text-zinc-300'
+                    }`}>
+                      <input
+                        type="checkbox"
+                        checked={reqVision}
+                        onChange={(e) => setReqVision(e.target.checked)}
+                        className="sr-only"
+                      />
+                      <div className={`p-2 rounded-lg border transition-all ${
+                        reqVision 
+                          ? 'bg-violet-600 text-white border-violet-600/20 shadow-sm' 
+                          : 'bg-card text-muted-foreground border-border/60'
+                      }`}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5">
+                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                          <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                      </div>
+                      <div className="space-y-0.5">
+                        <div className="text-xs font-semibold">Vision Access</div>
+                        <div className="text-[10px] text-muted-foreground/90 leading-snug">Allows sending images to multimodal models</div>
+                      </div>
+                    </label>
+
+                    {/* Card 3: Voice Access (STT) */}
+                    <label className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer select-none transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] shadow-sm ${
+                      reqVoice 
+                        ? 'bg-violet-500/10 border-violet-500/40 text-violet-900 dark:text-violet-200 ring-1 ring-violet-500/20' 
+                        : 'bg-muted/30 border-border/40 hover:bg-muted/50 text-slate-700 dark:text-zinc-300'
+                    }`}>
+                      <input
+                        type="checkbox"
+                        checked={reqVoice}
+                        onChange={(e) => setReqVoice(e.target.checked)}
+                        className="sr-only"
+                      />
+                      <div className={`p-2 rounded-lg border transition-all ${
+                        reqVoice 
+                          ? 'bg-violet-600 text-white border-violet-600/20 shadow-sm' 
+                          : 'bg-card text-muted-foreground border-border/60'
+                      }`}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5">
+                          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                          <line x1="12" x2="12" y1="19" y2="22"/>
+                        </svg>
+                      </div>
+                      <div className="space-y-0.5">
+                        <div className="text-xs font-semibold">Voice Access (STT)</div>
+                        <div className="text-[10px] text-muted-foreground/90 leading-snug">Enables speech-to-text transcriptions</div>
+                      </div>
+                    </label>
+
+                    {/* Card 4: TTS Access */}
+                    <label className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer select-none transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] shadow-sm ${
+                      reqTTS 
+                        ? 'bg-violet-500/10 border-violet-500/40 text-violet-900 dark:text-violet-200 ring-1 ring-violet-500/20' 
+                        : 'bg-muted/30 border-border/40 hover:bg-muted/50 text-slate-700 dark:text-zinc-300'
+                    }`}>
+                      <input
+                        type="checkbox"
+                        checked={reqTTS}
+                        onChange={(e) => setReqTTS(e.target.checked)}
+                        className="sr-only"
+                      />
+                      <div className={`p-2 rounded-lg border transition-all ${
+                        reqTTS 
+                          ? 'bg-violet-600 text-white border-violet-600/20 shadow-sm' 
+                          : 'bg-card text-muted-foreground border-border/60'
+                      }`}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5">
+                          <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+                          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                        </svg>
+                      </div>
+                      <div className="space-y-0.5">
+                        <div className="text-xs font-semibold">TTS Access</div>
+                        <div className="text-[10px] text-muted-foreground/90 leading-snug">Enables text-to-speech generation</div>
+                      </div>
+                    </label>
+
+                    {/* Card 5: 100M Token Upgrade */}
+                    <label className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer select-none transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] shadow-sm sm:col-span-2 ${
+                      reqPoolUpgrade 
+                        ? 'bg-violet-500/10 border-violet-500/40 text-violet-900 dark:text-violet-200 ring-1 ring-violet-500/20' 
+                        : 'bg-muted/30 border-border/40 hover:bg-muted/50 text-slate-700 dark:text-zinc-300'
+                    }`}>
+                      <input
+                        type="checkbox"
+                        checked={reqPoolUpgrade}
+                        onChange={(e) => setReqPoolUpgrade(e.target.checked)}
+                        className="sr-only"
+                      />
+                      <div className={`p-2 rounded-lg border transition-all ${
+                        reqPoolUpgrade 
+                          ? 'bg-violet-600 text-white border-violet-600/20 shadow-sm' 
+                          : 'bg-card text-muted-foreground border-border/60'
+                      }`}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5">
+                          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                      </div>
+                      <div className="space-y-0.5">
+                        <div className="text-xs font-semibold">100M Token Upgrade</div>
+                        <div className="text-[10px] text-muted-foreground/90 leading-snug">Increase pool size from 10M to 100M</div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
 
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold">Remarks / Use Case Description</Label>
                   <textarea
                     value={fundRemarks}
                     onChange={e => setFundRemarks(e.target.value)}
-                    placeholder="Tell us what you are building and why you need a 100M token limit upgrade..."
+                    placeholder="Tell us what you are building and why you need these model access upgrades..."
                     className="w-full h-16 text-xs rounded-md border border-input bg-muted/40 px-3 py-2 shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
                   />
                 </div>
@@ -416,10 +615,10 @@ export default function ProjectsPage() {
                   className="w-full bg-violet-600 hover:bg-violet-700 text-white font-semibold shadow-md shadow-violet-600/10 h-9" 
                   disabled={!fundKeyId || !fundLink || requestFunding.isPending}
                 >
-                  {requestFunding.isPending ? 'Submitting Request…' : 'Submit 100M Upgrade Request'}
+                  {requestFunding.isPending ? 'Submitting Request…' : 'Submit Access Upgrade Request'}
                 </Button>
-              </form>
-            </div>
+              </div>
+            </form>
           </section>
         </div>
 
@@ -460,8 +659,33 @@ export default function ProjectsPage() {
                             {k.format}
                           </span>
                           {k.isPromoted && (
-                            <span className="text-[10px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-2 py-0.5 rounded font-medium">
-                              Promoted
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 shadow-sm select-none">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                              Funded (100M)
+                            </span>
+                          )}
+                          {k.allowVision && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400 border border-sky-200 dark:border-sky-500/20 shadow-sm select-none">
+                              <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+                              Vision
+                            </span>
+                          )}
+                          {k.allowVoice && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-400 border border-violet-200 dark:border-violet-500/20 shadow-sm select-none">
+                              <span className="h-1.5 w-1.5 rounded-full bg-violet-500" />
+                              Voice
+                            </span>
+                          )}
+                          {k.allowTTS && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-pink-50 text-pink-700 dark:bg-pink-500/10 dark:text-pink-400 border border-pink-200 dark:border-pink-500/20 shadow-sm select-none">
+                              <span className="h-1.5 w-1.5 rounded-full bg-pink-500" />
+                              TTS
+                            </span>
+                          )}
+                          {k.allowImageGen && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 shadow-sm select-none">
+                              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                              Image Gen
                             </span>
                           )}
                         </h3>
@@ -655,7 +879,50 @@ export default function ProjectsPage() {
                     {req.remarks && (
                       <p className="text-xs text-muted-foreground italic">"{req.remarks}"</p>
                     )}
-                    <span className="text-[10px] text-slate-500 block">
+                    
+                    {/* Requested items listing */}
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      <span className="text-[10px] text-muted-foreground mr-1 font-semibold">Requested:</span>
+                      {req.poolUpgrade && (
+                        <span className="text-[9px] bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 px-1.5 py-0.5 rounded font-medium">100M Pool</span>
+                      )}
+                      {req.allowVision && (
+                        <span className="text-[9px] bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 px-1.5 py-0.5 rounded font-medium">Vision</span>
+                      )}
+                      {req.allowVoice && (
+                        <span className="text-[9px] bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 px-1.5 py-0.5 rounded font-medium">Voice (STT)</span>
+                      )}
+                      {req.allowTTS && (
+                        <span className="text-[9px] bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 px-1.5 py-0.5 rounded font-medium">TTS</span>
+                      )}
+                      {req.allowImageGen && (
+                        <span className="text-[9px] bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 px-1.5 py-0.5 rounded font-medium">Image Gen</span>
+                      )}
+                    </div>
+                    {req.status === 'approved' && (
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-450 mr-1 font-semibold">Approved:</span>
+                        {req.approvedPoolUpgrade && (
+                          <span className="text-[9px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-450 px-1.5 py-0.5 rounded font-semibold">100M Pool</span>
+                        )}
+                        {req.approvedAllowVision && (
+                          <span className="text-[9px] bg-sky-500/10 text-sky-600 dark:text-sky-400 px-1.5 py-0.5 rounded font-medium">Vision</span>
+                        )}
+                        {req.approvedAllowVoice && (
+                          <span className="text-[9px] bg-violet-500/10 text-violet-600 dark:text-violet-400 px-1.5 py-0.5 rounded font-medium">Voice (STT)</span>
+                        )}
+                        {req.approvedAllowTTS && (
+                          <span className="text-[9px] bg-pink-500/10 text-pink-600 dark:text-pink-400 px-1.5 py-0.5 rounded font-medium">TTS</span>
+                        )}
+                        {req.approvedAllowImageGen && (
+                          <span className="text-[9px] bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded font-medium">Image Gen</span>
+                        )}
+                        {!req.approvedPoolUpgrade && !req.approvedAllowVision && !req.approvedAllowVoice && !req.approvedAllowTTS && !req.approvedAllowImageGen && (
+                          <span className="text-[9px] text-muted-foreground italic">None (Approved with no changes)</span>
+                        )}
+                      </div>
+                    )}
+                    <span className="text-[10px] text-slate-550 dark:text-zinc-500 block mt-1">
                       Submitted on {new Date(req.createdAt).toLocaleDateString()}
                     </span>
                   </div>

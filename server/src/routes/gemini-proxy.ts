@@ -518,7 +518,7 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
       for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
         let route: RouteResult;
         try {
-          route = await routeRequest(0, skipKeys.size > 0 ? skipKeys : undefined, preferredModelId, userId, undefined, undefined, true);
+          route = await routeRequest(0, skipKeys.size > 0 ? skipKeys : undefined, preferredModelId, userId, undefined, undefined, true, (req as any).projectKey);
         } catch (err: any) {
           if (lastError) {
             return res.status(429).json({
@@ -802,7 +802,7 @@ geminiProxyRouter.post('/models/*model', async (req: Request, res: Response) => 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       let route: RouteResult;
       try {
-        route = await routeRequest(estimatedTotal, skipKeys.size > 0 ? skipKeys : undefined, preferredModel, userId, requiredModality, estimatedInputTokens);
+        route = await routeRequest(estimatedTotal, skipKeys.size > 0 ? skipKeys : undefined, preferredModel, userId, requiredModality, estimatedInputTokens, false, (req as any).projectKey);
       } catch (err: any) {
         if (lastError) {
           return res.status(429).json({

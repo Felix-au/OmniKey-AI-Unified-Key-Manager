@@ -452,6 +452,10 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
           enabled: r.enabled === 1,
           isPromoted: r.is_promoted === 1,
           projectLink: r.project_link || '',
+          allowVision: r.allow_vision === 1,
+          allowVoice: r.allow_voice === 1,
+          allowTTS: r.allow_tts === 1,
+          allowImageGen: r.allow_image_gen === 1,
           createdAt: r.created_at,
           userEmail: 'local-dev-user@example.com',
           metrics: {
@@ -479,6 +483,16 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
           projectLink: r.project_link,
           remarks: r.remarks,
           status: r.status,
+          poolUpgrade: r.pool_upgrade === 1,
+          allowVision: r.allow_vision === 1,
+          allowVoice: r.allow_voice === 1,
+          allowTTS: r.allow_tts === 1,
+          allowImageGen: r.allow_image_gen === 1,
+          approvedPoolUpgrade: r.approved_pool_upgrade === 1,
+          approvedAllowVision: r.approved_allow_vision === 1,
+          approvedAllowVoice: r.approved_allow_voice === 1,
+          approvedAllowTTS: r.approved_allow_tts === 1,
+          approvedAllowImageGen: r.approved_allow_image_gen === 1,
           createdAt: r.created_at
         }));
       } catch (err: any) {
@@ -760,6 +774,10 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
           enabled: !!pk.enabled,
           isPromoted: !!pk.isPromoted,
           projectLink: pk.projectLink || '',
+          allowVision: !!pk.allowVision,
+          allowVoice: !!pk.allowVoice,
+          allowTTS: !!pk.allowTTS,
+          allowImageGen: !!pk.allowImageGen,
           createdAt: pk.createdAt,
           userEmail: projectUserEmailMap.get(pk.userId) || pk.userId || 'unknown-user',
           metrics: {
@@ -831,6 +849,16 @@ adminRouter.get('/stats', requireAdminAuth, async (req, res, next) => {
           projectLink: r.projectLink,
           remarks: r.remarks,
           status: r.status,
+          poolUpgrade: !!r.poolUpgrade,
+          allowVision: !!r.allowVision,
+          allowVoice: !!r.allowVoice,
+          allowTTS: !!r.allowTTS,
+          allowImageGen: !!r.allowImageGen,
+          approvedPoolUpgrade: !!r.approvedPoolUpgrade,
+          approvedAllowVision: !!r.approvedAllowVision,
+          approvedAllowVoice: !!r.approvedAllowVoice,
+          approvedAllowTTS: !!r.approvedAllowTTS,
+          approvedAllowImageGen: !!r.approvedAllowImageGen,
           createdAt: r.createdAt.toISOString()
         }));
       } catch (err: any) {
@@ -1044,7 +1072,7 @@ adminRouter.post('/project-funding/:id/approve', requireAdminAuth, async (req, r
 
     if (isLocalDbEnabled()) {
       const db = getDb();
-      const request = db.prepare('SELECT user_id, user_email FROM promo_project_requests WHERE id = ?').get(id) as any;
+      const request = db.prepare('SELECT user_id, user_email, project_key_id, pool_upgrade, allow_vision, allow_voice, allow_tts, allow_image_gen FROM promo_project_requests WHERE id = ?').get(id) as any;
       if (!request) {
         res.status(404).json({ error: { message: 'Funding request not found' } });
         return;
@@ -1052,7 +1080,63 @@ adminRouter.post('/project-funding/:id/approve', requireAdminAuth, async (req, r
       userId = request.user_id;
       userEmail = request.user_email;
 
-      db.prepare("UPDATE promo_project_requests SET status = 'approved' WHERE id = ?").run(id);
+      // Determine approved permissions (defaulting to request values if body fields are not provided)
+      let approvedPoolUpgrade = req.body.poolUpgrade;
+      let approvedAllowVision = req.body.allowVision;
+      let approvedAllowVoice = req.body.allowVoice;
+      let approvedAllowTTS = req.body.allowTTS;
+      let approvedAllowImageGen = req.body.allowImageGen;
+
+      if (approvedPoolUpgrade === undefined && approvedAllowVision === undefined && approvedAllowVoice === undefined && approvedAllowTTS === undefined && approvedAllowImageGen === undefined) {
+        approvedPoolUpgrade = request.pool_upgrade === 1;
+        approvedAllowVision = request.allow_vision === 1;
+        approvedAllowVoice = request.allow_voice === 1;
+        approvedAllowTTS = request.allow_tts === 1;
+        approvedAllowImageGen = request.allow_image_gen === 1;
+      } else {
+        approvedPoolUpgrade = !!approvedPoolUpgrade;
+        approvedAllowVision = !!approvedAllowVision;
+        approvedAllowVoice = !!approvedAllowVoice;
+        approvedAllowTTS = !!approvedAllowTTS;
+        approvedAllowImageGen = !!approvedAllowImageGen;
+      }
+
+      db.prepare(`
+        UPDATE promo_project_requests 
+        SET status = 'approved',
+            approved_pool_upgrade = ?,
+            approved_allow_vision = ?,
+            approved_allow_voice = ?,
+            approved_allow_tts = ?,
+            approved_allow_image_gen = ?
+        WHERE id = ?
+      `).run(
+        approvedPoolUpgrade ? 1 : 0,
+        approvedAllowVision ? 1 : 0,
+        approvedAllowVoice ? 1 : 0,
+        approvedAllowTTS ? 1 : 0,
+        approvedAllowImageGen ? 1 : 0,
+        id
+      );
+
+      // Preserve previously granted permissions via CASE WHEN
+      db.prepare(`
+        UPDATE project_keys
+        SET is_promoted = CASE WHEN ? = 1 THEN 1 ELSE is_promoted END,
+            allow_vision = CASE WHEN ? = 1 THEN 1 ELSE allow_vision END,
+            allow_voice = CASE WHEN ? = 1 THEN 1 ELSE allow_voice END,
+            allow_tts = CASE WHEN ? = 1 THEN 1 ELSE allow_tts END,
+            allow_image_gen = CASE WHEN ? = 1 THEN 1 ELSE allow_image_gen END
+        WHERE id = ?
+      `).run(
+        approvedPoolUpgrade ? 1 : 0,
+        approvedAllowVision ? 1 : 0,
+        approvedAllowVoice ? 1 : 0,
+        approvedAllowTTS ? 1 : 0,
+        approvedAllowImageGen ? 1 : 0,
+        request.project_key_id
+      );
+
     } else {
       const request = await PromoProjectRequest.findById(id);
       if (!request) {
@@ -1062,22 +1146,61 @@ adminRouter.post('/project-funding/:id/approve', requireAdminAuth, async (req, r
       userId = request.userId;
       userEmail = request.userEmail;
 
+      // Determine approved permissions (defaulting to request values if body fields are not provided)
+      let approvedPoolUpgrade = req.body.poolUpgrade;
+      let approvedAllowVision = req.body.allowVision;
+      let approvedAllowVoice = req.body.allowVoice;
+      let approvedAllowTTS = req.body.allowTTS;
+      let approvedAllowImageGen = req.body.allowImageGen;
+
+      if (approvedPoolUpgrade === undefined && approvedAllowVision === undefined && approvedAllowVoice === undefined && approvedAllowTTS === undefined && approvedAllowImageGen === undefined) {
+        approvedPoolUpgrade = !!request.poolUpgrade;
+        approvedAllowVision = !!request.allowVision;
+        approvedAllowVoice = !!request.allowVoice;
+        approvedAllowTTS = !!request.allowTTS;
+        approvedAllowImageGen = !!request.allowImageGen;
+      } else {
+        approvedPoolUpgrade = !!approvedPoolUpgrade;
+        approvedAllowVision = !!approvedAllowVision;
+        approvedAllowVoice = !!approvedAllowVoice;
+        approvedAllowTTS = !!approvedAllowTTS;
+        approvedAllowImageGen = !!approvedAllowImageGen;
+      }
+
       request.status = 'approved';
+      request.approvedPoolUpgrade = approvedPoolUpgrade;
+      request.approvedAllowVision = approvedAllowVision;
+      request.approvedAllowVoice = approvedAllowVoice;
+      request.approvedAllowTTS = approvedAllowTTS;
+      request.approvedAllowImageGen = approvedAllowImageGen;
       await request.save();
 
-      // Upgrade tokensLimit in PromoUser
-      await PromoUser.findOneAndUpdate(
-        { userId },
-        { 
-          userId, 
-          email: userEmail,
-          tokensLimit: 100000000 // 100 Million
-        },
-        { upsert: true, new: true }
-      );
+      // Update project key permissions
+      const pkObj = await ProjectKey.findById(request.projectKeyId);
+      if (pkObj) {
+        if (approvedPoolUpgrade) pkObj.isPromoted = true;
+        if (approvedAllowVision) pkObj.allowVision = true;
+        if (approvedAllowVoice) pkObj.allowVoice = true;
+        if (approvedAllowTTS) pkObj.allowTTS = true;
+        if (approvedAllowImageGen) pkObj.allowImageGen = true;
+        await pkObj.save();
+      }
+
+      // Upgrade tokensLimit in PromoUser if pool upgrade approved
+      if (approvedPoolUpgrade) {
+        await PromoUser.findOneAndUpdate(
+          { userId },
+          { 
+            userId, 
+            email: userEmail,
+            tokensLimit: 100000000 // 100 Million
+          },
+          { upsert: true, new: true }
+        );
+      }
     }
 
-    res.json({ success: true, message: 'Project funding request approved and token pool upgraded to 100M' });
+    res.json({ success: true, message: 'Project funding request approved successfully' });
   } catch (err) {
     next(err);
   }

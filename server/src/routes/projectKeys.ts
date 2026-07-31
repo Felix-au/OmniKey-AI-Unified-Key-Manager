@@ -35,6 +35,10 @@ projectKeysRouter.get('/', async (req: AuthenticatedRequest, res: Response, next
           pk.enabled,
           pk.is_promoted,
           pk.project_link,
+          pk.allow_vision,
+          pk.allow_voice,
+          pk.allow_tts,
+          pk.allow_image_gen,
           pk.created_at,
           COUNT(r.id) as total_requests,
           SUM(CASE WHEN r.status = 'success' THEN 1 ELSE 0 END) as success_requests,
@@ -59,6 +63,10 @@ projectKeysRouter.get('/', async (req: AuthenticatedRequest, res: Response, next
           enabled: r.enabled === 1,
           isPromoted: r.is_promoted === 1,
           projectLink: r.project_link || '',
+          allowVision: r.allow_vision === 1,
+          allowVoice: r.allow_voice === 1,
+          allowTTS: r.allow_tts === 1,
+          allowImageGen: r.allow_image_gen === 1,
           createdAt: r.created_at,
           metrics: {
             totalRequests,
@@ -106,6 +114,10 @@ projectKeysRouter.get('/', async (req: AuthenticatedRequest, res: Response, next
           enabled: r.enabled,
           isPromoted: r.isPromoted,
           projectLink: r.projectLink || '',
+          allowVision: !!r.allowVision,
+          allowVoice: !!r.allowVoice,
+          allowTTS: !!r.allowTTS,
+          allowImageGen: !!r.allowImageGen,
           createdAt: r.createdAt.toISOString(),
           metrics: {
             totalRequests,
@@ -346,6 +358,11 @@ const fundRequestSchema = z.object({
   projectKeyId: z.string().min(1, 'Project key is required'),
   projectLink: z.string().min(1, 'Project link is required'),
   remarks: z.string().optional(),
+  poolUpgrade: z.boolean().optional().default(false),
+  allowVision: z.boolean().optional().default(false),
+  allowVoice: z.boolean().optional().default(false),
+  allowTTS: z.boolean().optional().default(false),
+  allowImageGen: z.boolean().optional().default(false),
 });
 
 projectKeysRouter.post('/fund-request', async (req: AuthenticatedRequest, res: Response, next) => {
@@ -356,7 +373,11 @@ projectKeysRouter.post('/fund-request', async (req: AuthenticatedRequest, res: R
       return;
     }
 
-    const { projectKeyId, projectLink, remarks = '' } = parsed.data;
+    const { projectKeyId, projectLink, remarks = '', poolUpgrade = false, allowVision = false, allowVoice = false, allowTTS = false, allowImageGen = false } = parsed.data;
+    if (!poolUpgrade && !allowVision && !allowVoice && !allowTTS && !allowImageGen) {
+      res.status(400).json({ error: { message: 'You must select at least one access upgrade request option.' } });
+      return;
+    }
     const userId = req.userId!;
     const userEmail = req.userEmail || 'user@example.com';
 
@@ -391,9 +412,15 @@ projectKeysRouter.post('/fund-request', async (req: AuthenticatedRequest, res: R
     if (isLocalDbEnabled()) {
       const db = getDb();
       const result = db.prepare(`
-        INSERT INTO promo_project_requests (user_id, user_email, project_key_id, project_name, project_key, format, project_link, remarks, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
-      `).run(userId, userEmail, projectKeyId, projectName, projectKey, format, projectLink, remarks);
+        INSERT INTO promo_project_requests (
+          user_id, user_email, project_key_id, project_name, project_key, format, project_link, remarks, status,
+          pool_upgrade, allow_vision, allow_voice, allow_tts, allow_image_gen
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?)
+      `).run(
+        userId, userEmail, projectKeyId, projectName, projectKey, format, projectLink, remarks,
+        poolUpgrade ? 1 : 0, allowVision ? 1 : 0, allowVoice ? 1 : 0, allowTTS ? 1 : 0, allowImageGen ? 1 : 0
+      );
       insertedId = result.lastInsertRowid.toString();
     } else {
       const reqObj = await PromoProjectRequest.create({
@@ -405,7 +432,12 @@ projectKeysRouter.post('/fund-request', async (req: AuthenticatedRequest, res: R
         format,
         projectLink,
         remarks,
-        status: 'pending'
+        status: 'pending',
+        poolUpgrade,
+        allowVision,
+        allowVoice,
+        allowTTS,
+        allowImageGen
       });
       insertedId = reqObj._id.toString();
     }
@@ -474,7 +506,12 @@ projectKeysRouter.get('/fund-requests', async (req: AuthenticatedRequest, res: R
     const userId = req.userId!;
     if (isLocalDbEnabled()) {
       const db = getDb();
-      const rows = db.prepare('SELECT id, project_key_id, project_name, project_link, remarks, status, created_at FROM promo_project_requests WHERE user_id = ? ORDER BY created_at DESC').all(userId) as any[];
+      const rows = db.prepare(`
+        SELECT id, project_key_id, project_name, project_link, remarks, status, created_at,
+               pool_upgrade, allow_vision, allow_voice, allow_tts, allow_image_gen,
+               approved_pool_upgrade, approved_allow_vision, approved_allow_voice, approved_allow_tts, approved_allow_image_gen
+        FROM promo_project_requests WHERE user_id = ? ORDER BY created_at DESC
+      `).all(userId) as any[];
       const requests = rows.map(r => ({
         id: r.id.toString(),
         projectKeyId: r.project_key_id,
@@ -482,7 +519,17 @@ projectKeysRouter.get('/fund-requests', async (req: AuthenticatedRequest, res: R
         projectLink: r.project_link,
         remarks: r.remarks,
         status: r.status,
-        createdAt: r.created_at
+        createdAt: r.created_at,
+        poolUpgrade: r.pool_upgrade === 1,
+        allowVision: r.allow_vision === 1,
+        allowVoice: r.allow_voice === 1,
+        allowTTS: r.allow_tts === 1,
+        allowImageGen: r.allow_image_gen === 1,
+        approvedPoolUpgrade: r.approved_pool_upgrade === 1,
+        approvedAllowVision: r.approved_allow_vision === 1,
+        approvedAllowVoice: r.approved_allow_voice === 1,
+        approvedAllowTTS: r.approved_allow_tts === 1,
+        approvedAllowImageGen: r.approved_allow_image_gen === 1,
       }));
       return res.json(requests);
     } else {
@@ -494,7 +541,17 @@ projectKeysRouter.get('/fund-requests', async (req: AuthenticatedRequest, res: R
         projectLink: r.projectLink,
         remarks: r.remarks,
         status: r.status,
-        createdAt: r.createdAt.toISOString()
+        createdAt: r.createdAt.toISOString(),
+        poolUpgrade: !!r.poolUpgrade,
+        allowVision: !!r.allowVision,
+        allowVoice: !!r.allowVoice,
+        allowTTS: !!r.allowTTS,
+        allowImageGen: !!r.allowImageGen,
+        approvedPoolUpgrade: !!r.approvedPoolUpgrade,
+        approvedAllowVision: !!r.approvedAllowVision,
+        approvedAllowVoice: !!r.approvedAllowVoice,
+        approvedAllowTTS: !!r.approvedAllowTTS,
+        approvedAllowImageGen: !!r.approvedAllowImageGen,
       }));
       return res.json(requests);
     }

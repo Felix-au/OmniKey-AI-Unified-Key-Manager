@@ -528,18 +528,64 @@ export default function AdminPage() {
     }
   }
 
+  const [approvedItemsMap, setApprovedItemsMap] = useState<Record<string, {
+    poolUpgrade: boolean;
+    allowVision: boolean;
+    allowVoice: boolean;
+    allowTTS: boolean;
+    allowImageGen: boolean;
+  }>>({})
+
+  useEffect(() => {
+    if (stats?.projectFundingRequests) {
+      const initialMap: Record<string, any> = {};
+      stats.projectFundingRequests.forEach(req => {
+        if (req.status === 'pending' && !approvedItemsMap[req.id]) {
+          initialMap[req.id] = {
+            poolUpgrade: !!req.poolUpgrade,
+            allowVision: !!req.allowVision,
+            allowVoice: !!req.allowVoice,
+            allowTTS: !!req.allowTTS,
+            allowImageGen: !!req.allowImageGen,
+          };
+        }
+      });
+      if (Object.keys(initialMap).length > 0) {
+        setApprovedItemsMap(prev => ({ ...prev, ...initialMap }));
+      }
+    }
+  }, [stats]);
+
+  const handleCheckboxChange = (reqId: string, field: string, val: boolean) => {
+    setApprovedItemsMap(prev => ({
+      ...prev,
+      [reqId]: {
+        ...prev[reqId],
+        [field]: val
+      }
+    }));
+  }
+
   const handleApproveFunding = async (requestId: string) => {
     setError(null)
     setSuccessMsg(null)
     setFundingActionPending(requestId)
     try {
+      const approvals = approvedItemsMap[requestId] || {
+        poolUpgrade: false,
+        allowVision: false,
+        allowVoice: false,
+        allowTTS: false,
+        allowImageGen: false,
+      }
       const base = (import.meta.env.VITE_API_URL || import.meta.env.BASE_URL).replace(/\/$/, '')
       const response = await fetch(`${base}/api/admin/project-funding/${requestId}/approve`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify(approvals)
       })
 
       if (!response.ok) {
@@ -1389,7 +1435,7 @@ export default function AdminPage() {
                           ? 'text-emerald-500 font-medium'
                           : errorRate < 20
                             ? 'text-amber-500 font-medium'
-                            : 'text-rose-500 font-bold'
+                      : 'text-rose-500 font-bold'
 
                       return (
                         <tr key={p.id} className="border-b border-slate-100 dark:border-zinc-800/40 hover:bg-slate-50 dark:hover:bg-zinc-900/10 transition-colors text-slate-700 dark:text-zinc-300">
@@ -1397,8 +1443,33 @@ export default function AdminPage() {
                             <div className="flex items-center gap-2">
                               <span>{p.name}</span>
                               {p.isPromoted && (
-                                <span className="text-[9px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
-                                  Promoted
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 text-[9px] font-semibold select-none">
+                                  <span className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
+                                  Funded (100M)
+                                </span>
+                              )}
+                              {p.allowVision && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400 border border-sky-200 dark:border-sky-500/20 text-[9px] font-semibold select-none">
+                                  <span className="h-1 w-1 rounded-full bg-sky-500" />
+                                  Vision
+                                </span>
+                              )}
+                              {p.allowVoice && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-400 border border-violet-200 dark:border-violet-500/20 text-[9px] font-semibold select-none">
+                                  <span className="h-1 w-1 rounded-full bg-violet-500" />
+                                  Voice
+                                </span>
+                              )}
+                              {p.allowTTS && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-pink-50 text-pink-700 dark:bg-pink-500/10 dark:text-pink-400 border border-pink-200 dark:border-pink-500/20 text-[9px] font-semibold select-none">
+                                  <span className="h-1 w-1 rounded-full bg-pink-500" />
+                                  TTS
+                                </span>
+                              )}
+                              {p.allowImageGen && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 text-[9px] font-semibold select-none">
+                                  <span className="h-1 w-1 rounded-full bg-amber-500" />
+                                  Image Gen
                                 </span>
                               )}
                             </div>
@@ -1659,9 +1730,9 @@ export default function AdminPage() {
                     <tr className="border-b border-slate-200 dark:border-zinc-800 text-slate-500 dark:text-zinc-400 font-bold uppercase tracking-wider">
                       <th className="pb-3 pl-4">Developer</th>
                       <th className="pb-3">Project / App Details</th>
-                      <th className="pb-3 text-center">Format</th>
                       <th className="pb-3">Project Link</th>
                       <th className="pb-3">Remarks</th>
+                      <th className="pb-3 text-left">Access Options</th>
                       <th className="pb-3 text-center">Status</th>
                       <th className="pb-3 text-center">Date Requested</th>
                       <th className="pb-3 text-right pr-4">Actions</th>
@@ -1676,28 +1747,129 @@ export default function AdminPage() {
                             <div className="text-[9px] text-slate-400 dark:text-zinc-500 font-mono mt-0.5">UID: {req.userId}</div>
                           </td>
                           <td className="py-4 font-semibold text-slate-900 dark:text-white">
-                            <div>{req.projectName}</div>
+                            <div className="flex items-center gap-1.5">
+                              <span>{req.projectName}</span>
+                              <span className="text-[9px] bg-slate-100 dark:bg-zinc-800 border px-1.5 py-0.2 rounded capitalize font-mono font-medium">
+                                {req.format}
+                              </span>
+                            </div>
                             <div className="text-[9px] text-slate-400 dark:text-zinc-500 font-mono mt-0.5" title={req.projectKey}>
                               Key: {req.projectKey.slice(0, 15)}...
                             </div>
-                          </td>
-                          <td className="py-4 text-center">
-                            <span className="text-[10px] bg-muted text-muted-foreground border px-2 py-0.5 rounded capitalize font-medium">
-                              {req.format}
-                            </span>
                           </td>
                           <td className="py-4">
                             <a
                               href={req.projectLink.startsWith('http') ? req.projectLink : `https://${req.projectLink}`}
                               target="_blank"
                               rel="noreferrer"
-                              className="text-violet-500 hover:text-violet-400 underline font-medium break-all max-w-[150px] inline-block"
+                              className="text-violet-500 hover:text-violet-400 underline font-medium break-all max-w-[150px] inline-block text-[11px]"
                             >
                               Open Link
                             </a>
                           </td>
-                          <td className="py-4 max-w-xs truncate" title={req.remarks}>
+                          <td className="py-4 max-w-xs truncate text-[11px]" title={req.remarks}>
                             {req.remarks || <span className="text-slate-400 italic">No remarks</span>}
+                          </td>
+                          <td className="py-4">
+                            {req.status === 'pending' ? (
+                              (() => {
+                                const currentApprovals = approvedItemsMap[req.id] || {
+                                  poolUpgrade: false,
+                                  allowVision: false,
+                                  allowVoice: false,
+                                  allowTTS: false,
+                                  allowImageGen: false
+                                };
+                                return (
+                                  <div className="flex flex-col gap-1.5">
+                                    {req.poolUpgrade && (
+                                      <label className="flex items-center gap-2 text-[11px] cursor-pointer select-none">
+                                        <input
+                                          type="checkbox"
+                                          checked={currentApprovals.poolUpgrade}
+                                          onChange={(e) => handleCheckboxChange(req.id, 'poolUpgrade', e.target.checked)}
+                                          className="rounded border-input text-violet-650 focus:ring-violet-500 h-3.5 w-3.5"
+                                        />
+                                        <span className="font-semibold text-slate-700 dark:text-zinc-300">100M Pool</span>
+                                      </label>
+                                    )}
+                                    {req.allowVision && (
+                                      <label className="flex items-center gap-2 text-[11px] cursor-pointer select-none">
+                                        <input
+                                          type="checkbox"
+                                          checked={currentApprovals.allowVision}
+                                          onChange={(e) => handleCheckboxChange(req.id, 'allowVision', e.target.checked)}
+                                          className="rounded border-input text-violet-655 focus:ring-violet-500 h-3.5 w-3.5"
+                                        />
+                                        <span className="font-semibold text-slate-700 dark:text-zinc-300">Vision</span>
+                                      </label>
+                                    )}
+                                    {req.allowVoice && (
+                                      <label className="flex items-center gap-2 text-[11px] cursor-pointer select-none">
+                                        <input
+                                          type="checkbox"
+                                          checked={currentApprovals.allowVoice}
+                                          onChange={(e) => handleCheckboxChange(req.id, 'allowVoice', e.target.checked)}
+                                          className="rounded border-input text-violet-655 focus:ring-violet-500 h-3.5 w-3.5"
+                                        />
+                                        <span className="font-semibold text-slate-700 dark:text-zinc-300">Voice (STT)</span>
+                                      </label>
+                                    )}
+                                    {req.allowTTS && (
+                                      <label className="flex items-center gap-2 text-[11px] cursor-pointer select-none">
+                                        <input
+                                          type="checkbox"
+                                          checked={currentApprovals.allowTTS}
+                                          onChange={(e) => handleCheckboxChange(req.id, 'allowTTS', e.target.checked)}
+                                          className="rounded border-input text-violet-655 focus:ring-violet-500 h-3.5 w-3.5"
+                                        />
+                                        <span className="font-semibold text-slate-700 dark:text-zinc-300">TTS</span>
+                                      </label>
+                                    )}
+                                    {req.allowImageGen && (
+                                      <label className="flex items-center gap-2 text-[11px] cursor-pointer select-none">
+                                        <input
+                                          type="checkbox"
+                                          checked={currentApprovals.allowImageGen}
+                                          onChange={(e) => handleCheckboxChange(req.id, 'allowImageGen', e.target.checked)}
+                                          className="rounded border-input text-violet-655 focus:ring-violet-500 h-3.5 w-3.5"
+                                        />
+                                        <span className="font-semibold text-slate-700 dark:text-zinc-300">Image Gen</span>
+                                      </label>
+                                    )}
+                                  </div>
+                                );
+                              })()
+                            ) : req.status === 'approved' ? (
+                              <div className="flex flex-wrap gap-1 max-w-[120px]">
+                                {req.approvedPoolUpgrade && (
+                                  <span className="text-[9px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-450 px-1.5 py-0.5 rounded font-bold">100M</span>
+                                )}
+                                {req.approvedAllowVision && (
+                                  <span className="text-[9px] bg-sky-500/10 text-sky-600 dark:text-sky-400 px-1.5 py-0.5 rounded font-medium">Vision</span>
+                                )}
+                                {req.approvedAllowVoice && (
+                                  <span className="text-[9px] bg-violet-500/10 text-violet-600 dark:text-violet-400 px-1.5 py-0.5 rounded font-medium">Voice</span>
+                                )}
+                                {req.approvedAllowTTS && (
+                                  <span className="text-[9px] bg-pink-500/10 text-pink-600 dark:text-pink-400 px-1.5 py-0.5 rounded font-medium">TTS</span>
+                                )}
+                                {req.approvedAllowImageGen && (
+                                  <span className="text-[9px] bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded font-medium">Img Gen</span>
+                                )}
+                                {!req.approvedPoolUpgrade && !req.approvedAllowVision && !req.approvedAllowVoice && !req.approvedAllowTTS && !req.approvedAllowImageGen && (
+                                  <span className="text-[9px] text-slate-400 italic">None</span>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="flex flex-wrap gap-1 max-w-[120px] opacity-50 line-through">
+                                {req.poolUpgrade && <span className="text-[9px] bg-slate-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">100M</span>}
+                                {req.allowVision && <span className="text-[9px] bg-slate-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">Vision</span>}
+                                {req.allowVoice && <span className="text-[9px] bg-slate-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">Voice</span>}
+                                {req.allowTTS && <span className="text-[9px] bg-slate-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">TTS</span>}
+                                {req.allowImageGen && <span className="text-[9px] bg-slate-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">Img Gen</span>}
+                              </div>
+                            )}
                           </td>
                           <td className="py-4 text-center">
                             <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${

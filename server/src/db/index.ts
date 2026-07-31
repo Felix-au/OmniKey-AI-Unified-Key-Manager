@@ -55,9 +55,9 @@ export function initDb(dbPath?: string): Database.Database {
   migrateModelsV16(db);
   migrateModelsV17(db);
   migrateModelsV18(db);
-  migrateModelsV19(db);
   migrateModelsV20(db);
   migrateModelsV21(db);
+  migrateModelsV22(db);
   ensureUnifiedKey(db);
   ensureUnifiedGeminiKey(db);
   seedAdmin(db);
@@ -161,6 +161,10 @@ function createTables(db: Database.Database) {
       enabled INTEGER NOT NULL DEFAULT 1,
       is_promoted INTEGER NOT NULL DEFAULT 0,
       project_link TEXT NOT NULL DEFAULT '',
+      allow_vision INTEGER NOT NULL DEFAULT 0,
+      allow_voice INTEGER NOT NULL DEFAULT 0,
+      allow_tts INTEGER NOT NULL DEFAULT 0,
+      allow_image_gen INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
@@ -175,6 +179,16 @@ function createTables(db: Database.Database) {
       project_link TEXT NOT NULL,
       remarks TEXT NOT NULL DEFAULT '',
       status TEXT NOT NULL DEFAULT 'pending',
+      pool_upgrade INTEGER NOT NULL DEFAULT 0,
+      allow_vision INTEGER NOT NULL DEFAULT 0,
+      allow_voice INTEGER NOT NULL DEFAULT 0,
+      allow_tts INTEGER NOT NULL DEFAULT 0,
+      allow_image_gen INTEGER NOT NULL DEFAULT 0,
+      approved_pool_upgrade INTEGER NOT NULL DEFAULT 0,
+      approved_allow_vision INTEGER NOT NULL DEFAULT 0,
+      approved_allow_voice INTEGER NOT NULL DEFAULT 0,
+      approved_allow_tts INTEGER NOT NULL DEFAULT 0,
+      approved_allow_image_gen INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
@@ -1644,6 +1658,36 @@ function migrateModelsV21(db: Database.Database) {
     for (let i = 0; i < missing.length; i++) {
       addFb.run(missing[i].id, maxPriority + i + 1, missing[i].enabled);
     }
+  }
+}
+
+function migrateModelsV22(db: Database.Database) {
+  try {
+    const tableInfo = db.prepare("PRAGMA table_info(project_keys)").all() as any[];
+    const hasAllowVision = tableInfo.some(c => c.name === 'allow_vision');
+    if (!hasAllowVision) {
+      db.prepare("ALTER TABLE project_keys ADD COLUMN allow_vision INTEGER NOT NULL DEFAULT 0").run();
+      db.prepare("ALTER TABLE project_keys ADD COLUMN allow_voice INTEGER NOT NULL DEFAULT 0").run();
+      db.prepare("ALTER TABLE project_keys ADD COLUMN allow_tts INTEGER NOT NULL DEFAULT 0").run();
+      db.prepare("ALTER TABLE project_keys ADD COLUMN allow_image_gen INTEGER NOT NULL DEFAULT 0").run();
+    }
+
+    const reqTableInfo = db.prepare("PRAGMA table_info(promo_project_requests)").all() as any[];
+    const hasPoolUpgrade = reqTableInfo.some(c => c.name === 'pool_upgrade');
+    if (!hasPoolUpgrade) {
+      db.prepare("ALTER TABLE promo_project_requests ADD COLUMN pool_upgrade INTEGER NOT NULL DEFAULT 0").run();
+      db.prepare("ALTER TABLE promo_project_requests ADD COLUMN allow_vision INTEGER NOT NULL DEFAULT 0").run();
+      db.prepare("ALTER TABLE promo_project_requests ADD COLUMN allow_voice INTEGER NOT NULL DEFAULT 0").run();
+      db.prepare("ALTER TABLE promo_project_requests ADD COLUMN allow_tts INTEGER NOT NULL DEFAULT 0").run();
+      db.prepare("ALTER TABLE promo_project_requests ADD COLUMN allow_image_gen INTEGER NOT NULL DEFAULT 0").run();
+      db.prepare("ALTER TABLE promo_project_requests ADD COLUMN approved_pool_upgrade INTEGER NOT NULL DEFAULT 0").run();
+      db.prepare("ALTER TABLE promo_project_requests ADD COLUMN approved_allow_vision INTEGER NOT NULL DEFAULT 0").run();
+      db.prepare("ALTER TABLE promo_project_requests ADD COLUMN approved_allow_voice INTEGER NOT NULL DEFAULT 0").run();
+      db.prepare("ALTER TABLE promo_project_requests ADD COLUMN approved_allow_tts INTEGER NOT NULL DEFAULT 0").run();
+      db.prepare("ALTER TABLE promo_project_requests ADD COLUMN approved_allow_image_gen INTEGER NOT NULL DEFAULT 0").run();
+    }
+  } catch (err: any) {
+    console.warn('[SQLite] Failed to run migration V22:', err.message || err);
   }
 }
 

@@ -227,3 +227,52 @@ export interface RateLimitStatus {
   available: boolean;
   nextResetAt: string | null;
 }
+
+// ---- Project & Funding Types ----
+
+export interface SharedProjectKey {
+  id: string;
+  userId?: string;
+  name: string;
+  projectKey: string;
+  format: 'openai' | 'gemini';
+  enabled: boolean;
+  isPromoted: boolean;
+  projectLink?: string;
+  allowVision: boolean;
+  allowVoice: boolean;
+  allowTTS: boolean;
+  allowImageGen: boolean;
+  createdAt: string;
+  metrics?: {
+    totalRequests: number;
+    successRate: number;
+    totalTokens: number;
+    avgLatencyMs: number;
+    lastUsedAt: string | null;
+  };
+}
+
+export interface SharedFundingRequest {
+  id: string;
+  userId?: string;
+  userEmail?: string;
+  projectKeyId: string;
+  projectName: string;
+  projectKey: string;
+  format: 'openai' | 'gemini';
+  projectLink: string;
+  remarks: string;
+  status: 'pending' | 'approved' | 'rejected';
+  poolUpgrade: boolean;
+  allowVision: boolean;
+  allowVoice: boolean;
+  allowTTS: boolean;
+  allowImageGen: boolean;
+  approvedPoolUpgrade: boolean;
+  approvedAllowVision: boolean;
+  approvedAllowVoice: boolean;
+  approvedAllowTTS: boolean;
+  approvedAllowImageGen: boolean;
+  createdAt: string;
+}

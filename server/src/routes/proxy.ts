@@ -600,7 +600,7 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       let route: RouteResult;
       try {
-        route = await routeRequest(estimatedTotal, skipKeys.size > 0 ? skipKeys : undefined, preferredModel, userId, requiredModality, estimatedInputTokens);
+        route = await routeRequest(estimatedTotal, skipKeys.size > 0 ? skipKeys : undefined, preferredModel, userId, requiredModality, estimatedInputTokens, false, (req as any).projectKey);
       } catch (err: any) {
         if (lastError) {
           res.status(429).json({
@@ -802,7 +802,7 @@ proxyRouter.post('/audio/transcriptions', upload.single('file'), async (req: Req
         return;
       }
 
-      const route = await routeRequest(5000, undefined, preferredModelId, auth.userId, 'audio_input');
+      const route = await routeRequest(5000, undefined, preferredModelId, auth.userId, 'audio_input', undefined, false, (req as any).projectKey);
       recordRequest(route.platform, route.modelId, route.keyId as any);
 
       const base64Audio = req.file.buffer.toString('base64');
@@ -912,7 +912,7 @@ proxyRouter.post('/audio/speech', async (req: Request, res: Response) => {
       }
 
       const estimatedTokens = Math.ceil(input.length / 4) + 1000;
-      const route = await routeRequest(estimatedTokens, undefined, preferredModelId, auth.userId, 'audio_output');
+      const route = await routeRequest(estimatedTokens, undefined, preferredModelId, auth.userId, 'audio_output', undefined, false, (req as any).projectKey);
       recordRequest(route.platform, route.modelId, route.keyId as any);
 
       const body = {
@@ -1088,7 +1088,7 @@ proxyRouter.post('/images/generations', async (req: Request, res: Response) => {
       for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
         let route: RouteResult;
         try {
-          route = await routeRequest(0, skipKeys.size > 0 ? skipKeys : undefined, preferredModelId, auth.userId, undefined, undefined, true);
+          route = await routeRequest(0, skipKeys.size > 0 ? skipKeys : undefined, preferredModelId, auth.userId, undefined, undefined, true, (req as any).projectKey);
         } catch (err: any) {
           if (lastError) {
             res.status(429).json({

@@ -10,6 +10,7 @@ import { ApiKey } from '../models/ApiKey.js';
 import { PromoUser } from '../models/PromoUser.js';
 import { AdminEmail } from '../models/AdminEmail.js';
 import { UserSettings } from '../models/UserSettings.js';
+import { ProjectKey } from '../models/ProjectKey.js';
 
 interface ModelRow {
   id: number;
@@ -151,8 +152,10 @@ export async function routeRequest(
   userId = 'local-dev-user-uid',
   requiredModality?: string,
   estimatedInputTokens?: number,
-  isImageGeneration = false
+  isImageGeneration = false,
+  projectKeyToken?: string
 ): Promise<RouteResult> {
+  let usePromo = false;
 
   if (isLocalDbEnabled()) {
     const db = getDb();
@@ -251,7 +254,6 @@ export async function routeRequest(
     const promo = await PromoUser.findOne({ userId });
     const isPromoActive = promo && promo.tokensUsed < promo.tokensLimit;
 
-    let usePromo = false;
     let fundingUserIds: string[] = [];
 
     if (isPromoActive) {
@@ -271,6 +273,43 @@ export async function routeRequest(
     let chainToUse: Array<{ model: IModel; priority: number; effectivePriority: number }> = [];
 
     if (usePromo) {
+      // Validate requested modalities against project permissions if using promo pool
+      let allowVision = false;
+      let allowVoice = false;
+      let allowTTS = false;
+      let allowImageGen = false;
+
+      if (projectKeyToken) {
+        const pk = await ProjectKey.findOne({ projectKey: projectKeyToken });
+        if (pk) {
+          allowVision = !!pk.allowVision;
+          allowVoice = !!pk.allowVoice;
+          allowTTS = !!pk.allowTTS;
+          allowImageGen = !!pk.allowImageGen;
+        }
+      }
+
+      if (requiredModality === 'vision' && !allowVision) {
+        const err = new Error("Vision capabilities are not enabled for this project's promo pool. Please request access in the Projects page.") as any;
+        err.status = 403;
+        throw err;
+      }
+      if (requiredModality === 'audio_input' && !allowVoice) {
+        const err = new Error("Voice/speech-to-text capabilities are not enabled for this project's promo pool. Please request access in the Projects page.") as any;
+        err.status = 403;
+        throw err;
+      }
+      if (requiredModality === 'audio_output' && !allowTTS) {
+        const err = new Error("Text-to-speech capabilities are not enabled for this project's promo pool. Please request access in the Projects page.") as any;
+        err.status = 403;
+        throw err;
+      }
+      if (isImageGeneration && !allowImageGen) {
+        const err = new Error("Image generation capabilities are not enabled for this project's promo pool. Please request access in the Projects page.") as any;
+        err.status = 403;
+        throw err;
+      }
+
       // Find all enabled real models (exclude virtual promo model itself to avoid infinite loop)
       const promoModels = await Model.find({ enabled: true, modelId: { $ne: 'omnikey-promo' } }).sort({ speedRank: 1 });
       chainToUse = promoModels.map((model, index) => ({
@@ -374,7 +413,7 @@ export async function routeRequest(
             idx++;
 
             // Block promo/funding keys from using Vision/TTS/Voice
-            if (requiredModality && key.userId.toString() !== userId) {
+            if (!usePromo && requiredModality && key.userId.toString() !== userId) {
               continue;
             }
 
@@ -442,7 +481,7 @@ export async function routeRequest(
         idx++;
 
         // Block promo/funding keys from using Vision/TTS/Voice
-        if (requiredModality && key.userId.toString() !== userId) {
+        if (!usePromo && requiredModality && key.userId.toString() !== userId) {
           continue;
         }
 
@@ -478,7 +517,7 @@ export async function routeRequest(
     }
   }
 
-  if ((isImageGeneration || requiredModality) && !isLocalDbEnabled()) {
+  if ((isImageGeneration || requiredModality) && !isLocalDbEnabled() && !usePromo) {
     const hasKeys = await ApiKey.exists({ userId, enabled: true, status: { $ne: 'invalid' } });
     if (!hasKeys) {
       const feature = isImageGeneration ? 'Image generation capabilities' : 'Multimodal capabilities (Vision, Voice, TTS)';
