@@ -4,6 +4,7 @@ import { Helmet } from 'react-helmet-async'
 import { motion, useReducedMotion } from 'motion/react'
 import { GradientDots } from '@/components/ui/gradient-dots'
 import BorderGlow from '@/components/ui/border-glow'
+import { LandingLoader } from '@/components/LandingLoader'
 
 import logoDark from '../assets/logo-dark-theme.webp'
 import logoLight from '../assets/logo-light-theme.webp'
@@ -1616,7 +1617,13 @@ export default function LandingPage() {
   }, [])
 
   return (
-    <div className="h-screen w-full overflow-hidden text-foreground relative">
+    <>
+      <LandingLoader
+        isLoading={isInitializing}
+        progress={initProgress}
+        statusMessage={initStatusMsg}
+      />
+      <div className={`h-screen w-full overflow-hidden text-foreground relative transition-opacity duration-700 ${isInitializing ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
       <Helmet>
         <title>OmniKey AI - One Key. Every Model.</title>
         <meta name="description" content="Route requests across Gemini, Groq, Mistral, and more with automatic fallbacks for 100% uptime. Explore our API proxy gateway with Groq fallback routing and free Gemini API failover." />
@@ -2539,5 +2546,6 @@ export default function LandingPage() {
         </div>
       </footer>
     </div>
+    </>
   )
 }
