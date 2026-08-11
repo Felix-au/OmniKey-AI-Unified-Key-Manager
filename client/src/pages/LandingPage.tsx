@@ -8,6 +8,19 @@ import BorderGlow from '@/components/ui/border-glow'
 import logoDark from '../assets/logo-dark-theme.webp'
 import logoLight from '../assets/logo-light-theme.webp'
 
+const INIT_MESSAGES = [
+  'Initializing backend systems...',
+  'Establishing secure gateway...',
+  'Mounting AI models...',
+  'Synchronizing model providers...',
+  'Initializing multimodal runtime...',
+  'Preparing inference pipeline...',
+  'Warming up AI services...',
+  'Calibrating intelligent routing...',
+  'Connecting model endpoints...',
+  'Almost ready...',
+]
+
 // ── Aurora background CSS ────────────────────────────────────────────────────
 const auroraCSS = `
 @keyframes blob1 {
@@ -1219,6 +1232,9 @@ export default function LandingPage() {
   }, [chat.visible, chat.typing, chat.inputText])
 
   const heroRef = useRef<HTMLElement>(null)
+  const [isInitializing, setIsInitializing] = useState(true)
+  const [initProgress, setInitProgress] = useState(0)
+  const [initStatusMsg, setInitStatusMsg] = useState(INIT_MESSAGES[0])
   const [routedRequestsTarget, setRoutedRequestsTarget] = useState(850.00)
   const [tokensChanneledTarget, setTokensChanneledTarget] = useState(100.00)
   const [successRateTarget, setSuccessRateTarget] = useState(99.98)
@@ -1513,6 +1529,25 @@ export default function LandingPage() {
   }
 
   useEffect(() => {
+    let isMounted = true
+    const startTime = performance.now()
+    const MIN_LOAD_TIME_MS = 1400
+
+    // Preload critical theme logos
+    const criticalAssets = [logoDark, logoLight]
+    const assetPromises = criticalAssets.map(src => {
+      return new Promise<void>((resolve) => {
+        const img = new Image()
+        img.src = src
+        if (img.complete) {
+          resolve()
+        } else {
+          img.onload = () => resolve()
+          img.onerror = () => resolve()
+        }
+      })
+    })
+
     const fetchPublicStats = async () => {
       try {
         const base = (import.meta.env.VITE_API_URL || import.meta.env.BASE_URL).replace(/\/$/, '')
@@ -1541,7 +1576,43 @@ export default function LandingPage() {
       }
     }
 
-    fetchPublicStats()
+    const statsPromise = fetchPublicStats()
+
+    // Smoothly cycle status messages and increment progress
+    let msgIdx = 0
+    const interval = setInterval(() => {
+      if (!isMounted) return
+      setInitProgress(prev => {
+        const delta = Math.random() * 12 + 6
+        const next = Math.min(92, prev + delta)
+        const step = Math.floor((next / 100) * INIT_MESSAGES.length)
+        if (step !== msgIdx && step < INIT_MESSAGES.length) {
+          msgIdx = step
+          setInitStatusMsg(INIT_MESSAGES[msgIdx])
+        }
+        return next
+      })
+    }, 100)
+
+    Promise.all([...assetPromises, statsPromise]).then(() => {
+      const elapsed = performance.now() - startTime
+      const remaining = Math.max(0, MIN_LOAD_TIME_MS - elapsed)
+
+      setTimeout(() => {
+        if (!isMounted) return
+        clearInterval(interval)
+        setInitStatusMsg('Gateway online')
+        setInitProgress(100)
+        setTimeout(() => {
+          if (isMounted) setIsInitializing(false)
+        }, 200)
+      }, remaining)
+    })
+
+    return () => {
+      isMounted = false
+      clearInterval(interval)
+    }
   }, [])
 
   return (
