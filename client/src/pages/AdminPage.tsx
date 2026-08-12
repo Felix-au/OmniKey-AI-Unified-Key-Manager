@@ -1735,7 +1735,7 @@ export default function AdminPage() {
             <section className="bg-white dark:bg-zinc-900/20 border border-slate-200 dark:border-zinc-800/80 rounded-xl p-6 shadow-sm">
               <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2 mb-5">
                 <span className="h-1.5 w-1.5 rounded-full bg-violet-400" />
-                Project Funding Upgrade Requests (10M → 100M)
+                Project Funding Upgrade Requests (1M → 100M)
               </h2>
 
               <div className="overflow-x-auto">

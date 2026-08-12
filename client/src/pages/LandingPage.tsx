@@ -1116,7 +1116,7 @@ const faqData = [
   },
   {
     question: "Is there a free tier for developers?",
-    answer: "Yes, we offer a generous free tier that includes up to 10 million free tokens on signup, access to 18+ providers, basic failover routing, and real-time usage analytics on your dashboard.",
+    answer: "Yes, we offer a generous free tier that includes up to 1 million free tokens on signup, access to 18+ providers, basic failover routing, and real-time usage analytics on your dashboard.",
     tag: "general"
   },
   {
@@ -1805,7 +1805,7 @@ export default function LandingPage() {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 animate-pulse"></span>
                   </span>
-                  <span>Launch Offer: Get 10M tokens free!</span>
+                  <span>Launch Offer: Get 1M tokens free!</span>
                 </div>
               </motion.div>
 

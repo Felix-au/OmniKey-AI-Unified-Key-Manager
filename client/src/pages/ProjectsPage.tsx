@@ -397,7 +397,7 @@ export default function ProjectsPage() {
                     Request Project Upgrades
                   </h2>
                   <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                    Take your project to the next level. You can request to upgrade your default 10 Million promotional token pool to <strong className="text-violet-600 dark:text-violet-400">100 Million tokens</strong>, as well as request special access to advanced multimodal capabilities (Vision, Speech-to-Text, Text-to-Speech, and Image Generation) for this project's key.
+                    Take your project to the next level. You can request to upgrade your default 1 Million promotional token pool to <strong className="text-violet-600 dark:text-violet-400">100 Million tokens</strong>, as well as request special access to advanced multimodal capabilities (Vision, Speech-to-Text, Text-to-Speech, and Image Generation) for this project's key.
                   </p>
                 </div>
 
@@ -583,7 +583,7 @@ export default function ProjectsPage() {
                       </div>
                       <div className="space-y-0.5">
                         <div className="text-xs font-semibold">100M Token Upgrade</div>
-                        <div className="text-[10px] text-muted-foreground/90 leading-snug">Increase pool size from 10M to 100M</div>
+                        <div className="text-[10px] text-muted-foreground/90 leading-snug">Increase pool size from 1M to 100M</div>
                       </div>
                     </label>
                   </div>

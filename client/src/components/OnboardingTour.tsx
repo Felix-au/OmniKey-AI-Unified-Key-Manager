@@ -534,7 +534,7 @@ async function generateCompletion() {
                       Promotional token pool
                     </h2>
                     <span className="text-[10px] text-muted-foreground tabular-nums font-bold">
-                      <span className="text-foreground">9.2M</span> remaining <span className="mx-1">·</span> 92% of 10M
+                      <span className="text-foreground">920K</span> remaining <span className="mx-1">·</span> 92% of 1M
                     </span>
                   </div>
 
@@ -631,7 +631,7 @@ async function generateCompletion() {
                       <div className="flex gap-3 text-[9px] font-bold text-muted-foreground mt-0.5 uppercase tracking-wide">
                         <span>Intel #3</span>
                         <span>Speed #3</span>
-                        <span>10M tok/mo</span>
+                        <span>1M tok/mo</span>
                       </div>
                     </div>
                     <Switch checked={false} readOnly />
