@@ -39,7 +39,7 @@ settingsRouter.get('/api-key', async (req: AuthenticatedRequest, res: Response, 
               userId: req.userId!,
               email: req.userEmail || 'user@example.com',
               tokensUsed: 0,
-              tokensLimit: 10000000
+              tokensLimit: 1000000
             });
             console.log(`[Promo] User ${req.userEmail} registered as promo user #${promoCount + 1}`);
           }

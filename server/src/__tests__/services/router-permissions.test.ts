@@ -86,7 +86,7 @@ describe('Router Permissions Enforcer', () => {
       userId: 'user-uid',
       email: 'user@example.com',
       tokensUsed: 1000,
-      tokensLimit: 10000000
+      tokensLimit: 1000000
     });
 
     (ApiKey.exists as any).mockResolvedValue(false);
