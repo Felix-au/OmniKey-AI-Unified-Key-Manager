@@ -104,7 +104,7 @@ register(new OpenAICompatProvider({
 //
 // Frontier reasoning models (glm-4.7, kimi-k2-thinking, cogito-2.1:671b)
 // regularly take 30-90s on Ollama Cloud Free, so the timeout is bumped from
-// the default 15s. Ollama returns reasoning in `message.reasoning` (not
+// the default 30s. Ollama returns reasoning in `message.reasoning` (not
 // `reasoning_content`) — handled by normalizeChoices.
 register(new OpenAICompatProvider({
   platform: 'ollama',

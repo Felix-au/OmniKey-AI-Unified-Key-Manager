@@ -17,8 +17,8 @@ export class OpenAICompatProvider extends BaseProvider {
   private readonly baseUrl: string;
   private readonly extraHeaders: Record<string, string>;
   private readonly validateUrl?: string;
-  /** Per-provider HTTP timeout override. Cloud APIs finish in ~15s; locally-hosted
-   * inference (llama.cpp / vLLM on CPU) can take 30-120s for long prompts. Default 15000. */
+  /** Per-provider HTTP timeout override. Cloud APIs finish in ~15-30s; locally-hosted
+   * inference (llama.cpp / vLLM on CPU) can take 30-120s for long prompts. Default 30000. */
   private readonly timeoutMs: number;
 
   constructor(opts: {
@@ -35,7 +35,7 @@ export class OpenAICompatProvider extends BaseProvider {
     this.baseUrl = opts.baseUrl;
     this.extraHeaders = opts.extraHeaders ?? {};
     this.validateUrl = opts.validateUrl;
-    this.timeoutMs = opts.timeoutMs ?? 15000;
+    this.timeoutMs = opts.timeoutMs ?? 30000;
   }
 
   async chatCompletion(
