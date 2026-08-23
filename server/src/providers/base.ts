@@ -42,7 +42,7 @@ export abstract class BaseProvider {
   protected async fetchWithTimeout(
     url: string,
     init: RequestInit,
-    timeoutMs = 30000,
+    timeoutMs = 60000,
   ): Promise<Response> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
