@@ -1250,7 +1250,8 @@ adminRouter.post('/project-funding/:id/cancel', requireAdminAuth, async (req, re
       recipientEmail,
       subject,
       emailBodyHtml,
-      messageText
+      messageText,
+      variables = {}
     } = req.body || {};
 
     let userId = '';
@@ -1359,14 +1360,26 @@ adminRouter.post('/project-funding/:id/cancel', requireAdminAuth, async (req, re
       if (apiKey && targetEmail) {
         try {
           const maskedKey = projectKey ? (projectKey.slice(0, 15) + '•'.repeat(24)) : 'N/A';
-          const finalSubject = subject || `Notice: Project Funding Status Update for ${projectName || 'Your Project'} - OmniKey AI`;
-          const defaultMessage = `Following an automated review of your account, we have found that we have canceled your complimentary project funding and special tier status for <strong>${projectName || 'your project'}</strong>.<br/><br/>Your token allocation has been returned to the standard tier quota. Multimodal access (Vision, Voice STT, TTS, Image Gen) and extended promotional budgets have been deactivated for this project key.<br/><br/>Please change to a subscribed plan to restore high-volume routing and unrestricted feature access.`;
+          const serverVarMap: Record<string, string> = {
+            projectName: projectName || 'Your Project',
+            projectKey: maskedKey,
+            userEmail: targetEmail || '',
+            ...(variables && typeof variables === 'object' ? variables : {}),
+          };
+
+          const interpolateServer = (text: string, vars: Record<string, string>) =>
+            text.replace(/\{\{(\w+)\}\}/g, (_, key) => (vars[key] !== undefined && vars[key] !== null) ? String(vars[key]) : `{{${key}}}`);
+
+          const rawSubject = subject || `Notice: Project Funding Status Update for ${projectName || 'Your Project'} - OmniKey AI`;
+          const finalSubject = interpolateServer(rawSubject, serverVarMap);
+          const defaultMessage = `Following an automated review of your account, we have found that we have canceled your complimentary project funding and special tier status for <strong>${projectName || 'your project'}</strong>.<br/><br/>Your token allocation has been returned to the standard tier quota. Multimodal access (Vision, Voice STT, TTS, Image Gen) and extended promotional budgets have been deactivated for this project key.<br/><br/>Please consider switching to a paid tier to restore high-volume routing and unrestricted feature access.`;
+
+          const rawMessage = messageText || defaultMessage;
+          const resolvedMessage = interpolateServer(rawMessage, serverVarMap);
 
           const bodyContent = emailBodyHtml 
             ? emailBodyHtml 
-            : messageText 
-              ? messageText.split(/\n\n+/).map((p: string) => `<p style="margin: 0 0 14px 0;">${p.replace(/\n/g, '<br/>')}</p>`).join('')
-              : `<p style="margin: 0 0 14px 0;">${defaultMessage}</p>`;
+            : resolvedMessage.split(/\n\n+/).map((p: string) => `<p style="margin: 0 0 14px 0;">${p.replace(/\n/g, '<br/>')}</p>`).join('');
 
           const finalHtml = emailBodyHtml ? emailBodyHtml : `
             <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 32px; color: #d1d5db; max-width: 600px; margin: 0 auto; border: 1px solid #2d2d2d; border-radius: 16px; background-color: #111111; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);">

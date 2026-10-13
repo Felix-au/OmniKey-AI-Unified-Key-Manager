@@ -150,12 +150,14 @@ export function CancelFundingModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const resolvedMessage = interpolate(messageText, varMap).trim();
+    const resolvedSubject = interpolate(subject, varMap).trim();
     onConfirm({
       requestId: data.requestId,
       sendEmail,
       recipientEmail: recipientEmail.trim(),
-      subject: subject.trim(),
-      messageText: messageText.trim(),
+      subject: resolvedSubject,
+      messageText: resolvedMessage,
       variables: varMap,
     });
   };
@@ -381,41 +383,36 @@ export function CancelFundingModal({
                       <label className="block text-[11px] font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
                         Live In-Screen Email Preview
                       </label>
-                      <div className="rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-slate-950 p-4 text-xs text-slate-800 dark:text-slate-200 shadow-inner">
-                        <div className="border-b border-rose-500/30 pb-2 mb-3">
-                          <span className="inline-block px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-rose-500/10 text-rose-500 border border-rose-500/20 mb-1">
-                            Funding Status: Cancelled
-                          </span>
-                          <h4 className="font-bold text-sm text-slate-900 dark:text-white">
-                            Important Account Review Notice
+                      <div className="rounded-xl border border-[#2d2d2d] bg-[#111111] p-5 text-xs text-[#d1d5db] shadow-xl">
+                        <div className="border-b-2 border-rose-500 pb-3 mb-4">
+                          <h4 className="font-bold text-base text-[#f9fafb]">
+                            Project Funding Cancelled
                           </h4>
-                          <div className="text-[10px] text-slate-400">OmniKey AI &#8212; Developer Portal</div>
+                          <div className="text-[11px] text-[#6b7280] mt-0.5">OmniKey AI &#8212; Developer Portal</div>
                         </div>
 
-                        <div className="space-y-2 text-[12px] leading-relaxed text-slate-600 dark:text-slate-300">
-                          <p className="font-medium text-slate-900 dark:text-slate-100">Hello {data.userEmail},</p>
+                        <div className="space-y-3 text-[13px] leading-relaxed text-[#d1d5db]">
+                          <p className="font-semibold text-[#f3f4f6]">Hello,</p>
                           {previewText.split(/\n\n+/).map((para, i) => (
                             <p key={i} className="whitespace-pre-line">{para}</p>
                           ))}
                         </div>
 
                         {/\{\{\w+\}\}/.test(previewText) && (
-                          <div className="mt-3 p-2 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-300/40 text-[10px] text-amber-700 dark:text-amber-400 font-medium">
+                          <div className="mt-3 p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[10px] text-amber-400 font-medium">
                             &#x26A0;&#xFE0F; Some variables could not be resolved and will be sent as-is.
                           </div>
                         )}
 
-                        <div className="mt-3 p-2.5 rounded-lg bg-slate-50 dark:bg-zinc-900/60 border border-slate-200 dark:border-zinc-800 text-[11px] space-y-1">
-                          <div><strong>Project:</strong> {data.projectName}</div>
-                          <div><strong>Project Key:</strong>{' '}
-                            <code className="font-mono text-[10px] bg-slate-200 dark:bg-zinc-800 px-1 rounded">{maskedKey}</code>
+                        <div className="mt-4 p-3 rounded-lg bg-[#1a1a1a] border-l-4 border-rose-500 border border-[#2d2d2d] text-[12px] text-[#d1d5db] space-y-1">
+                          <div><strong className="text-[#f3f4f6]">Project:</strong> {data.projectName}</div>
+                          <div><strong className="text-[#f3f4f6]">Project Key:</strong>{' '}
+                            <code className="font-mono text-[11px] bg-[#2d2d2d] text-[#a3a3a3] px-1.5 py-0.5 rounded">{maskedKey}</code>
                           </div>
                         </div>
 
-                        <div className="mt-4 text-center">
-                          <span className="inline-block bg-violet-600 text-white font-semibold text-[11px] px-4 py-1.5 rounded-lg shadow-sm">
-                            View Plans &amp; Subscribe &#x2192;
-                          </span>
+                        <div className="mt-4 pt-3 border-t border-[#2d2d2d] text-center text-[10px] text-[#6b7280]">
+                          OmniKey AI Automated Governance &#8226; Reply to this email if you need assistance.
                         </div>
                       </div>
                     </div>
