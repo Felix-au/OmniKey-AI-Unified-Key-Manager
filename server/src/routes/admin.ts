@@ -1369,24 +1369,21 @@ adminRouter.post('/project-funding/:id/cancel', requireAdminAuth, async (req, re
               : `<p style="margin: 0 0 14px 0;">${defaultMessage}</p>`;
 
           const finalHtml = emailBodyHtml ? emailBodyHtml : `
-            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 32px; color: #1f2937; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 16px; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 32px; color: #d1d5db; max-width: 600px; margin: 0 auto; border: 1px solid #2d2d2d; border-radius: 16px; background-color: #111111; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);">
               <div style="border-bottom: 2px solid #ef4444; padding-bottom: 16px; margin-bottom: 24px;">
-                <h2 style="color: #111827; margin: 0; font-size: 22px; font-weight: 700;">Project Funding Cancelled</h2>
+                <h2 style="color: #f9fafb; margin: 0; font-size: 22px; font-weight: 700;">Project Funding Cancelled</h2>
                 <p style="color: #6b7280; margin: 6px 0 0 0; font-size: 14px;">OmniKey AI - Developer Portal</p>
               </div>
-              <div style="margin-bottom: 24px; line-height: 1.6; font-size: 15px; color: #374151;">
+              <div style="margin-bottom: 24px; line-height: 1.6; font-size: 15px; color: #d1d5db;">
                 <p style="margin: 0 0 14px 0;">Hello,</p>
                 ${bodyContent}
               </div>
-              <div style="background-color: #f9fafb; border-left: 4px solid #ef4444; padding: 16px; border-radius: 6px; margin-bottom: 24px; font-size: 13px;">
-                <p style="margin: 0 0 4px 0;"><strong>Project:</strong> ${projectName || 'N/A'}</p>
-                <p style="margin: 0;"><strong>Project Key:</strong> <code style="font-family: monospace; background: #e5e7eb; padding: 2px 6px; border-radius: 4px;">${maskedKey}</code></p>
+              <div style="background-color: #1a1a1a; border-left: 4px solid #ef4444; padding: 16px; border-radius: 6px; margin-bottom: 24px; font-size: 13px; color: #d1d5db;">
+                <p style="margin: 0 0 4px 0;"><strong style="color: #f3f4f6;">Project:</strong> ${projectName || 'N/A'}</p>
+                <p style="margin: 0;"><strong style="color: #f3f4f6;">Project Key:</strong> <code style="font-family: monospace; background: #2d2d2d; color: #a3a3a3; padding: 2px 6px; border-radius: 4px;">${maskedKey}</code></p>
               </div>
-              <div style="text-align: center; margin: 28px 0 20px 0;">
-                <a href="https://omnikeyai.felixau.in/projects" target="_blank" style="display: inline-block; background-color: #7c3aed; color: #ffffff; font-weight: 600; font-size: 14px; padding: 12px 28px; text-decoration: none; border-radius: 8px;">View Plans & Subscribe</a>
-              </div>
-              <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
-              <p style="font-size: 12px; color: #9ca3af; text-align: center; margin: 0;">OmniKey AI Automated Governance • Reply to this email if you need assistance.</p>
+              <hr style="border: 0; border-top: 1px solid #2d2d2d; margin: 24px 0;" />
+              <p style="font-size: 12px; color: #6b7280; text-align: center; margin: 0;">OmniKey AI Automated Governance • Reply to this email if you need assistance.</p>
             </div>
           `;
 
