@@ -653,11 +653,29 @@ export default function AdminPage() {
     projectKey: string;
     userEmail: string;
   }) => {
+    // Look up live usage metrics from the stats snapshots
+    const matchingProj = stats?.projects?.find(
+      (p) => p.projectKey === req.projectKey
+    )
+    const matchingUser = stats?.users?.find(
+      (u) => u.email === req.userEmail
+    )
+    const totalTokens = matchingProj?.metrics?.totalTokens
+    const totalRequests = matchingProj?.metrics?.totalRequests ?? matchingUser?.requestsCount
+    // costSaved is in USD from the API; convert to INR at 83 ₹/$
+    const costSavedINR = matchingUser?.costSaved != null
+      ? Math.round(matchingUser.costSaved * 83)
+      : totalTokens != null
+        ? Math.round((totalTokens / 1_000_000) * 2.5 * 83)
+        : undefined
     setCancelFundingModalData({
       requestId: req.id,
       projectName: req.projectName,
       projectKey: req.projectKey,
       userEmail: req.userEmail,
+      totalTokens,
+      totalRequests,
+      costSavedINR,
     })
   }
 
@@ -667,6 +685,7 @@ export default function AdminPage() {
     recipientEmail: string;
     subject: string;
     messageText: string;
+    variables: Record<string, string>;
   }) => {
     setError(null)
     setSuccessMsg(null)
@@ -683,7 +702,8 @@ export default function AdminPage() {
           sendEmail: payload.sendEmail,
           recipientEmail: payload.recipientEmail,
           subject: payload.subject,
-          messageText: payload.messageText
+          messageText: payload.messageText,
+          variables: payload.variables,
         })
       })
 
