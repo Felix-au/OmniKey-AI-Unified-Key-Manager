@@ -5,6 +5,7 @@ import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import { Switch } from '@/components/ui/switch'
+import { CancelFundingModal, CancelFundingModalData } from '@/components/CancelFundingModal'
 
 interface AdminStats {
   system: {
@@ -117,7 +118,7 @@ interface AdminStats {
     format: string;
     projectLink: string;
     remarks: string;
-    status: 'pending' | 'approved' | 'rejected';
+    status: 'pending' | 'approved' | 'rejected' | 'cancelled';
     poolUpgrade: boolean;
     allowVision: boolean;
     allowVoice: boolean;
@@ -155,6 +156,8 @@ export default function AdminPage() {
   const [removingPromoUserId, setRemovingPromoUserId] = useState<string | null>(null)
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null)
   const [fundingActionPending, setFundingActionPending] = useState<string | null>(null)
+  const [cancelFundingModalData, setCancelFundingModalData] = useState<CancelFundingModalData | null>(null)
+  const [isCancellingFunding, setIsCancellingFunding] = useState(false)
 
   // Developer accounts sorting
   const [userSortKey, setUserSortKey] = useState<'email' | 'keysCount' | 'requestsCount' | 'tokensConsumed' | 'costSaved' | 'errorRate'>('requestsCount')
@@ -641,6 +644,61 @@ export default function AdminPage() {
       setError(err.message)
     } finally {
       setFundingActionPending(null)
+    }
+  }
+
+  const handleOpenCancelFundingModal = (req: {
+    id: string;
+    projectName: string;
+    projectKey: string;
+    userEmail: string;
+  }) => {
+    setCancelFundingModalData({
+      requestId: req.id,
+      projectName: req.projectName,
+      projectKey: req.projectKey,
+      userEmail: req.userEmail,
+    })
+  }
+
+  const handleConfirmCancelFunding = async (payload: {
+    requestId: string;
+    sendEmail: boolean;
+    recipientEmail: string;
+    subject: string;
+    messageText: string;
+  }) => {
+    setError(null)
+    setSuccessMsg(null)
+    setIsCancellingFunding(true)
+    try {
+      const base = (import.meta.env.VITE_API_URL || import.meta.env.BASE_URL).replace(/\/$/, '')
+      const response = await fetch(`${base}/api/admin/project-funding/${payload.requestId}/cancel`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          sendEmail: payload.sendEmail,
+          recipientEmail: payload.recipientEmail,
+          subject: payload.subject,
+          messageText: payload.messageText
+        })
+      })
+
+      const resData = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(resData.error?.message || 'Failed to cancel project funding')
+      }
+
+      setSuccessMsg(resData.message || 'Project funding cancelled successfully!')
+      setCancelFundingModalData(null)
+      if (token) fetchStats(token)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setIsCancellingFunding(false)
     }
   }
 
@@ -1456,12 +1514,29 @@ export default function AdminPage() {
                           <td className="py-4 pl-4 font-semibold text-slate-900 dark:text-zinc-200">
                             <div className="flex items-center gap-2">
                               <span>{p.name}</span>
-                              {p.isPromoted && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 text-[9px] font-semibold select-none">
-                                  <span className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
-                                  Funded (100M)
-                                </span>
-                              )}
+                              {p.isPromoted && (() => {
+                                const matchingReq = stats?.projectFundingRequests?.find(
+                                  r => (r.projectKeyId === p.id || r.projectKey === p.projectKey) && r.status === 'approved'
+                                );
+                                return (
+                                  <div className="inline-flex items-center gap-1.5">
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 text-[9px] font-semibold select-none">
+                                      <span className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
+                                      Funded (100M)
+                                    </span>
+                                    {matchingReq && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenCancelFundingModal(matchingReq)}
+                                        title="Cancel funding and notify developer"
+                                        className="text-[9px] font-medium text-rose-500 hover:text-rose-400 hover:underline px-1 py-0.5"
+                                      >
+                                        [Revoke]
+                                      </button>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                               {p.allowVision && (
                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400 border border-sky-200 dark:border-sky-500/20 text-[9px] font-semibold select-none">
                                   <span className="h-1 w-1 rounded-full bg-sky-500" />
@@ -1891,6 +1966,8 @@ export default function AdminPage() {
                                 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-450 border border-emerald-500/20'
                                 : req.status === 'rejected'
                                 ? 'bg-rose-500/10 text-rose-600 dark:text-rose-450 border border-rose-500/20'
+                                : req.status === 'cancelled'
+                                ? 'bg-zinc-500/10 text-zinc-400 border border-zinc-500/20'
                                 : 'bg-amber-500/10 text-amber-600 dark:text-amber-450 border border-amber-500/20'
                             }`}>
                               {req.status}
@@ -1921,8 +1998,22 @@ export default function AdminPage() {
                                   Reject
                                 </Button>
                               </div>
+                            ) : req.status === 'approved' ? (
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="xs"
+                                  disabled={fundingActionPending === req.id || isCancellingFunding}
+                                  onClick={() => handleOpenCancelFundingModal(req)}
+                                  className="text-[11px] font-semibold text-rose-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl px-2.5 py-1 h-7 border border-transparent hover:border-rose-500/20"
+                                >
+                                  Cancel Funding
+                                </Button>
+                              </div>
                             ) : (
-                              <span className="text-[10px] text-slate-400 dark:text-zinc-500 italic uppercase font-bold">Processed</span>
+                              <span className="text-[10px] text-slate-400 dark:text-zinc-500 italic uppercase font-bold">
+                                {req.status === 'cancelled' ? 'Cancelled' : 'Processed'}
+                              </span>
                             )}
                           </td>
                         </tr>
@@ -2096,6 +2187,15 @@ export default function AdminPage() {
         onConfirm={executeFlushLogs}
         onCancel={() => setShowFlushConfirm(false)}
         variant="destructive"
+      />
+      <CancelFundingModal
+        isOpen={!!cancelFundingModalData}
+        data={cancelFundingModalData}
+        isSubmitting={isCancellingFunding}
+        onClose={() => {
+          if (!isCancellingFunding) setCancelFundingModalData(null)
+        }}
+        onConfirm={handleConfirmCancelFunding}
       />
     </div>
   )

@@ -37,7 +37,7 @@ interface FundingRequest {
   projectName: string
   projectLink: string
   remarks: string
-  status: 'pending' | 'approved' | 'rejected'
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled'
   poolUpgrade: boolean
   allowVision: boolean
   allowVoice: boolean
@@ -917,12 +917,15 @@ export default function ProjectsPage() {
                   </div>
                   <div>
                     <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${req.status === 'approved'
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                        req.status === 'approved'
                           ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
                           : req.status === 'rejected'
                             ? 'bg-rose-500/10 text-rose-500 border-rose-500/20'
-                            : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                        }`}
+                            : req.status === 'cancelled'
+                              ? 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20'
+                              : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                      }`}
                     >
                       {req.status}
                     </span>
