@@ -38,6 +38,8 @@ export default function CustomCursor() {
 
   const dotElRef = useRef<HTMLDivElement>(null);
   const ringElRef = useRef<HTMLDivElement>(null);
+  // Tracks whether the cursor is currently over a text input / textarea
+  const isOverTextInputRef = useRef(false);
 
   useEffect(() => {
     // 1. Enable custom cursor only on desktop/pointer devices
@@ -75,12 +77,14 @@ export default function CustomCursor() {
       );
 
       if (isTextInput) {
+        isOverTextInputRef.current = true;
         setIsHovered(false);
         setIsMagnetic(false);
         hoverTargetRef.current = null;
         if (ringElRef.current) ringElRef.current.style.opacity = '0';
         if (dotElRef.current) dotElRef.current.style.opacity = '0';
         return;
+
       }
 
       // Restore outer ring / dot visibility if coming back from text input
@@ -115,6 +119,16 @@ export default function CustomCursor() {
     const handleMouseOut = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (!target) return;
+
+      // Clear text-input flag when leaving a text field
+      const leavingTextInput = target.closest(
+        'input[type="text"], input[type="email"], input[type="password"], input[type="search"], input[type="number"], textarea, [contenteditable="true"]'
+      );
+      if (leavingTextInput) {
+        isOverTextInputRef.current = false;
+        if (ringElRef.current) ringElRef.current.style.opacity = '1';
+        if (dotElRef.current) dotElRef.current.style.opacity = '1';
+      }
 
       const interactive = target.closest(
         'a, button, select, input[type="submit"], input[type="button"], [role="button"], .interactive-hover, .cursor-pointer, [class*="cursor-pointer"], .provider-pill, .stat-num'
@@ -201,11 +215,13 @@ export default function CustomCursor() {
       ring.h += (targetH - ring.h) * currentLerp;
       ring.r += (targetR - ring.r) * currentLerp;
 
-      // Update inner dot
+      // Update inner dot — skip if over a text input (browser shows I-beam; hide our ball)
       if (dotElRef.current) {
         dotElRef.current.style.transform = `translate3d(${mouse.x}px, ${mouse.y}px, 0) translate3d(-50%, -50%, 0)`;
-        // Fade out inner dot when wrapping magnetically
-        dotElRef.current.style.opacity = currentMagnetic ? '0' : isClicked ? '0.7' : '1';
+        if (!isOverTextInputRef.current) {
+          // Fade out inner dot when wrapping magnetically
+          dotElRef.current.style.opacity = currentMagnetic ? '0' : isClicked ? '0.7' : '1';
+        }
       }
 
       // Update outer ring

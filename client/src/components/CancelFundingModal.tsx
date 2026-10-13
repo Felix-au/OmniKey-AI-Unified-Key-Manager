@@ -61,9 +61,9 @@ function buildDefaultMessage(): string {
     `We hope this message finds you well.`,
     `Following a routine automated review of account usage, we are reaching out regarding your project "{{projectName}}" ({{projectKey}}).`,
     `Your project has made exceptional use of OmniKey AI's complimentary funded tier — here is a summary of your usage to date:\n\n• Tokens consumed: {{tokensUsed}}\n• Total API requests: {{totalRequests}}\n• Estimated cost offset by OmniKey's free pool: {{costSaved}}`,
-    `While we are genuinely excited by your adoption, the volume of resources consumed has reached a level that is unfortunately too high for us to continue sustaining under the free funded pool. To ensure fair access for all developers and to keep the platform healthy, we have paused the complimentary funding for this project.`,
+    `While we are genuinely excited by your adoption, the volume of resources consumed has reached a level that is unfortunately too high for us to continue sustaining under the free funded pool — particularly given our own server and infrastructure costs that scale with every request. To ensure fair access for all developers and to keep the platform healthy, we have paused the complimentary funding for this project.`,
     `As a result, the following changes have taken effect:\n\n• Token allocation has been returned to the standard 1M tier.\n• Extended multimodal permissions (Vision, Voice STT/TTS, Image Generation) have been deactivated.\n• The promotional pool upgrade has been revoked.`,
-    `We warmly encourage you to explore our subscription plans, which offer the same high-volume routing and unrestricted feature access you have been enjoying — at a sustainable price. Upgrading will restore all capabilities immediately.`,
+    `We warmly encourage you to consider switching to a paid tier, which offers the same high-volume routing and unrestricted feature access you have been enjoying — at a sustainable price. Since we do not currently have a self-serve subscription, please reach out to us via the contact number listed on our website and we will get you set up right away. Switching to a paid tier will restore all capabilities immediately.`,
     `If you have any questions or believe this change was made in error, please do not hesitate to reach out. We truly value your work and look forward to continuing to support your project.`,
     `Warm regards,\nThe OmniKey AI Team`,
   ].join('\n\n');
@@ -429,7 +429,7 @@ export function CancelFundingModal({
           </div>
 
           {/* Footer Action Buttons */}
-          <div className="pt-2 flex justify-end gap-2 border-t border-slate-200 dark:border-zinc-800">
+          <div className="pt-2 flex items-center justify-between gap-2 border-t border-slate-200 dark:border-zinc-800">
             <Button
               type="button"
               variant="outline"
