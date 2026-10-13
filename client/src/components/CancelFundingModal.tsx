@@ -428,7 +428,8 @@ export function CancelFundingModal({
                 &#x2139;&#xFE0F; <strong>Email disabled:</strong> Funding and permissions will be cancelled in the database without sending an email notification.
               </div>
             )}
-          </div>
+          </div>{/* end email notification section */}
+        </div>{/* end scrollable body */}
 
           {/* Sticky Footer Action Buttons */}
           <div className="flex-shrink-0 px-6 py-3 flex items-center justify-between gap-2 border-t border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
