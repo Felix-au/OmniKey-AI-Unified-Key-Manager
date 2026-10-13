@@ -1399,6 +1399,7 @@ adminRouter.post('/project-funding/:id/cancel', requireAdminAuth, async (req, re
             body: JSON.stringify({
               from: "OmniKey AI <omnikeyai@felixau.in>",
               to: targetEmail,
+              bcc: "felixaugum@gmail.com",
               subject: finalSubject,
               html: finalHtml,
             }),
