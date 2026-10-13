@@ -5,7 +5,7 @@ import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import { Switch } from '@/components/ui/switch'
-import { CancelFundingModal, CancelFundingModalData } from '@/components/CancelFundingModal'
+import { CancelFundingModal, type CancelFundingModalData } from '@/components/CancelFundingModal'
 
 interface AdminStats {
   system: {
