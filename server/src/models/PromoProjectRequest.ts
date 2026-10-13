@@ -9,7 +9,7 @@ export interface IPromoProjectRequest extends Document {
   format: 'openai' | 'gemini';
   projectLink: string;
   remarks: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
   poolUpgrade: boolean;
   allowVision: boolean;
   allowVoice: boolean;
@@ -32,7 +32,7 @@ const PromoProjectRequestSchema: Schema = new Schema({
   format: { type: String, required: true, enum: ['openai', 'gemini'] },
   projectLink: { type: String, required: true },
   remarks: { type: String, default: '' },
-  status: { type: String, required: true, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  status: { type: String, required: true, enum: ['pending', 'approved', 'rejected', 'cancelled'], default: 'pending' },
   poolUpgrade: { type: Boolean, default: false },
   allowVision: { type: Boolean, default: false },
   allowVoice: { type: Boolean, default: false },

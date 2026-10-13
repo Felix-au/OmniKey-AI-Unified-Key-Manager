@@ -18,7 +18,7 @@ import { PromoProjectRequest } from '../models/PromoProjectRequest.js';
 export const adminRouter = Router();
 
 // In-memory admin session storage
-const ADMIN_SESSIONS = new Set<string>();
+export const ADMIN_SESSIONS = new Set<string>();
 
 /**
  * Middleware to secure admin endpoints.
@@ -1232,6 +1232,205 @@ adminRouter.post('/project-funding/:id/reject', requireAdminAuth, async (req, re
     }
 
     res.json({ success: true, message: 'Project funding request rejected' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/admin/project-funding/:id/cancel
+ * Secure endpoint to cancel an approved project funding request, revoke special permissions,
+ * revert promotional token limits, and optionally notify the developer via Resend.
+ */
+adminRouter.post('/project-funding/:id/cancel', requireAdminAuth, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const {
+      sendEmail = true,
+      recipientEmail,
+      subject,
+      emailBodyHtml,
+      messageText
+    } = req.body || {};
+
+    let userId = '';
+    let userEmail = '';
+    let projectName = '';
+    let projectKey = '';
+    let projectKeyId = '';
+
+    if (isLocalDbEnabled()) {
+      const db = getDb();
+      const request = db.prepare(`
+        SELECT user_id, user_email, project_key_id, project_name, project_key
+        FROM promo_project_requests
+        WHERE id = ?
+      `).get(id) as any;
+
+      if (!request) {
+        res.status(404).json({ error: { message: 'Funding request not found' } });
+        return;
+      }
+
+      userId = request.user_id;
+      userEmail = request.user_email;
+      projectName = request.project_name;
+      projectKey = request.project_key;
+      projectKeyId = request.project_key_id;
+
+      // Revert request status and approved permission flags in SQLite
+      db.prepare(`
+        UPDATE promo_project_requests 
+        SET status = 'cancelled',
+            approved_pool_upgrade = 0,
+            approved_allow_vision = 0,
+            approved_allow_voice = 0,
+            approved_allow_tts = 0,
+            approved_allow_image_gen = 0
+        WHERE id = ?
+      `).run(id);
+
+      // Revert project key capabilities and promo status
+      db.prepare(`
+        UPDATE project_keys
+        SET is_promoted = 0,
+            allow_vision = 0,
+            allow_voice = 0,
+            allow_tts = 0,
+            allow_image_gen = 0
+        WHERE id = ?
+      `).run(projectKeyId);
+
+    } else {
+      const request = await PromoProjectRequest.findById(id);
+      if (!request) {
+        res.status(404).json({ error: { message: 'Funding request not found' } });
+        return;
+      }
+
+      userId = request.userId;
+      userEmail = request.userEmail;
+      projectName = request.projectName;
+      projectKey = request.projectKey;
+      projectKeyId = request.projectKeyId;
+
+      request.status = 'cancelled';
+      request.approvedPoolUpgrade = false;
+      request.approvedAllowVision = false;
+      request.approvedAllowVoice = false;
+      request.approvedAllowTTS = false;
+      request.approvedAllowImageGen = false;
+      await request.save();
+
+      // Revoke permissions on ProjectKey
+      const pkObj = await ProjectKey.findById(projectKeyId);
+      if (pkObj) {
+        pkObj.isPromoted = false;
+        pkObj.allowVision = false;
+        pkObj.allowVoice = false;
+        pkObj.allowTTS = false;
+        pkObj.allowImageGen = false;
+        await pkObj.save();
+      }
+
+      // Revert PromoUser tokensLimit back to standard 1M if no other approved pool upgrades exist
+      const otherApproved = await PromoProjectRequest.findOne({
+        userId,
+        _id: { $ne: id },
+        status: 'approved',
+        approvedPoolUpgrade: true
+      });
+
+      if (!otherApproved) {
+        await PromoUser.findOneAndUpdate(
+          { userId },
+          { tokensLimit: 1000000 }
+        );
+      }
+    }
+
+    let emailSent = false;
+    let emailError: string | null = null;
+
+    if (sendEmail) {
+      const apiKey = process.env.RESEND_API_KEY;
+      const targetEmail = recipientEmail || userEmail;
+
+      if (apiKey && targetEmail) {
+        try {
+          const maskedKey = projectKey ? (projectKey.slice(0, 15) + '•'.repeat(24)) : 'N/A';
+          const finalSubject = subject || `Notice: Project Funding Status Update for ${projectName || 'Your Project'} - OmniKey AI`;
+          const defaultMessage = `Following an automated review of your account, we have found that we have canceled your complimentary project funding and special tier status for <strong>${projectName || 'your project'}</strong>.<br/><br/>Your token allocation has been returned to the standard tier quota. Multimodal access (Vision, Voice STT, TTS, Image Gen) and extended promotional budgets have been deactivated for this project key.<br/><br/>Please change to a subscribed plan to restore high-volume routing and unrestricted feature access.`;
+
+          const bodyContent = emailBodyHtml 
+            ? emailBodyHtml 
+            : messageText 
+              ? messageText.split(/\n\n+/).map((p: string) => `<p style="margin: 0 0 14px 0;">${p.replace(/\n/g, '<br/>')}</p>`).join('')
+              : `<p style="margin: 0 0 14px 0;">${defaultMessage}</p>`;
+
+          const finalHtml = emailBodyHtml ? emailBodyHtml : `
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 32px; color: #1f2937; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 16px; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+              <div style="border-bottom: 2px solid #ef4444; padding-bottom: 16px; margin-bottom: 24px;">
+                <h2 style="color: #111827; margin: 0; font-size: 22px; font-weight: 700;">Project Funding Cancelled</h2>
+                <p style="color: #6b7280; margin: 6px 0 0 0; font-size: 14px;">OmniKey AI - Developer Portal</p>
+              </div>
+              <div style="margin-bottom: 24px; line-height: 1.6; font-size: 15px; color: #374151;">
+                <p style="margin: 0 0 14px 0;">Hello,</p>
+                ${bodyContent}
+              </div>
+              <div style="background-color: #f9fafb; border-left: 4px solid #ef4444; padding: 16px; border-radius: 6px; margin-bottom: 24px; font-size: 13px;">
+                <p style="margin: 0 0 4px 0;"><strong>Project:</strong> ${projectName || 'N/A'}</p>
+                <p style="margin: 0;"><strong>Project Key:</strong> <code style="font-family: monospace; background: #e5e7eb; padding: 2px 6px; border-radius: 4px;">${maskedKey}</code></p>
+              </div>
+              <div style="text-align: center; margin: 28px 0 20px 0;">
+                <a href="https://omnikeyai.felixau.in/projects" target="_blank" style="display: inline-block; background-color: #7c3aed; color: #ffffff; font-weight: 600; font-size: 14px; padding: 12px 28px; text-decoration: none; border-radius: 8px;">View Plans & Subscribe</a>
+              </div>
+              <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+              <p style="font-size: 12px; color: #9ca3af; text-align: center; margin: 0;">OmniKey AI Automated Governance • Reply to this email if you need assistance.</p>
+            </div>
+          `;
+
+          const response = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              from: "OmniKey AI <omnikeyai@felixau.in>",
+              to: targetEmail,
+              subject: finalSubject,
+              html: finalHtml,
+            }),
+          });
+
+          if (response.ok) {
+            emailSent = true;
+          } else {
+            const errData = await response.json().catch(() => ({}));
+            emailError = (errData as any).message || 'Resend API returned a non-OK status';
+            console.error('[Email] Resend API error cancelling funding:', emailError);
+          }
+        } catch (err: any) {
+          emailError = err.message || 'Failed to dispatch email';
+          console.error('[Email] Failed to dispatch funding cancellation email:', emailError);
+        }
+      } else if (!apiKey) {
+        emailError = 'RESEND_API_KEY is not configured';
+        console.warn('[Email] RESEND_API_KEY is not configured. Skipping cancellation email.');
+      }
+    }
+
+    res.json({
+      success: true,
+      message: emailSent 
+        ? 'Project funding cancelled and developer notified via email' 
+        : sendEmail && emailError
+          ? `Project funding cancelled, but email could not be sent: ${emailError}`
+          : 'Project funding cancelled successfully',
+      emailSent,
+      emailError
+    });
   } catch (err) {
     next(err);
   }

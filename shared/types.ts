@@ -263,7 +263,7 @@ export interface SharedFundingRequest {
   format: 'openai' | 'gemini';
   projectLink: string;
   remarks: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
   poolUpgrade: boolean;
   allowVision: boolean;
   allowVoice: boolean;
