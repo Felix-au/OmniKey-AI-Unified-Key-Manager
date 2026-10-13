@@ -196,8 +196,10 @@ export function CancelFundingModal({
           </button>
         </div>
 
-        {/* Scrollable Content */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
+        {/* Scrollable Content + Sticky Footer */}
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
+          {/* Scrollable body */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-5">
 
           {/* Target Project Summary Callout */}
           <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-4 space-y-2">
@@ -428,8 +430,8 @@ export function CancelFundingModal({
             )}
           </div>
 
-          {/* Footer Action Buttons */}
-          <div className="pt-2 flex items-center justify-between gap-2 border-t border-slate-200 dark:border-zinc-800">
+          {/* Sticky Footer Action Buttons */}
+          <div className="flex-shrink-0 px-6 py-3 flex items-center justify-between gap-2 border-t border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
             <Button
               type="button"
               variant="outline"
